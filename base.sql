@@ -25,7 +25,7 @@ CREATE TABLE SERVICIO (
     nombre_servicio ENUM('Tomografia', 'Rayos X', 'Ultrasonido', 'Electrocardiograma') NOT NULL,
     descripcion TEXT,
     duracion INT, -- minutos
-    precio DECIMAL(10,2) NOT NULL,s
+    precio DECIMAL(10,2) NOT NULL,
     activo BOOLEAN DEFAULT TRUE
 );
 
