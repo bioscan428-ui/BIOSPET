@@ -1,53 +1,11 @@
-:root {
-    --primary: #E68A00;
-    --primary-dark: #CC7A00;
-    --black: #1A1A1A;
-    --white: #FFFFFF;
-    --muted: #F5E6CC;
-    --accent: #F2A33B;
-}
+/* assets/css/estilo.css */
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: 'Segoe UI', Arial, sans-serif;
-    color: var(--black);
-    line-height: 1.6;
-}
-
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
-}
-
-.btn {
-    background: var(--primary);
-    color: var(--white);
-    padding: 12px 30px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-block;
-    font-size: 16px;
-    font-weight: 600;
-    transition: background 0.3s;
-}
-
-.btn:hover {
-    background: var(--primary-dark);
-}
-
+/* --- HEADER Y LOGO --- */
 header {
     background: var(--primary);
     color: var(--white);
-    padding: 20px 0;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 10px 0;
+    box-shadow: var(--shadow-soft);
     position: sticky;
     top: 0;
     z-index: 100;
@@ -60,8 +18,20 @@ header .container {
 }
 
 .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: var(--white);
     font-size: 1.8rem;
     font-weight: bold;
+}
+
+.logo-img {
+    height: 50px;
+    width: auto;
+    display: block;
+    object-fit: contain;
 }
 
 nav a {
@@ -69,8 +39,75 @@ nav a {
     text-decoration: none;
     margin-left: 25px;
     font-weight: 500;
+    transition: 0.3s;
 }
 
 nav a:hover {
     border-bottom: 2px solid var(--white);
+}
+
+/* --- HERO --- */
+.hero {
+    background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), 
+                url('../images/tomografo.jpg');
+    background-size: cover;
+    background-position: center;
+    height: 600px;
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: var(--white);
+}
+
+.hero h1 {
+    font-size: 3.5rem;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+.btn {
+    background: var(--accent);
+    color: var(--white);
+    padding: 12px 30px;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-block;
+    transition: 0.3s;
+}
+
+.btn:hover {
+    background: var(--primary-dark);
+}
+
+/* --- SERVICIOS --- */
+.servicios {
+    padding: 80px 0;
+    background: var(--gray-light);
+}
+
+.grid-servicios {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 30px;
+}
+
+.servicio-card {
+    background: var(--white);
+    padding: 40px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-soft);
+    text-align: center;
+    transition: 0.3s;
+}
+
+.servicio-card:hover {
+    transform: translateY(-10px);
+    box-shadow: var(--shadow-hard);
+}
+
+/* --- FOOTER --- */
+.main-footer {
+    background: var(--black);
+    color: var(--white);
+    padding: 50px 0;
 }

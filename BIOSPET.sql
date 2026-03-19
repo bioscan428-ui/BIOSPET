@@ -1,9 +1,9 @@
--- 1. Tabla DUEÑO (Información de contacto)
+-- 1. Tabla CLIENTE (Información de contacto)
 CREATE TABLE CLIENTE (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(100),
-    ape_pat VARCHAR(100),
-    ape_mat VARCHAR(100),
+    ape_pat VARCHAR(50),
+    ape_mat VARCHAR(50),
     telefono VARCHAR(12),
     email VARCHAR(100)
 );
@@ -16,7 +16,7 @@ CREATE TABLE MASCOTA (
     especie ENUM('Canino', 'Felino', 'Ave', 'Reptil', 'Otro') NOT NULL,
     raza VARCHAR(50),
     fecha_nacimiento DATE,
-    CONSTRAINT fk_cliente FOREIGN KEY (id_cliente) REFERENCES CLIENTE(id_cliente)
+    CONSTRAINT fk_cliente FOREIGN KEY (id_cliente) REFERENCES CLIENTE(id)
 );
 
 -- 3. Tabla SERVICIO (Se mantiene igual, solo asegúrate de llenar el precio)
@@ -42,6 +42,3 @@ CREATE TABLE CITA (
     CONSTRAINT fk_cita_mascota FOREIGN KEY (id_mascota) REFERENCES MASCOTA(id),
     CONSTRAINT fk_cita_servicio FOREIGN KEY (id_servicio) REFERENCES SERVICIO(id)
 );
-
-
-CREATE TABLE 
