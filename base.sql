@@ -42,3 +42,6 @@ CREATE TABLE CITA (
     CONSTRAINT fk_cita_mascota FOREIGN KEY (id_mascota) REFERENCES MASCOTA(id),
     CONSTRAINT fk_cita_servicio FOREIGN KEY (id_servicio) REFERENCES SERVICIO(id)
 );
+
+
+CREATE TABLE
