@@ -1,6 +1,13 @@
 <?php
 // public/citas.php
-require_once __DIR__ . '/../includes/conexion.php';
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+require_once __DIR__ . '/includes/conexion.php'; 
+
+if (!$conn) {
+    die("Error crítico: No se pudo conectar a la base de datos.");
+}
 
 // Obtener servicios activos para el select
 $sql_servicios = "SELECT id, nombre_servicio, precio FROM SERVICIO WHERE activo = 1";
@@ -84,7 +91,7 @@ $result_servicios = $conn->query($sql_servicios);
         <div class="container">
             <h1 style="text-align: center; margin: 40px 0;">Agendar Cita</h1>
             
-            <form action="../controllers/CitaController.php" method="POST" class="form-cita">
+            <form action="controllers/CitaController.php" method="POST" class="form-cita">
                 <div class="form-grid">
                     <h3 style="grid-column: span 2; color: var(--primary);">Datos del Dueño</h3>
                     
@@ -137,18 +144,24 @@ $result_servicios = $conn->query($sql_servicios);
                         <input type="text" name="raza">
                     </div>
 
+                    <div class="form-group">
+                        <label>Fecha de Nacimiento</label>
+                        <input type="date" name="fecha_nacimiento" max="<?php echo date('Y-m-d'); ?>">
+                    </div>
+
+
                     <h3 style="grid-column: span 2; color: var(--primary); margin-top: 20px;">Detalles de la Cita</h3>
                     
-                    <div class="form-group">
-                        <label>Servicio *</label>
-                        <select name="id_servicio" id="servicio" required>
-                            <option value="">Seleccione...</option>
+                    <div class="form-group full-width">
+                        <label>Servicios Requeridos (Puedes marcar varios) *</label>
+                        <div class="servicios-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                             <?php while($row = $result_servicios->fetch_assoc()): ?>
-                                <option value="<?php echo $row['id']; ?>" data-precio="<?php echo $row['precio']; ?>">
-                                    <?php echo $row['nombre_servicio']; ?>
-                                </option>
+                                <label style="font-weight: normal;">
+                                    <input type="checkbox" name="servicios[]" value="<?php echo $row['id']; ?>" data-precio="<?php echo $row['precio']; ?>" class="chk-servicio">
+                                    <?php echo $row['nombre_servicio']; ?> ($<?php echo $row['precio']; ?>)
+                                </label>
                             <?php endwhile; ?>
-                        </select>
+                        </div>
                     </div>
                     
                     <div class="form-group">
