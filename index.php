@@ -87,6 +87,8 @@
                     <h3 class="footer-title">Síguenos</h3>
                     <a href="#" class="footer-link">📱 Facebook</a>
                     <a href="#" class="footer-link">📷 Instagram</a>
+                    <a href="admin/login.php" class="footer-link" style="opacity: 0.5; font-size: 12px;">🔐 Admin</a>
+
                 </div>
             </div>
             <hr class="footer-divider">

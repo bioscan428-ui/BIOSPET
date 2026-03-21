@@ -214,19 +214,6 @@ $result_servicios = $conn->query($sql_servicios);
         </div>
     </footer>
 
-    <script>
-        // Mostrar precio del servicio seleccionado
-        document.getElementById('servicio').addEventListener('change', function() {
-            const selected = this.options[this.selectedIndex];
-            const precio = selected.dataset.precio;
-            const infoDiv = document.getElementById('precio-info');
-            
-            if (precio) {
-                infoDiv.innerHTML = `💰 Precio del servicio: $${parseFloat(precio).toFixed(2)} MXN`;
-            } else {
-                infoDiv.innerHTML = 'Seleccione un servicio para ver el precio';
-            }
-        });
-    </script>
+    <script src = "assets/js/citas.js"></script>
 </body>
 </html>
