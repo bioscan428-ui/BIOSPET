@@ -1,4 +1,6 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 session_start();
 if (!isset($_SESSION['admin_logged'])) {
     header('Location: login.php');
@@ -6,7 +8,7 @@ if (!isset($_SESSION['admin_logged'])) {
 }
 
 require_once __DIR__ . '/../includes/conexion.php';
-require_once __DIR__ . '/../includes/enviar_email.php';  // ← AGREGAR
+require_once __DIR__ . '/../includes/enviar_email.php';  
 
 $id_cita = (int)($_GET['id'] ?? 0);
 $nuevo_estado = $_GET['estado'] ?? '';
