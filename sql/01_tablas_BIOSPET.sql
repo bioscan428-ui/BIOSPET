@@ -18,7 +18,8 @@ CREATE TABLE MASCOTA (
     especie ENUM('Canino', 'Felino', 'Ave', 'Reptil', 'Otro') NOT NULL,
     raza VARCHAR(50),
     fecha_nacimiento DATE,
-    activo BOOLEAN DEFAULT TRUE,  -- ← NUEVO
+    activo BOOLEAN DEFAULT TRUE,
+    genero ENUM('MACHO', 'HEMBRA') --AUN NO ESTA ACTUALIZADO EN LA BD
     CONSTRAINT fk_cliente FOREIGN KEY (id_cliente) REFERENCES CLIENTE(id) ON DELETE RESTRICT 
 );
 
@@ -53,3 +54,159 @@ CREATE TABLE DETALLE_CITA (
     CONSTRAINT fk_detalle_cita FOREIGN KEY (id_cita) REFERENCES CITA(id) ON DELETE CASCADE,
     CONSTRAINT fk_detalle_servicio FOREIGN KEY (id_servicio) REFERENCES SERVICIO(id)
 );
+
+-- ============================================
+-- TABLAS PARA EMPLEADOS
+-- ============================================
+
+-- 6. EMPLEADO (personal de la clínica)
+CREATE TABLE EMPLEADO (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    ape_pat VARCHAR(50),
+    ape_mat VARCHAR(50),
+    email VARCHAR(100) UNIQUE NOT NULL,
+    telefono VARCHAR(15),
+    puesto ENUM('veterinario', 'asistente', 'administrador', 'recepcionista') NOT NULL,
+    especialidad VARCHAR(100), -- para veterinarios: 'radiología', 'cirugía', etc.
+    fecha_contratacion DATE NOT NULL,
+    activo BOOLEAN DEFAULT TRUE,
+    INDEX (puesto),
+    INDEX (email)
+);
+
+-- 7. USUARIO (para acceso al sistema, relacionado con EMPLEADO)
+CREATE TABLE USUARIO (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id_empleado INT NOT NULL,
+    nombre_usuario VARCHAR(50) UNIQUE NOT NULL,
+    contrasena VARCHAR(255) NOT NULL, -- hash de contraseña
+    rol ENUM('admin', 'veterinario', 'asistente', 'recepcionista') NOT NULL DEFAULT 'recepcionista',
+    ultimo_acceso DATETIME,
+    activo BOOLEAN DEFAULT TRUE,
+    CONSTRAINT fk_usuario_empleado FOREIGN KEY (id_empleado) REFERENCES EMPLEADO(id) ON DELETE RESTRICT
+);
+
+-- 8. HORARIO_EMPLEADO (horarios de trabajo)
+CREATE TABLE HORARIO_EMPLEADO (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id_empleado INT NOT NULL,
+    dia_semana ENUM('lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo') NOT NULL,
+    hora_entrada TIME NOT NULL,
+    hora_salida TIME NOT NULL,
+    activo BOOLEAN DEFAULT TRUE,
+    CONSTRAINT fk_horario_empleado FOREIGN KEY (id_empleado) REFERENCES EMPLEADO(id) ON DELETE CASCADE,
+    INDEX (id_empleado, dia_semana)
+);
+
+-- 9. ASIGNACION_CITA (relaciona citas con empleados)
+CREATE TABLE ASIGNACION_CITA (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id_cita INT NOT NULL,
+    id_empleado INT NOT NULL,
+    rol_asignado ENUM('veterinario', 'asistente') NOT NULL,
+    CONSTRAINT fk_asignacion_cita FOREIGN KEY (id_cita) REFERENCES CITA(id) ON DELETE CASCADE,
+    CONSTRAINT fk_asignacion_empleado FOREIGN KEY (id_empleado) REFERENCES EMPLEADO(id) ON DELETE RESTRICT,
+    UNIQUE KEY (id_cita, id_empleado, rol_asignado)
+);
+
+
+-- ============================================
+-- TABLAS PARA INVENTARIO
+-- ============================================
+
+-- 10. CATEGORIA_PRODUCTO
+CREATE TABLE CATEGORIA_PRODUCTO (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    descripcion TEXT,
+    activo BOOLEAN DEFAULT TRUE
+);
+
+-- 11. PROVEEDOR
+CREATE TABLE PROVEEDOR (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    contacto_nombre VARCHAR(100),
+    telefono VARCHAR(15),
+    email VARCHAR(100),
+    direccion TEXT,
+    activo BOOLEAN DEFAULT TRUE,
+    INDEX (nombre)
+);
+
+-- 12. PRODUCTO (inventario)
+CREATE TABLE PRODUCTO (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    descripcion TEXT,
+    codigo_barras VARCHAR(50) UNIQUE,
+    id_categoria INT NOT NULL,
+    precio_compra DECIMAL(10,2) NOT NULL,
+    precio_venta DECIMAL(10,2) NOT NULL,
+    stock_actual INT NOT NULL DEFAULT 0,
+    stock_minimo INT DEFAULT 5,
+    unidad_medida VARCHAR(20) DEFAULT 'pieza',
+    ubicacion VARCHAR(50),
+    fecha_vencimiento DATE,
+    activo BOOLEAN DEFAULT TRUE,
+    CONSTRAINT fk_producto_categoria FOREIGN KEY (id_categoria) REFERENCES CATEGORIA_PRODUCTO(id) ON DELETE RESTRICT,
+    INDEX (nombre),
+    INDEX (codigo_barras)
+);
+
+-- 13. MOVIMIENTO_INVENTARIO (historial de entradas/salidas)
+CREATE TABLE MOVIMIENTO_INVENTARIO (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id_producto INT NOT NULL,
+    tipo ENUM('entrada', 'salida', 'ajuste', 'devolucion') NOT NULL,
+    cantidad INT NOT NULL,
+    motivo TEXT,
+    referencia VARCHAR(100), -- factura, receta, etc.
+    id_empleado INT NOT NULL,
+    fecha_movimiento DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_movimiento_producto FOREIGN KEY (id_producto) REFERENCES PRODUCTO(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_movimiento_empleado FOREIGN KEY (id_empleado) REFERENCES EMPLEADO(id) ON DELETE RESTRICT,
+    INDEX (id_producto),
+    INDEX (fecha_movimiento)
+);
+
+-- 14. COMPRA (registro de compras a proveedores)
+CREATE TABLE COMPRA (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id_proveedor INT NOT NULL,
+    fecha_compra DATE NOT NULL,
+    folio_factura VARCHAR(50),
+    total DECIMAL(10,2) NOT NULL,
+    id_empleado INT NOT NULL,
+    CONSTRAINT fk_compra_proveedor FOREIGN KEY (id_proveedor) REFERENCES PROVEEDOR(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_compra_empleado FOREIGN KEY (id_empleado) REFERENCES EMPLEADO(id) ON DELETE RESTRICT
+);
+
+-- 15. DETALLE_COMPRA (productos por compra)
+CREATE TABLE DETALLE_COMPRA (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id_compra INT NOT NULL,
+    id_producto INT NOT NULL,
+    cantidad INT NOT NULL,
+    precio_unitario DECIMAL(10,2) NOT NULL,
+    subtotal DECIMAL(10,2) NOT NULL,
+    CONSTRAINT fk_detalle_compra FOREIGN KEY (id_compra) REFERENCES COMPRA(id) ON DELETE CASCADE,
+    CONSTRAINT fk_detalle_producto FOREIGN KEY (id_producto) REFERENCES PRODUCTO(id) ON DELETE RESTRICT
+);
+
+-- 16. SERVICIO_PRODUCTO (relación servicios con productos consumibles)
+CREATE TABLE SERVICIO_PRODUCTO (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id_servicio INT NOT NULL,
+    id_producto INT NOT NULL,
+    cantidad_requerida INT NOT NULL DEFAULT 1,
+    CONSTRAINT fk_servicio_producto_servicio FOREIGN KEY (id_servicio) REFERENCES SERVICIO(id) ON DELETE CASCADE,
+    CONSTRAINT fk_servicio_producto_producto FOREIGN KEY (id_producto) REFERENCES PRODUCTO(id) ON DELETE RESTRICT
+);
+
+
+-- ============================================
+-- ÍNDICES ADICIONALES PARA RENDIMIENTO
+-- ============================================
+

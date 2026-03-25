@@ -37,29 +37,15 @@ $result = $conn->query($sql);
     <meta charset="UTF-8">
     <title>Panel Admin - BIOSPET</title>
     <link rel="stylesheet" href="../assets/css/global.css">
-    <style>
-        body { background: var(--muted); }
-        .admin-header { background: var(--primary); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .admin-header a { color: white; text-decoration: none; margin-left: 20px; }
-        .container { max-width: 1400px; margin: 20px auto; padding: 0 20px; }
-        .citas-table { width: 100%; background: white; border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-soft); }
-        .citas-table th, .citas-table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
-        .citas-table th { background: var(--black); color: white; }
-        .citas-table tr:hover { background: #f9f9f9; }
-        .estado-pendiente { background: #ff9800; color: white; padding: 4px 8px; border-radius: 20px; font-size: 12px; }
-        .estado-confirmada { background: #4caf50; color: white; padding: 4px 8px; border-radius: 20px; font-size: 12px; }
-        .estado-cancelada { background: #f44336; color: white; padding: 4px 8px; border-radius: 20px; font-size: 12px; }
-        .estado-completada { background: #2196f3; color: white; padding: 4px 8px; border-radius: 20px; font-size: 12px; }
-        .btn-small { background: var(--primary); color: white; padding: 5px 10px; border-radius: var(--radius-sm); text-decoration: none; font-size: 12px; }
-        .btn-small:hover { background: var(--primary-dark); }
-        .total-citas { background: white; padding: 15px; border-radius: var(--radius-md); margin-bottom: 20px; display: inline-block; }
-    </style>
+    <link rel="stylesheet" href="../assets/css/dashboard.css">
 </head>
 <body>
     <div class="admin-header">
         <h1>🐾 BIOSPET - Panel de Administración</h1>
         <div>
             <a href="dashboard.php">📋 Citas</a>
+            <a href="calendario.php">📅 Calendario</a>
+            <a href="reportes.php">📊 Reportes</a>
             <a href="../index.php" target="_blank">🌐 Ver Sitio</a>
             <a href="logout.php">🚪 Cerrar Sesión</a>
         </div>
