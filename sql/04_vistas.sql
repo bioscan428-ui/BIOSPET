@@ -1,3 +1,11 @@
+-- ============================================
+-- VISTAS BIOSPET - SISTEMA COMPLETO
+-- ============================================
+
+-- ============================================
+-- 1. VISTAS EXISTENTES (CITAS Y SERVICIOS)
+-- ============================================
+
 -- Vista: Citas completas con todos los datos
 CREATE OR REPLACE VIEW vista_citas_completas AS
 SELECT 
@@ -59,4 +67,248 @@ LEFT JOIN SERVICIO s ON dc.id_servicio = s.id
 WHERE m.activo = 1
 ORDER BY m.id, c.fecha_cita DESC;
 
-SELECT * FROM vista_citas_completas LIMIT 5;
+-- ============================================
+-- 2. VISTAS DE CLIENTES Y MASCOTAS
+-- ============================================
+
+-- Vista: Clientes con resumen de actividad
+CREATE OR REPLACE VIEW vista_clientes_activos AS
+SELECT 
+    cl.id,
+    cl.nombre,
+    cl.ape_pat,
+    cl.ape_mat,
+    cl.telefono,
+    cl.email,
+    COUNT(DISTINCT m.id) AS total_mascotas,
+    COUNT(DISTINCT c.id) AS total_citas,
+    SUM(CASE WHEN c.estado = 'completada' THEN 1 ELSE 0 END) AS citas_completadas,
+    SUM(dc.precio_fijado) AS total_gastado
+FROM CLIENTE cl
+LEFT JOIN MASCOTA m ON cl.id = m.id_cliente AND m.activo = 1
+LEFT JOIN CITA c ON m.id = c.id_mascota
+LEFT JOIN DETALLE_CITA dc ON c.id = dc.id_cita
+WHERE cl.activo = 1
+GROUP BY cl.id
+ORDER BY total_gastado DESC;
+
+-- Vista: Mascotas activas con datos completos
+CREATE OR REPLACE VIEW vista_mascotas_completas AS
+SELECT 
+    m.id,
+    m.nombre_mascota,
+    m.especie,
+    m.raza,
+    m.genero,
+    m.fecha_nacimiento,
+    TIMESTAMPDIFF(YEAR, m.fecha_nacimiento, CURDATE()) AS edad_anios,
+    cl.id AS id_dueno,
+    cl.nombre AS nombre_dueno,
+    cl.telefono,
+    COUNT(c.id) AS total_citas,
+    MAX(c.fecha_cita) AS ultima_cita
+FROM MASCOTA m
+JOIN CLIENTE cl ON m.id_cliente = cl.id
+LEFT JOIN CITA c ON m.id = c.id_mascota
+WHERE m.activo = 1
+GROUP BY m.id;
+
+-- ============================================
+-- 3. VISTAS DE EMPLEADOS
+-- ============================================
+
+-- Vista: Empleados activos con asignaciones
+CREATE OR REPLACE VIEW vista_empleados_activos AS
+SELECT 
+    e.id,
+    e.nombre,
+    e.ape_pat,
+    e.ape_mat,
+    e.email,
+    e.telefono,
+    e.puesto,
+    e.especialidad,
+    e.fecha_contratacion,
+    u.nombre_usuario,
+    u.rol,
+    u.ultimo_acceso,
+    COUNT(DISTINCT ac.id_cita) AS citas_asignadas
+FROM EMPLEADO e
+LEFT JOIN USUARIO u ON e.id = u.id_empleado AND u.activo = 1
+LEFT JOIN ASIGNACION_CITA ac ON e.id = ac.id_empleado
+WHERE e.activo = 1
+GROUP BY e.id
+ORDER BY e.puesto, e.nombre;
+
+-- Vista: Citas asignadas por empleado
+CREATE OR REPLACE VIEW vista_citas_por_empleado AS
+SELECT 
+    e.id AS empleado_id,
+    e.nombre AS empleado_nombre,
+    e.puesto,
+    ac.rol_asignado,
+    c.id AS cita_id,
+    c.fecha_cita,
+    c.hora_cita,
+    c.estado,
+    m.nombre_mascota,
+    cl.nombre AS dueno
+FROM ASIGNACION_CITA ac
+JOIN EMPLEADO e ON ac.id_empleado = e.id
+JOIN CITA c ON ac.id_cita = c.id
+JOIN MASCOTA m ON c.id_mascota = m.id
+JOIN CLIENTE cl ON m.id_cliente = cl.id
+WHERE e.activo = 1
+ORDER BY c.fecha_cita DESC, e.nombre;
+
+-- ============================================
+-- 4. VISTAS DE INVENTARIO
+-- ============================================
+
+-- Vista: Productos con stock crítico
+CREATE OR REPLACE VIEW vista_stock_critico AS
+SELECT 
+    p.id,
+    p.nombre,
+    p.codigo_barras,
+    c.nombre AS categoria,
+    p.stock_actual,
+    p.stock_minimo,
+    p.precio_venta,
+    p.ubicacion,
+    p.fecha_vencimiento,
+    DATEDIFF(p.fecha_vencimiento, CURDATE()) AS dias_vencimiento
+FROM PRODUCTO p
+JOIN CATEGORIA_PRODUCTO c ON p.id_categoria = c.id
+WHERE p.activo = 1 
+  AND (p.stock_actual <= p.stock_minimo 
+       OR p.fecha_vencimiento <= DATE_ADD(CURDATE(), INTERVAL 30 DAY))
+ORDER BY p.stock_actual ASC, p.fecha_vencimiento ASC;
+
+-- Vista: Movimientos de inventario recientes
+CREATE OR REPLACE VIEW vista_movimientos_recientes AS
+SELECT 
+    m.id,
+    p.nombre AS producto,
+    m.tipo,
+    m.cantidad,
+    m.motivo,
+    m.referencia,
+    e.nombre AS empleado,
+    m.fecha_movimiento
+FROM MOVIMIENTO_INVENTARIO m
+JOIN PRODUCTO p ON m.id_producto = p.id
+JOIN EMPLEADO e ON m.id_empleado = e.id
+WHERE m.fecha_movimiento >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+ORDER BY m.fecha_movimiento DESC;
+
+-- Vista: Resumen de compras por proveedor
+CREATE OR REPLACE VIEW vista_compras_proveedor AS
+SELECT 
+    pr.id AS proveedor_id,
+    pr.nombre AS proveedor,
+    COUNT(c.id) AS total_compras,
+    SUM(c.total) AS total_gastado,
+    MAX(c.fecha_compra) AS ultima_compra,
+    COUNT(DISTINCT dc.id_producto) AS productos_distintos
+FROM PROVEEDOR pr
+LEFT JOIN COMPRA c ON pr.id = c.id_proveedor
+LEFT JOIN DETALLE_COMPRA dc ON c.id = dc.id_compra
+WHERE pr.activo = 1
+GROUP BY pr.id
+ORDER BY total_gastado DESC;
+
+-- ============================================
+-- 5. VISTAS DE VENTAS
+-- ============================================
+
+-- Vista: Ventas completas
+CREATE OR REPLACE VIEW vista_ventas_completas AS
+SELECT 
+    v.id AS venta_id,
+    v.fecha_venta,
+    v.tipo_comprobante,
+    v.folio,
+    v.subtotal,
+    v.iva,
+    v.total,
+    v.metodo_pago,
+    v.estado,
+    cl.id AS cliente_id,
+    cl.nombre AS cliente_nombre,
+    cl.telefono,
+    e.id AS empleado_id,
+    e.nombre AS empleado_nombre,
+    COUNT(dv.id) AS total_productos,
+    SUM(dv.cantidad) AS total_unidades
+FROM VENTA v
+JOIN CLIENTE cl ON v.id_cliente = cl.id
+JOIN EMPLEADO e ON v.id_empleado = e.id
+LEFT JOIN DETALLE_VENTA dv ON v.id = dv.id_venta
+WHERE v.estado = 'completada'
+GROUP BY v.id
+ORDER BY v.fecha_venta DESC;
+
+-- Vista: Productos más vendidos
+CREATE OR REPLACE VIEW vista_productos_mas_vendidos AS
+SELECT 
+    p.id,
+    p.nombre,
+    p.codigo_barras,
+    cat.nombre AS categoria,
+    SUM(dv.cantidad) AS unidades_vendidas,
+    COUNT(DISTINCT dv.id_venta) AS total_ventas,
+    SUM(dv.subtotal) AS ingresos_generados
+FROM PRODUCTO p
+JOIN CATEGORIA_PRODUCTO cat ON p.id_categoria = cat.id
+JOIN DETALLE_VENTA dv ON p.id = dv.id_producto
+JOIN VENTA v ON dv.id_venta = v.id
+WHERE v.estado = 'completada'
+GROUP BY p.id
+ORDER BY unidades_vendidas DESC
+LIMIT 20;
+
+-- Vista: Pagos por venta
+CREATE OR REPLACE VIEW vista_pagos_venta AS
+SELECT 
+    v.id AS venta_id,
+    v.total AS total_venta,
+    SUM(p.monto) AS total_pagado,
+    v.total - SUM(p.monto) AS saldo_pendiente,
+    COUNT(p.id) AS numero_pagos
+FROM VENTA v
+LEFT JOIN PAGO p ON v.id = p.id_venta
+WHERE v.estado IN ('completada', 'pendiente')
+GROUP BY v.id;
+
+-- ============================================
+-- 6. VISTAS FINANCIERAS
+-- ============================================
+
+-- Vista: Ingresos mensuales consolidados
+CREATE OR REPLACE VIEW vista_ingresos_mensuales AS
+SELECT 
+    DATE_FORMAT(fecha_venta, '%Y-%m') AS mes,
+    COUNT(DISTINCT v.id) AS total_ventas,
+    SUM(v.total) AS ingresos_ventas,
+    COUNT(DISTINCT c.id) AS total_citas,
+    SUM(dc.precio_fijado) AS ingresos_servicios
+FROM VENTA v
+JOIN CLIENTE cl ON v.id_cliente = cl.id
+LEFT JOIN CITA c ON c.id_mascota IN (SELECT id FROM MASCOTA WHERE id_cliente = cl.id)
+LEFT JOIN DETALLE_CITA dc ON c.id = dc.id_cita
+WHERE v.estado = 'completada' AND v.fecha_venta >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+GROUP BY mes
+ORDER BY mes DESC;
+
+-- Vista: Resumen general del negocio
+CREATE OR REPLACE VIEW vista_resumen_negocio AS
+SELECT 
+    (SELECT COUNT(*) FROM CLIENTE WHERE activo = 1) AS clientes_activos,
+    (SELECT COUNT(*) FROM MASCOTA WHERE activo = 1) AS mascotas_activas,
+    (SELECT COUNT(*) FROM EMPLEADO WHERE activo = 1) AS empleados_activos,
+    (SELECT COUNT(*) FROM CITA WHERE estado = 'pendiente') AS citas_pendientes,
+    (SELECT COUNT(*) FROM CITA WHERE estado = 'confirmada') AS citas_confirmadas,
+    (SELECT COUNT(*) FROM PRODUCTO WHERE stock_actual <= stock_minimo AND activo = 1) AS productos_stock_critico,
+    (SELECT SUM(total) FROM VENTA WHERE estado = 'completada' AND fecha_venta >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)) AS ingresos_ultimos_30_dias,
+    (SELECT SUM(total) FROM VENTA WHERE estado = 'completada') AS ingresos_totales;

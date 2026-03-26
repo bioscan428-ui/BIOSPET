@@ -19,7 +19,7 @@ CREATE TABLE MASCOTA (
     raza VARCHAR(50),
     fecha_nacimiento DATE,
     activo BOOLEAN DEFAULT TRUE,
-    genero ENUM('MACHO', 'HEMBRA') --AUN NO ESTA ACTUALIZADO EN LA BD
+    genero ENUM('MACHO', 'HEMBRA'), --AUN NO ESTA ACTUALIZADO EN LA BD
     CONSTRAINT fk_cliente FOREIGN KEY (id_cliente) REFERENCES CLIENTE(id) ON DELETE RESTRICT 
 );
 
@@ -147,7 +147,7 @@ CREATE TABLE PRODUCTO (
     stock_actual INT NOT NULL DEFAULT 0,
     stock_minimo INT DEFAULT 5,
     unidad_medida VARCHAR(20) DEFAULT 'pieza',
-    ubicacion VARCHAR(50),
+    ubicacion VARCHAR(200),
     fecha_vencimiento DATE,
     activo BOOLEAN DEFAULT TRUE,
     CONSTRAINT fk_producto_categoria FOREIGN KEY (id_categoria) REFERENCES CATEGORIA_PRODUCTO(id) ON DELETE RESTRICT,
@@ -158,15 +158,16 @@ CREATE TABLE PRODUCTO (
 -- 13. MOVIMIENTO_INVENTARIO (historial de entradas/salidas)
 CREATE TABLE MOVIMIENTO_INVENTARIO (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    id_producto INT NOT NULL,
+    id_empleado INT NOT NULL,
     tipo ENUM('entrada', 'salida', 'ajuste', 'devolucion') NOT NULL,
     cantidad INT NOT NULL,
     motivo TEXT,
     referencia VARCHAR(100), -- factura, receta, etc.
-    id_empleado INT NOT NULL,
+    id_producto INT NOT NULL,
     fecha_movimiento DATETIME DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_movimiento_producto FOREIGN KEY (id_producto) REFERENCES PRODUCTO(id) ON DELETE RESTRICT,
     CONSTRAINT fk_movimiento_empleado FOREIGN KEY (id_empleado) REFERENCES EMPLEADO(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_movimiento_producto FOREIGN KEY (id_producto) REFERENCES PRODUCTO(id) ON DELETE RESTRICT,
+
     INDEX (id_producto),
     INDEX (fecha_movimiento)
 );
@@ -205,8 +206,70 @@ CREATE TABLE SERVICIO_PRODUCTO (
     CONSTRAINT fk_servicio_producto_producto FOREIGN KEY (id_producto) REFERENCES PRODUCTO(id) ON DELETE RESTRICT
 );
 
+-- ============================================
+-- TABLAS PARA VENTAS (punto de venta)
+-- ============================================
 
--- ============================================
--- ÍNDICES ADICIONALES PARA RENDIMIENTO
--- ============================================
+-- 17. VENTA (cabecera de la venta)
+CREATE TABLE VENTA (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id_cliente INT NOT NULL,
+    id_empleado INT NOT NULL,
+    fecha_venta DATETIME DEFAULT CURRENT_TIMESTAMP,
+    tipo_comprobante ENUM('ticket', 'factura') DEFAULT 'ticket',
+    folio VARCHAR(50),
+    subtotal DECIMAL(10,2) NOT NULL,
+    iva DECIMAL(10,2) DEFAULT 0,
+    total DECIMAL(10,2) NOT NULL,
+    metodo_pago ENUM('efectivo', 'tarjeta', 'transferencia', 'credito') NOT NULL,
+    estado ENUM('completada', 'cancelada', 'pendiente') DEFAULT 'completada',
+    notas TEXT,
+    CONSTRAINT fk_venta_cliente FOREIGN KEY (id_cliente) REFERENCES CLIENTE(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_venta_empleado FOREIGN KEY (id_empleado) REFERENCES EMPLEADO(id) ON DELETE RESTRICT,
+    INDEX (fecha_venta),
+    INDEX (id_cliente)
+);
+
+-- 18. DETALLE_VENTA (productos vendidos)
+CREATE TABLE DETALLE_VENTA (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id_venta INT NOT NULL,
+    id_producto INT NOT NULL,
+    cantidad INT NOT NULL,
+    precio_unitario DECIMAL(10,2) NOT NULL,
+    descuento DECIMAL(10,2) DEFAULT 0,
+    subtotal DECIMAL(10,2) NOT NULL,
+    CONSTRAINT fk_detalle_venta FOREIGN KEY (id_venta) REFERENCES VENTA(id) ON DELETE CASCADE,
+    CONSTRAINT fk_detalle_venta_producto FOREIGN KEY (id_producto) REFERENCES PRODUCTO(id) ON DELETE RESTRICT,
+    INDEX (id_venta)
+);
+
+-- 19. PAGO (registro de pagos, útil para créditos o pagos parciales)
+CREATE TABLE PAGO (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id_venta INT NOT NULL,
+    monto DECIMAL(10,2) NOT NULL,
+    fecha_pago DATETIME DEFAULT CURRENT_TIMESTAMP,
+    metodo_pago ENUM('efectivo', 'tarjeta', 'transferencia') NOT NULL,
+    referencia VARCHAR(100),
+    CONSTRAINT fk_pago_venta FOREIGN KEY (id_venta) REFERENCES VENTA(id) ON DELETE CASCADE
+);
+
+-- 20. FACTURA (si se requiere facturación CFDI)
+CREATE TABLE FACTURA (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id_venta INT NOT NULL,
+    rfc VARCHAR(13) NOT NULL,
+    razon_social VARCHAR(100) NOT NULL,
+    regimen_fiscal VARCHAR(50),
+    uso_cfdi VARCHAR(50),
+    uuid VARCHAR(36) UNIQUE, -- UUID único por factura (evita duplicados)
+    fecha_timbrado DATETIME,
+    xml TEXT,
+    fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_factura_venta FOREIGN KEY (id_venta) REFERENCES VENTA(id) ON DELETE CASCADE,
+    CONSTRAINT uk_factura_venta UNIQUE (id_venta), -- Una venta solo puede tener una factura
+    
+);
+
 
