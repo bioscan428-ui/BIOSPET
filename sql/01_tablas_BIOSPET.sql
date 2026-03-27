@@ -150,6 +150,7 @@ CREATE TABLE PRODUCTO (
     ubicacion VARCHAR(200),
     fecha_vencimiento DATE,
     activo BOOLEAN DEFAULT TRUE,
+    imagen VARCHAR(500),
     CONSTRAINT fk_producto_categoria FOREIGN KEY (id_categoria) REFERENCES CATEGORIA_PRODUCTO(id) ON DELETE RESTRICT,
     INDEX (nombre),
     INDEX (codigo_barras)
@@ -268,7 +269,7 @@ CREATE TABLE FACTURA (
     xml TEXT,
     fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_factura_venta FOREIGN KEY (id_venta) REFERENCES VENTA(id) ON DELETE CASCADE,
-    CONSTRAINT uk_factura_venta UNIQUE (id_venta), -- Una venta solo puede tener una factura
+    CONSTRAINT uk_factura_venta UNIQUE (id_venta) -- Una venta solo puede tener una factura
     
 );
 

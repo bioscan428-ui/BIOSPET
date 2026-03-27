@@ -69,6 +69,7 @@ while ($row = $result->fetch_assoc()) {
         <div>
             <a href="dashboard.php">📋 Citas</a>
             <a href="calendario.php">📅 Calendario</a>
+            <a href="productos.php">🛒 Productos</a>
             <a href="../index.php" target="_blank">🌐 Ver Sitio</a>
             <a href="logout.php">🚪 Cerrar Sesión</a>
         </div>
