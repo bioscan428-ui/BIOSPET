@@ -67,7 +67,7 @@ CREATE TABLE EMPLEADO (
     ape_mat VARCHAR(50),
     email VARCHAR(100) UNIQUE NOT NULL,
     telefono VARCHAR(15),
-    puesto ENUM('veterinario', 'asistente', 'administrador', 'recepcionista') NOT NULL,
+    puesto ENUM('super_admin', 'admin', 'veterinario', 'asistente', 'recepcionista') NOT NULL,
     especialidad VARCHAR(100), -- para veterinarios: 'radiología', 'cirugía', etc.
     fecha_contratacion DATE NOT NULL,
     activo BOOLEAN DEFAULT TRUE,
