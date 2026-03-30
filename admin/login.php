@@ -1,19 +1,66 @@
 <?php
 session_start();
+
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+require_once __DIR__ . '/../includes/conexion.php';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $user = $_POST['usuario'] ?? '';
-    $pass = $_POST['password'] ?? '';
+    $usuario = trim($_POST['usuario'] ?? '');
+    $password = trim($_POST['password'] ?? '');
     
-    // CAMBIA ESTOS DATOS por los que quieras usar
-    $usuario_valido = 'admin';
-    $password_valido = 'biospet2025';
+    $sql = "SELECT u.*, e.nombre, e.ape_pat, e.puesto 
+            FROM USUARIO u
+            JOIN EMPLEADO e ON u.id_empleado = e.id
+            WHERE u.nombre_usuario = ? AND u.activo = 1 AND e.activo = 1";
     
-    if ($user === $usuario_valido && $pass === $password_valido) {
-        $_SESSION['admin_logged'] = true;
-        header('Location: dashboard.php');
-        exit;
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("s", $usuario);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows === 1) {
+        $user = $result->fetch_assoc();
+        
+        if ($password === $user['contrasena']) {
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['empleado_id'] = $user['id_empleado'];
+            $_SESSION['nombre'] = $user['nombre'] . ' ' . $user['ape_pat'];
+            $_SESSION['rol'] = $user['rol'];
+            $_SESSION['usuario'] = $user['nombre_usuario'];
+            
+            // Actualizar último acceso
+            $update = "UPDATE USUARIO SET ultimo_acceso = NOW() WHERE id = ?";
+            $stmt_up = $conn->prepare($update);
+            $stmt_up->bind_param("i", $user['id']);
+            $stmt_up->execute();
+            
+            // Redirigir según rol
+            switch ($user['rol']) {
+                case 'super_admin':
+                    header('Location: dashboard.php');
+                    break;
+                case 'admin':
+                    header('Location: admin_dashboard.php');
+                    break;
+                case 'veterinario':
+                    header('Location: veterinario_dashboard.php');
+                    break;
+                case 'asistente':
+                    header('Location: asistente_dashboard.php');
+                    break;
+                case 'recepcionista':
+                    header('Location: recepcionista_dashboard.php');
+                    break;
+                default:
+                    header('Location: dashboard.php');
+            }
+            exit;
+        } else {
+            $error = "Contraseña incorrecta";
+        }
     } else {
-        $error = "Usuario o contraseña incorrectos";
+        $error = "Usuario no encontrado o inactivo";
     }
 }
 ?>
@@ -21,31 +68,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Admin BIOSPET - Login</title>
+    <title>BIOSPET - Inicio de Sesión</title>
     <link rel="stylesheet" href="../assets/css/global.css">
     <style>
         body { background: var(--muted); display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .login-box { background: var(--white); padding: 40px; border-radius: var(--radius-md); box-shadow: var(--shadow-soft); width: 350px; }
-        .login-box h2 { color: var(--primary); margin-bottom: 20px; text-align: center; }
+        .login-box { background: var(--white); padding: 40px; border-radius: var(--radius-md); box-shadow: var(--shadow-soft); width: 380px; }
+        .login-box h2 { color: var(--primary); margin-bottom: 10px; text-align: center; }
+        .login-box p.subtitle { text-align: center; color: #666; margin-bottom: 25px; font-size: 14px; }
         .form-group { margin-bottom: 15px; }
-        .form-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: var(--radius-sm); }
-        .btn { width: 100%; background: var(--primary); color: white; border: none; padding: 10px; cursor: pointer; }
-        .error { color: red; text-align: center; margin-bottom: 15px; }
+        .form-group input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: var(--radius-sm); font-size: 14px; }
+        .btn { width: 100%; background: var(--primary); color: white; border: none; padding: 12px; cursor: pointer; border-radius: var(--radius-sm); font-size: 16px; font-weight: bold; }
+        .btn:hover { background: var(--primary-dark); }
+        .error { color: red; text-align: center; margin-bottom: 15px; padding: 8px; background: #ffe6e6; border-radius: var(--radius-sm); }
+        .info { text-align: center; margin-top: 20px; font-size: 12px; color: #999; }
     </style>
 </head>
 <body>
     <div class="login-box">
-        <h2>🔐 BIOSPET Admin</h2>
+        <h2>🐾 BIOSPET</h2>
+        <p class="subtitle">Sistema de Gestión Veterinaria</p>
         <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
         <form method="POST">
             <div class="form-group">
-                <input type="text" name="usuario" placeholder="Usuario" required>
+                <input type="text" name="usuario" placeholder="Usuario" required autofocus>
             </div>
             <div class="form-group">
                 <input type="password" name="password" placeholder="Contraseña" required>
             </div>
             <button type="submit" class="btn">Ingresar</button>
         </form>
+        <div class="info">
+            
+        </div>
     </div>
 </body>
 </html>

@@ -8,10 +8,6 @@ require_once __DIR__ . '/includes/conexion.php';
 if (!$conn) {
     die("Error crítico: No se pudo conectar a la base de datos.");
 }
-
-// Obtener servicios activos para el select
-$sql_servicios = "SELECT id, nombre_servicio, precio FROM SERVICIO WHERE activo = 1";
-$result_servicios = $conn->query($sql_servicios);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -61,13 +57,6 @@ $result_servicios = $conn->query($sql_servicios);
         .form-group textarea:focus {
             outline: none;
             border-color: var(--primary);
-        }
-        .precio-info {
-            background: var(--muted);
-            padding: 10px;
-            border-radius: var(--radius-sm);
-            margin-top: 10px;
-            font-size: 1.1rem;
         }
     </style>
 </head>
@@ -149,20 +138,7 @@ $result_servicios = $conn->query($sql_servicios);
                         <input type="date" name="fecha_nacimiento" max="<?php echo date('Y-m-d'); ?>">
                     </div>
 
-
                     <h3 style="grid-column: span 2; color: var(--primary); margin-top: 20px;">Detalles de la Cita</h3>
-                    
-                    <div class="form-group full-width">
-                        <label>Servicios Requeridos (Puedes marcar varios) *</label>
-                        <div class="servicios-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                            <?php while($row = $result_servicios->fetch_assoc()): ?>
-                                <label style="font-weight: normal;">
-                                    <input type="checkbox" name="servicios[]" value="<?php echo $row['id']; ?>" data-precio="<?php echo $row['precio']; ?>" class="chk-servicio">
-                                    <?php echo $row['nombre_servicio']; ?> ($<?php echo $row['precio']; ?>)
-                                </label>
-                            <?php endwhile; ?>
-                        </div>
-                    </div>
                     
                     <div class="form-group">
                         <label>Fecha *</label>
@@ -175,19 +151,16 @@ $result_servicios = $conn->query($sql_servicios);
                     </div>
                     
                     <div class="form-group full-width">
-                        <label>Notas adicionales</label>
-                        <textarea name="notas" rows="4" placeholder="Indicaciones especiales, síntomas, etc."></textarea>
-                    </div>
-
-                    <div class="form-group full-width">
-                        <div class="precio-info" id="precio-info">
-                            Seleccione un servicio para ver el precio
-                        </div>
+                        <label>Motivo de consulta / Síntomas</label>
+                        <textarea name="notas" rows="4" placeholder="Describe los síntomas que presenta tu mascota, desde cuándo, y cualquier detalle importante para el veterinario."></textarea>
                     </div>
                 </div>
                 
-                <button type="submit" class="btn" style="width: 100%; margin-top: 20px;">Confirmar Cita</button>
+                <button type="submit" class="btn" style="width: 100%; margin-top: 20px;">Solicitar Cita</button>
             </form>
+            <p style="text-align: center; margin-top: 20px; color: #666; font-size: 14px;">
+                Una vez enviada tu solicitud, nos comunicaremos contigo para confirmar la cita.
+            </p>
         </div>
     </main>
 
@@ -213,7 +186,5 @@ $result_servicios = $conn->query($sql_servicios);
             <p class="footer-copyright">© <?php echo date('Y'); ?> BIOSPET. Todos los derechos reservados.</p>
         </div>
     </footer>
-
-    <script src = "assets/js/citas.js"></script>
 </body>
 </html>

@@ -7,6 +7,7 @@ CREATE TABLE CLIENTE (
     telefono VARCHAR(15),
     email VARCHAR(100),
     activo BOOLEAN DEFAULT TRUE,  
+    fecha_registro CURRENT_TIMESTAMP() NOT NULL,
     INDEX (telefono)
 );
 

@@ -1,6 +1,15 @@
 <?php
 session_start();
-if (!isset($_SESSION['admin_logged'])) {
+
+// Verificar que el usuario haya iniciado sesión (usando user_id, no admin_logged)
+if (!isset($_SESSION['user_id'])) {
+    header('Location: login.php');
+    exit;
+}
+
+// Opcional: verificar rol para acceso
+if (!in_array($_SESSION['rol'], ['super_admin', 'admin'])) {
+    
     header('Location: login.php');
     exit;
 }
@@ -47,6 +56,9 @@ $result = $conn->query($sql);
             <a href="calendario.php">📅 Calendario</a>
             <a href="reportes.php">📊 Reportes</a>
             <a href="productos.php">🛒 Productos</a>
+            <?php if ($_SESSION['rol'] === 'super_admin'): ?>
+            <a href="usuarios.php">👥 Usuarios</a>
+            <?php endif; ?>
             <a href="../index.php" target="_blank">🌐 Ver Sitio</a>
             <a href="logout.php">🚪 Cerrar Sesión</a>
         </div>
