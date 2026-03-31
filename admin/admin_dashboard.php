@@ -20,13 +20,23 @@ $stats['citas_pendientes'] = $conn->query("SELECT COUNT(*) FROM CITA WHERE estad
 $stats['productos_stock_bajo'] = $conn->query("SELECT COUNT(*) FROM PRODUCTO WHERE stock_actual <= stock_minimo AND activo = 1")->fetch_row()[0];
 $stats['ingresos_mes'] = $conn->query("SELECT IFNULL(SUM(total), 0) FROM VENTA WHERE MONTH(fecha_venta) = MONTH(CURDATE()) AND estado = 'completada'")->fetch_row()[0];
 
-// Últimas citas
-$sql_citas = "SELECT c.id, c.fecha_cita, c.hora_cita, c.estado, m.nombre_mascota, cl.nombre AS dueno
-              FROM CITA c
-              JOIN MASCOTA m ON c.id_mascota = m.id
-              JOIN CLIENTE cl ON m.id_cliente = cl.id
-              ORDER BY c.fecha_cita DESC, c.hora_cita DESC
-              LIMIT 10";
+// Últimas citas (CORREGIDO: usar LEFT JOIN para mostrar citas sin servicios)
+$sql_citas = "SELECT 
+                c.id, 
+                c.fecha_cita, 
+                c.hora_cita, 
+                c.estado, 
+                m.nombre_mascota, 
+                cl.nombre AS dueno,
+                GROUP_CONCAT(s.nombre_servicio SEPARATOR ', ') AS servicios
+            FROM CITA c
+            JOIN MASCOTA m ON c.id_mascota = m.id
+            JOIN CLIENTE cl ON m.id_cliente = cl.id
+            LEFT JOIN DETALLE_CITA dc ON c.id = dc.id_cita
+            LEFT JOIN SERVICIO s ON dc.id_servicio = s.id
+            GROUP BY c.id
+            ORDER BY c.fecha_cita DESC, c.hora_cita DESC
+            LIMIT 10";
 $citas_recientes = $conn->query($sql_citas);
 ?>
 <!DOCTYPE html>
@@ -53,6 +63,7 @@ $citas_recientes = $conn->query($sql_citas);
         .estado-cancelada { background: #f44336; color: white; padding: 4px 8px; border-radius: 20px; font-size: 12px; display: inline-block; }
         .estado-completada { background: #2196f3; color: white; padding: 4px 8px; border-radius: 20px; font-size: 12px; display: inline-block; }
         .btn-nuevo { background: #4caf50; color: white; padding: 10px 20px; border-radius: var(--radius-sm); text-decoration: none; display: inline-block; margin-bottom: 20px; }
+        .sin-servicios { color: #999; font-style: italic; }
     </style>
 </head>
 <body>
@@ -94,7 +105,7 @@ $citas_recientes = $conn->query($sql_citas);
         <h3>📋 Últimas Citas</h3>
         <table class="citas-table">
             <thead>
-                <tr><th>ID</th><th>Fecha</th><th>Hora</th><th>Mascota</th><th>Dueño</th><th>Estado</th><th>Acciones</th></tr>
+                男生<th>ID</th><th>Fecha</th><th>Hora</th><th>Mascota</th><th>Dueño</th><th>Servicios</th><th>Estado</th><th>Acciones</th>\\
             </thead>
             <tbody>
                 <?php while($cita = $citas_recientes->fetch_assoc()): ?>
@@ -104,8 +115,21 @@ $citas_recientes = $conn->query($sql_citas);
                     <td><?php echo $cita['hora_cita']; ?></td>
                     <td><?php echo htmlspecialchars($cita['nombre_mascota']); ?></td>
                     <td><?php echo htmlspecialchars($cita['dueno']); ?></td>
-                    <td><span class="estado-<?php echo $cita['estado']; ?>"><?php echo ucfirst($cita['estado']); ?></span></td>
-                    <td><a href="detalle_cita.php?id=<?php echo $cita['id']; ?>" class="btn-small">Ver</a></td>
+                    <td>
+                        <?php if (!empty($cita['servicios'])): ?>
+                            <?php echo $cita['servicios']; ?>
+                        <?php else: ?>
+                            <span class="sin-servicios">(Sin servicios asignados)</span>
+                        <?php endif; ?>
+                    </td>
+                    <td>
+                        <span class="estado-<?php echo $cita['estado']; ?>">
+                            <?php echo ucfirst($cita['estado']); ?>
+                        </span>
+                    </td>
+                    <td>
+                        <a href="detalle_cita.php?id=<?php echo $cita['id']; ?>" class="btn-small">Ver</a>
+                    </td>
                 </tr>
                 <?php endwhile; ?>
             </tbody>

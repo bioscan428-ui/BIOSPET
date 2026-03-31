@@ -1,22 +1,21 @@
 <?php
 session_start();
 
-// Verificar que el usuario haya iniciado sesión (usando user_id, no admin_logged)
+// Verificar que el usuario haya iniciado sesión
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
     exit;
 }
 
-// Opcional: verificar rol para acceso
+// Verificar rol para acceso
 if (!in_array($_SESSION['rol'], ['super_admin', 'admin'])) {
-    
     header('Location: login.php');
     exit;
 }
 
 require_once __DIR__ . '/../includes/conexion.php';
 
-// Obtener todas las citas con datos completos
+// Obtener todas las citas (INCLUYENDO las que NO tienen servicios)
 $sql = "SELECT 
             c.id,
             c.fecha_cita,
@@ -29,12 +28,12 @@ $sql = "SELECT
             cl.telefono,
             cl.email,
             GROUP_CONCAT(s.nombre_servicio SEPARATOR ', ') AS servicios,
-            SUM(dc.precio_fijado) AS total
+            IFNULL(SUM(dc.precio_fijado), 0) AS total
         FROM CITA c
         JOIN MASCOTA m ON c.id_mascota = m.id
         JOIN CLIENTE cl ON m.id_cliente = cl.id
-        JOIN DETALLE_CITA dc ON c.id = dc.id_cita
-        JOIN SERVICIO s ON dc.id_servicio = s.id
+        LEFT JOIN DETALLE_CITA dc ON c.id = dc.id_cita
+        LEFT JOIN SERVICIO s ON dc.id_servicio = s.id
         GROUP BY c.id
         ORDER BY c.fecha_cita DESC, c.hora_cita DESC";
 
@@ -47,6 +46,10 @@ $result = $conn->query($sql);
     <title>Panel Admin - BIOSPET</title>
     <link rel="stylesheet" href="../assets/css/global.css">
     <link rel="stylesheet" href="../assets/css/dashboard.css">
+    <style>
+        .sin-servicios { color: #999; font-style: italic; }
+        .total-citas { background: white; padding: 15px; border-radius: var(--radius-md); margin-bottom: 20px; display: inline-block; }
+    </style>
 </head>
 <body>
     <div class="admin-header">
@@ -71,7 +74,7 @@ $result = $conn->query($sql);
 
         <table class="citas-table">
             <thead>
-                <tr>
+                构建
                     <th>ID</th>
                     <th>Fecha</th>
                     <th>Hora</th>
@@ -81,7 +84,7 @@ $result = $conn->query($sql);
                     <th>Total</th>
                     <th>Estado</th>
                     <th>Acciones</th>
-                </tr>
+                </
             </thead>
             <tbody>
                 <?php while($row = $result->fetch_assoc()): ?>
@@ -93,10 +96,17 @@ $result = $conn->query($sql);
                         <?php echo htmlspecialchars($row['nombre_dueno']); ?><br>
                         <small><?php echo $row['telefono']; ?></small>
                     </td>
-                    <td><?php echo htmlspecialchars($row['nombre_mascota']); ?><br>
+                    <td>
+                        <?php echo htmlspecialchars($row['nombre_mascota']); ?><br>
                         <small><?php echo $row['especie']; ?></small>
                     </td>
-                    <td><?php echo $row['servicios']; ?></td>
+                    <td>
+                        <?php if (!empty($row['servicios'])): ?>
+                            <?php echo $row['servicios']; ?>
+                        <?php else: ?>
+                            <span class="sin-servicios">(Sin servicios asignados)</span>
+                        <?php endif; ?>
+                    </td>
                     <td>$<?php echo number_format($row['total'], 2); ?></td>
                     <td>
                         <span class="estado-<?php echo $row['estado']; ?>">
@@ -105,8 +115,12 @@ $result = $conn->query($sql);
                     </td>
                     <td>
                         <a href="detalle_cita.php?id=<?php echo $row['id']; ?>" class="btn-small">Ver</a>
-                        <a href="actualizar_estado.php?id=<?php echo $row['id']; ?>&estado=confirmada" class="btn-small">Confirmar</a>
-                        <a href="actualizar_estado.php?id=<?php echo $row['id']; ?>&estado=cancelada" class="btn-small" style="background:#f44336;">Cancelar</a>
+                        <?php if ($row['estado'] == 'pendiente'): ?>
+                            <a href="actualizar_estado.php?id=<?php echo $row['id']; ?>&estado=confirmada" class="btn-small">Confirmar</a>
+                        <?php endif; ?>
+                        <?php if ($row['estado'] != 'cancelada' && $row['estado'] != 'completada'): ?>
+                            <a href="actualizar_estado.php?id=<?php echo $row['id']; ?>&estado=cancelada" class="btn-small" style="background:#f44336;">Cancelar</a>
+                        <?php endif; ?>
                     </td>
                 </tr>
                 <?php endwhile; ?>
