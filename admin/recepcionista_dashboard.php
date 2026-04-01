@@ -10,8 +10,8 @@ if (!isset($_SESSION['user_id']) || $_SESSION['rol'] !== 'recepcionista') {
 
 require_once __DIR__ . '/../includes/conexion.php';
 
-// Obtener citas de hoy
-$sql_hoy = "SELECT c.id, c.hora_cita, c.estado, m.nombre_mascota, cl.nombre AS dueno, cl.telefono
+// Obtener citas de hoy (con foto y notas)
+$sql_hoy = "SELECT c.id, c.hora_cita, c.estado, c.notas, m.nombre_mascota, m.foto, cl.nombre AS dueno, cl.telefono
             FROM CITA c
             JOIN MASCOTA m ON c.id_mascota = m.id
             JOIN CLIENTE cl ON m.id_cliente = cl.id
@@ -19,8 +19,8 @@ $sql_hoy = "SELECT c.id, c.hora_cita, c.estado, m.nombre_mascota, cl.nombre AS d
             ORDER BY c.hora_cita";
 $citas_hoy = $conn->query($sql_hoy);
 
-// Obtener citas pendientes por confirmar
-$sql_pendientes = "SELECT c.id, c.fecha_cita, c.hora_cita, m.nombre_mascota, cl.nombre AS dueno, cl.telefono
+// Obtener citas pendientes por confirmar (con foto y notas)
+$sql_pendientes = "SELECT c.id, c.fecha_cita, c.hora_cita, c.notas, m.nombre_mascota, m.foto, cl.nombre AS dueno, cl.telefono
                    FROM CITA c
                    JOIN MASCOTA m ON c.id_mascota = m.id
                    JOIN CLIENTE cl ON m.id_cliente = cl.id
@@ -29,8 +29,8 @@ $sql_pendientes = "SELECT c.id, c.fecha_cita, c.hora_cita, m.nombre_mascota, cl.
                    LIMIT 10";
 $citas_pendientes = $conn->query($sql_pendientes);
 
-// Obtener citas de mañana
-$sql_manana = "SELECT c.id, c.hora_cita, m.nombre_mascota, cl.nombre AS dueno, cl.telefono
+// Obtener citas de mañana (con foto)
+$sql_manana = "SELECT c.id, c.hora_cita, m.nombre_mascota, m.foto, cl.nombre AS dueno, cl.telefono
                FROM CITA c
                JOIN MASCOTA m ON c.id_mascota = m.id
                JOIN CLIENTE cl ON m.id_cliente = cl.id
@@ -67,6 +67,51 @@ $clientes_nuevos = $result->fetch_row()[0];
         .stat-mini { text-align: center; }
         .stat-mini .numero { font-size: 1.5rem; font-weight: bold; color: var(--primary); }
         .stat-mini .label { font-size: 0.8rem; color: #666; }
+        .foto-miniatura {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .foto-miniatura:hover {
+            transform: scale(3);
+            z-index: 1000;
+            position: relative;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+        .sintomas-icono {
+            cursor: pointer;
+            font-size: 18px;
+            color: var(--primary);
+        }
+        .sintomas-tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .sintomas-tooltip .tooltip-texto {
+            visibility: hidden;
+            background-color: #333;
+            color: #fff;
+            text-align: left;
+            border-radius: 5px;
+            padding: 8px 12px;
+            position: absolute;
+            z-index: 100;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            font-size: 12px;
+            font-weight: normal;
+            min-width: 200px;
+            white-space: normal;
+        }
+        .sintomas-tooltip:hover .tooltip-texto {
+            visibility: visible;
+        }
     </style>
 </head>
 <body>
@@ -106,25 +151,40 @@ $clientes_nuevos = $result->fetch_row()[0];
         <h3>⏳ Citas Pendientes por Confirmar</h3>
         <table class="citas-table">
             <thead>
-                男生<th>Fecha</th><th>Hora</th><th>Mascota</th><th>Dueño</th><th>Teléfono</th><th>Acciones</th>\\
+                男生<th>Foto</th><th>Fecha</th><th>Hora</th><th>Mascota</th><th>Dueño</th><th>Teléfono</th><th>Síntomas</th><th>Acciones</th>\\
             </thead>
             <tbody>
                 <?php if ($citas_pendientes->num_rows > 0): ?>
                     <?php while($cita = $citas_pendientes->fetch_assoc()): ?>
-                    <tr>
-                        <td><?php echo date('d/m/Y', strtotime($cita['fecha_cita'])); ?>\\
-                        <td><?php echo $cita['hora_cita']; ?>\\
-                        <td><?php echo htmlspecialchars($cita['nombre_mascota']); ?>\\
-                        <td><?php echo htmlspecialchars($cita['dueno']); ?>\\
-                        <td><?php echo $cita['telefono']; ?>\\
+                    牛
+                        <td>
+                            <?php if (!empty($cita['foto']) && file_exists('../' . $cita['foto'])): ?>
+                                <img src="../<?php echo $cita['foto']; ?>" class="foto-miniatura">
+                            <?php else: ?>
+                                <span style="color:#999;">🐾</span>
+                            <?php endif; ?>
+                        </td>
+                        <td><?php echo date('d/m/Y', strtotime($cita['fecha_cita'])); ?></td>
+                        <td><?php echo $cita['hora_cita']; ?></td>
+                        <td><?php echo htmlspecialchars($cita['nombre_mascota']); ?></td>
+                        <td><?php echo htmlspecialchars($cita['dueno']); ?></td>
+                        <td><?php echo $cita['telefono']; ?></td>
+                        <td class="sintomas-tooltip">
+                            <?php if (!empty($cita['notas'])): ?>
+                                <span class="sintomas-icono">📋</span>
+                                <span class="tooltip-texto"><?php echo nl2br(htmlspecialchars(substr($cita['notas'], 0, 100))); ?></span>
+                            <?php else: ?>
+                                <span style="color:#ccc;">—</span>
+                            <?php endif; ?>
+                        </td>
                         <td>
                             <a href="detalle_cita.php?id=<?php echo $cita['id']; ?>" class="btn-small">Ver</a>
                             <a href="actualizar_estado.php?id=<?php echo $cita['id']; ?>&estado=confirmada" class="btn-small" style="background:#4caf50;">Confirmar</a>
-                         \\
+                        </td>
                     \\
                     <?php endwhile; ?>
                 <?php else: ?>
-                    <tr><td colspan="6" style="text-align: center;">No hay citas pendientes</td></tr>
+                    <tr><td colspan="8" style="text-align: center;">No hay citas pendientes</td></tr>
                 <?php endif; ?>
             </tbody>
         </table>
@@ -133,22 +193,37 @@ $clientes_nuevos = $result->fetch_row()[0];
         <h3>📋 Citas de Hoy (<?php echo date('d/m/Y'); ?>)</h3>
         <table class="citas-table">
             <thead>
-                男生<th>Hora</th><th>Mascota</th><th>Dueño</th><th>Teléfono</th><th>Estado</th><th>Acciones</th>\\
+                男生<th>Foto</th><th>Hora</th><th>Mascota</th><th>Dueño</th><th>Teléfono</th><th>Síntomas</th><th>Estado</th><th>Acciones</th>\\
             </thead>
             <tbody>
                 <?php if ($citas_hoy->num_rows > 0): ?>
                     <?php while($cita = $citas_hoy->fetch_assoc()): ?>
                     <tr>
-                        <td><?php echo $cita['hora_cita']; ?>\\
-                        <td><?php echo htmlspecialchars($cita['nombre_mascota']); ?>\\
-                        <td><?php echo htmlspecialchars($cita['dueno']); ?>\\
-                        <td><?php echo $cita['telefono']; ?>\\
-                        <td><span class="estado-pendiente"><?php echo ucfirst($cita['estado']); ?></span>\\
-                        <td><a href="detalle_cita.php?id=<?php echo $cita['id']; ?>" class="btn-small">Ver</a>\\
-                    \\
+                        <td>
+                            <?php if (!empty($cita['foto']) && file_exists('../' . $cita['foto'])): ?>
+                                <img src="../<?php echo $cita['foto']; ?>" class="foto-miniatura">
+                            <?php else: ?>
+                                <span style="color:#999;">🐾</span>
+                            <?php endif; ?>
+                        </td>
+                        <td><?php echo $cita['hora_cita']; ?></td>
+                        <td><?php echo htmlspecialchars($cita['nombre_mascota']); ?></td>
+                        <td><?php echo htmlspecialchars($cita['dueno']); ?></td>
+                        <td><?php echo $cita['telefono']; ?></td>
+                        <td class="sintomas-tooltip">
+                            <?php if (!empty($cita['notas'])): ?>
+                                <span class="sintomas-icono">📋</span>
+                                <span class="tooltip-texto"><?php echo nl2br(htmlspecialchars(substr($cita['notas'], 0, 100))); ?></span>
+                            <?php else: ?>
+                                <span style="color:#ccc;">—</span>
+                            <?php endif; ?>
+                        </td>
+                        <td><span class="estado-pendiente"><?php echo ucfirst($cita['estado']); ?></span></td>
+                        <td><a href="detalle_cita.php?id=<?php echo $cita['id']; ?>" class="btn-small">Ver</a></td>
+                    </tr>
                     <?php endwhile; ?>
                 <?php else: ?>
-                    <tr><td colspan="6" style="text-align: center;">No hay citas para hoy</td></tr>
+                    <tr><td colspan="8" style="text-align: center;">No hay citas para hoy</td></tr>
                 <?php endif; ?>
             </tbody>
         </table>
@@ -157,17 +232,24 @@ $clientes_nuevos = $result->fetch_row()[0];
         <h3>📅 Citas de Mañana (<?php echo date('d/m/Y', strtotime('+1 day')); ?>)</h3>
         <table class="citas-table">
             <thead>
-                男生<th>Hora</th><th>Mascota</th><th>Dueño</th><th>Teléfono</th><th>Acciones</th>\\
+                男生<th>Foto</th><th>Hora</th><th>Mascota</th><th>Dueño</th><th>Teléfono</th><th>Acciones</th>\\
             </thead>
             <tbody>
                 <?php while($cita = $citas_manana->fetch_assoc()): ?>
-                牛
-                    <td><?php echo $cita['hora_cita']; ?>\\
-                    <td><?php echo htmlspecialchars($cita['nombre_mascota']); ?>\\
-                    <td><?php echo htmlspecialchars($cita['dueno']); ?>\\
-                    <td><?php echo $cita['telefono']; ?>\\
-                    <td><a href="detalle_cita.php?id=<?php echo $cita['id']; ?>" class="btn-small">Ver</a>\\
-                \\
+                <tr>
+                    <td>
+                        <?php if (!empty($cita['foto']) && file_exists('../' . $cita['foto'])): ?>
+                            <img src="../<?php echo $cita['foto']; ?>" class="foto-miniatura">
+                        <?php else: ?>
+                            <span style="color:#999;">🐾</span>
+                        <?php endif; ?>
+                    </td>
+                    <td><?php echo $cita['hora_cita']; ?></td>
+                    <td><?php echo htmlspecialchars($cita['nombre_mascota']); ?></td>
+                    <td><?php echo htmlspecialchars($cita['dueno']); ?></td>
+                    <td><?php echo $cita['telefono']; ?></td>
+                    <td><a href="detalle_cita.php?id=<?php echo $cita['id']; ?>" class="btn-small">Ver</a></td>
+                </tr>
                 <?php endwhile; ?>
             </tbody>
         </table>

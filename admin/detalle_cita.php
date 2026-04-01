@@ -21,13 +21,15 @@ if (!$id_cita) {
     exit;
 }
 
-// Obtener datos de la cita (usando LEFT JOIN para citas sin servicios)
+// Obtener datos de la cita (INCLUYENDO foto y género)
 $sql = "SELECT 
             c.*,
             m.nombre_mascota,
             m.especie,
             m.raza,
             m.fecha_nacimiento,
+            m.genero,
+            m.foto,
             cl.nombre AS nombre_dueno,
             cl.ape_pat,
             cl.ape_mat,
@@ -91,6 +93,24 @@ if ($_SESSION['rol'] === 'veterinario') {
         .sin-servicios { color: #999; font-style: italic; }
         .form-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
         select, input { padding: 8px; border: 1px solid #ddd; border-radius: var(--radius-sm); }
+        .foto-mascota {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .foto-mascota img {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 15px;
+            box-shadow: var(--shadow-soft);
+            object-fit: cover;
+        }
+        .sintomas-box {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: var(--radius-sm);
+            border-left: 4px solid var(--primary);
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -139,6 +159,13 @@ if ($_SESSION['rol'] === 'veterinario') {
 
         <div class="section">
             <h3>🐕 Mascota</h3>
+            
+            <?php if (!empty($cita['foto']) && file_exists('../' . $cita['foto'])): ?>
+                <div class="foto-mascota">
+                    <img src="../<?php echo $cita['foto']; ?>" alt="Foto de <?php echo htmlspecialchars($cita['nombre_mascota']); ?>">
+                </div>
+            <?php endif; ?>
+            
             <div class="info-row">
                 <div class="info-label">Nombre:</div>
                 <div class="info-value"><?php echo htmlspecialchars($cita['nombre_mascota']); ?></div>
@@ -152,8 +179,35 @@ if ($_SESSION['rol'] === 'veterinario') {
                 <div class="info-value"><?php echo $cita['raza'] ?: 'No especificada'; ?></div>
             </div>
             <div class="info-row">
+                <div class="info-label">Género:</div>
+                <div class="info-value">
+                    <?php 
+                    if ($cita['genero'] == 'MACHO') echo '♂️ Macho';
+                    elseif ($cita['genero'] == 'HEMBRA') echo '♀️ Hembra';
+                    else echo 'No registrado';
+                    ?>
+                </div>
+            </div>
+            <div class="info-row">
                 <div class="info-label">Fecha Nac.:</div>
                 <div class="info-value"><?php echo $cita['fecha_nacimiento'] ?: 'No registrada'; ?></div>
+            </div>
+            
+            <!-- Enlace al carnet -->
+            <div class="info-row" style="margin-top: 15px; border-top: 1px dashed #ddd; padding-top: 15px;">
+                <div class="info-label">Carnet:</div>
+                <div class="info-value">
+                    <a href="../carnet_mascota.php?id=<?php echo $cita['id_mascota']; ?>" class="btn-small" target="_blank" style="background: var(--primary);">
+                        📄 Ver Carnet Digital
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>📋 Motivo de Consulta / Síntomas</h3>
+            <div class="sintomas-box">
+                <?php echo nl2br(htmlspecialchars($cita['notas'] ?: 'No se especificaron síntomas o motivo de consulta.')); ?>
             </div>
         </div>
 
@@ -208,7 +262,7 @@ if ($_SESSION['rol'] === 'veterinario') {
                                     <?php if ($vet['especialidad']): ?>
                                         (<?php echo $vet['especialidad']; ?>)
                                     <?php endif; ?>
-                            </option>
+                                </option>
                             <?php endwhile; ?>
                         </select>
                     </div>
@@ -243,60 +297,56 @@ if ($_SESSION['rol'] === 'veterinario') {
                 <div class="info-label">Total:</div>
                 <div class="info-value"><strong>$<?php echo number_format($cita['total'], 2); ?></strong></div>
             </div>
-            <div class="info-row">
-                <div class="info-label">Notas:</div>
-                <div class="info-value"><?php echo nl2br(htmlspecialchars($cita['notas'] ?: 'Sin notas')); ?></div>
-            </div>
         </div>
 
         <!-----SECCION PARA ASIGNAR SERVICIOS----->
         <!-- Sección para agregar servicios (solo para roles con permisos) -->
         <?php if (in_array($_SESSION['rol'], ['super_admin', 'admin', 'veterinario'])): ?>
         <div class="section">
-        <h3>➕ Agregar Servicio</h3>
-        <?php
-        // Obtener servicios disponibles del catálogo
-        $sql_servicios = "SELECT id, nombre_servicio, precio FROM SERVICIO WHERE activo = 1 ORDER BY nombre_servicio";
-        $servicios_disponibles = $conn->query($sql_servicios);
-        ?>
-        <form action="agregar_servicio_cita.php" method="POST" style="margin-top: 15px;">
-            <input type="hidden" name="id_cita" value="<?php echo $id_cita; ?>">
-            <div class="form-row" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+            <h3>➕ Agregar Servicio</h3>
+            <?php
+            // Obtener servicios disponibles del catálogo
+            $sql_servicios = "SELECT id, nombre_servicio, precio FROM SERVICIO WHERE activo = 1 ORDER BY nombre_servicio";
+            $servicios_disponibles = $conn->query($sql_servicios);
+            ?>
+            <form action="agregar_servicio_cita.php" method="POST" style="margin-top: 15px;">
+                <input type="hidden" name="id_cita" value="<?php echo $id_cita; ?>">
+                <div class="form-row" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
                     <div class="form-group" style="flex: 2;">
-                    <label>Seleccionar servicio:</label>
-                    <select   select name="id_servicio" id="select_servicio" required style="width: 100%; padding: 8px;">
-                    <option value="">Seleccionar...</option>
-                    <?php while($serv = $servicios_disponibles->fetch_assoc()): ?>
-                        <option value="<?php echo $serv['id']; ?>" data-precio="<?php echo $serv['precio']; ?>">
-                            <?php echo $serv['nombre_servicio']; ?> - $<?php echo number_format($serv['precio'], 2); ?>
-                        </option>
-                    <?php endwhile; ?>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Precio fijado:</label>
-                <input type="number" step="0.01" name="precio_fijado" id="precio_fijado" required readonly style="background: #f5f5f5; padding: 8px; width: 120px;">
-            </div>
-            <div class="form-group">
-                <button type="submit" class="btn-small" style="background: #4caf50; padding: 8px 16px;">+ Agregar Servicio</button>
-            </div>
+                        <label>Seleccionar servicio:</label>
+                        <select name="id_servicio" id="select_servicio" required style="width: 100%; padding: 8px;">
+                            <option value="">Seleccionar...</option>
+                            <?php while($serv = $servicios_disponibles->fetch_assoc()): ?>
+                                <option value="<?php echo $serv['id']; ?>" data-precio="<?php echo $serv['precio']; ?>">
+                                    <?php echo $serv['nombre_servicio']; ?> - $<?php echo number_format($serv['precio'], 2); ?>
+                                </option>
+                            <?php endwhile; ?>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Precio fijado:</label>
+                        <input type="number" step="0.01" name="precio_fijado" id="precio_fijado" required readonly style="background: #f5f5f5; padding: 8px; width: 120px;">
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn-small" style="background: #4caf50; padding: 8px 16px;">+ Agregar Servicio</button>
+                    </div>
+                </div>
+            </form>
         </div>
-    </form>
-</div>
 
-<script>
-    // Al seleccionar servicio, cargar su precio
-    document.getElementById('select_servicio').addEventListener('change', function() {
-        const selected = this.options[this.selectedIndex];
-        const precio = selected.dataset.precio;
-        if (precio) {
-            document.getElementById('precio_fijado').value = precio;
-        } else {
-            document.getElementById('precio_fijado').value = '';
-        }
-    });
-</script>
-<?php endif; ?>
+        <script>
+            // Al seleccionar servicio, cargar su precio
+            document.getElementById('select_servicio').addEventListener('change', function() {
+                const selected = this.options[this.selectedIndex];
+                const precio = selected.dataset.precio;
+                if (precio) {
+                    document.getElementById('precio_fijado').value = precio;
+                } else {
+                    document.getElementById('precio_fijado').value = '';
+                }
+            });
+        </script>
+        <?php endif; ?>
         <!-----FIN DE SECCION PARA ASIGNAR SERVICIOS----->
 
         <!-- Botones de acción según rol -->

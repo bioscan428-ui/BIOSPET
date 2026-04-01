@@ -58,6 +58,12 @@ if (!$conn) {
             outline: none;
             border-color: var(--primary);
         }
+        .preview-img {
+            max-width: 150px;
+            max-height: 150px;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -80,7 +86,7 @@ if (!$conn) {
         <div class="container">
             <h1 style="text-align: center; margin: 40px 0;">Agendar Cita</h1>
             
-            <form action="controllers/CitaController.php" method="POST" class="form-cita">
+            <form action="controllers/CitaController.php" method="POST" class="form-cita" enctype="multipart/form-data">
                 <div class="form-grid">
                     <h3 style="grid-column: span 2; color: var(--primary);">Datos del Dueño</h3>
                     
@@ -138,6 +144,22 @@ if (!$conn) {
                         <input type="date" name="fecha_nacimiento" max="<?php echo date('Y-m-d'); ?>">
                     </div>
 
+                    <div class="form-group">
+                        <label>Género</label>
+                        <select name="genero">
+                            <option value="">Seleccione...</option>
+                            <option value="MACHO">Macho</option>
+                            <option value="HEMBRA">Hembra</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Foto de la mascota (opcional)</label>
+                        <input type="file" name="foto" accept="image/jpeg,image/png,image/jpg" id="foto">
+                        <small style="color:#666;">Formatos: JPG, PNG. Tamaño máximo: 2MB</small>
+                        <div id="preview" style="margin-top: 10px;"></div>
+                    </div>
+
                     <h3 style="grid-column: span 2; color: var(--primary); margin-top: 20px;">Detalles de la Cita</h3>
                     
                     <div class="form-group">
@@ -186,5 +208,24 @@ if (!$conn) {
             <p class="footer-copyright">© <?php echo date('Y'); ?> BIOSPET. Todos los derechos reservados.</p>
         </div>
     </footer>
+
+    <script>
+        // Vista previa de la imagen
+        document.getElementById('foto').addEventListener('change', function(e) {
+            const preview = document.getElementById('preview');
+            preview.innerHTML = '';
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = document.createElement('img');
+                    img.src = event.target.result;
+                    img.classList.add('preview-img');
+                    preview.appendChild(img);
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
 </body>
 </html>

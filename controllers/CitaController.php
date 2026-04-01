@@ -20,6 +20,7 @@ class CitaController {
         $especie = $_POST['especie'] ?? '';
         $raza = trim($_POST['raza'] ?? '');
         $fecha_nac = !empty($_POST['fecha_nacimiento']) ? $_POST['fecha_nacimiento'] : null;
+        $genero = $_POST['genero'] ?? null;
         
         $fecha_cita = $_POST['fecha_cita'] ?? '';
         $hora_cita = $_POST['hora_cita'] ?? '';
@@ -52,7 +53,7 @@ class CitaController {
             die("Error: El nombre de la mascota solo debe contener letras.");
         }
 
-        // Validaciones básicas (ya NO validamos servicios)
+        // Validaciones básicas
         if (empty($nombre_dueno) || empty($telefono) || empty($nombre_mascota) || empty($fecha_cita) || empty($hora_cita)) {
             die("Error: Campos requeridos vacíos.");
         }
@@ -69,15 +70,38 @@ class CitaController {
             $stmt->execute();
             $id_cliente = $conn->insert_id;
 
-            // 3. Insertar en MASCOTA
-            $sql_mascota = "INSERT INTO MASCOTA (id_cliente, nombre_mascota, especie, raza, fecha_nacimiento) 
-                            VALUES (?, ?, ?, ?, ?)";
+            // 3. Insertar en MASCOTA (con género y foto)
+            
+            // Manejar la foto
+            $foto_ruta = null;
+            if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
+                $archivo = $_FILES['foto'];
+                $extension = strtolower(pathinfo($archivo['name'], PATHINFO_EXTENSION));
+                $extensiones_validas = ['jpg', 'jpeg', 'png'];
+                
+                if (in_array($extension, $extensiones_validas)) {
+                    $nombre_archivo = 'mascota_' . time() . '_' . rand(1000, 9999) . '.' . $extension;
+                    $ruta_destino = __DIR__ . '/../assets/images/mascotas/' . $nombre_archivo;
+                    
+                    // Crear carpeta si no existe
+                    if (!file_exists(__DIR__ . '/../assets/images/mascotas/')) {
+                        mkdir(__DIR__ . '/../assets/images/mascotas/', 0777, true);
+                    }
+                    
+                    if (move_uploaded_file($archivo['tmp_name'], $ruta_destino)) {
+                        $foto_ruta = 'assets/images/mascotas/' . $nombre_archivo;
+                    }
+                }
+            }
+            
+            $sql_mascota = "INSERT INTO MASCOTA (id_cliente, nombre_mascota, especie, raza, fecha_nacimiento, genero, foto) 
+                            VALUES (?, ?, ?, ?, ?, ?, ?)";
             $stmt = $conn->prepare($sql_mascota);
-            $stmt->bind_param("issss", $id_cliente, $nombre_mascota, $especie, $raza, $fecha_nac);
+            $stmt->bind_param("issssss", $id_cliente, $nombre_mascota, $especie, $raza, $fecha_nac, $genero, $foto_ruta);
             $stmt->execute();
             $id_mascota = $conn->insert_id;
 
-            // 4. Insertar en CITA (SIN servicios, estado = 'pendiente')
+            // 4. Insertar en CITA (estado = 'pendiente')
             $sql_cita = "INSERT INTO CITA (fecha_cita, hora_cita, id_mascota, notas, estado) 
                          VALUES (?, ?, ?, ?, 'pendiente')";
             $stmt = $conn->prepare($sql_cita);

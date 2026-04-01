@@ -20,7 +20,8 @@ CREATE TABLE MASCOTA (
     raza VARCHAR(50),
     fecha_nacimiento DATE,
     activo BOOLEAN DEFAULT TRUE,
-    genero ENUM('MACHO', 'HEMBRA'), --AUN NO ESTA ACTUALIZADO EN LA BD
+    genero ENUM('MACHO', 'HEMBRA'),
+    foto VARCHAR(500),
     CONSTRAINT fk_cliente FOREIGN KEY (id_cliente) REFERENCES CLIENTE(id) ON DELETE RESTRICT 
 );
 

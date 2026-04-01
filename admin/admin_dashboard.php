@@ -20,13 +20,15 @@ $stats['citas_pendientes'] = $conn->query("SELECT COUNT(*) FROM CITA WHERE estad
 $stats['productos_stock_bajo'] = $conn->query("SELECT COUNT(*) FROM PRODUCTO WHERE stock_actual <= stock_minimo AND activo = 1")->fetch_row()[0];
 $stats['ingresos_mes'] = $conn->query("SELECT IFNULL(SUM(total), 0) FROM VENTA WHERE MONTH(fecha_venta) = MONTH(CURDATE()) AND estado = 'completada'")->fetch_row()[0];
 
-// Últimas citas (CORREGIDO: usar LEFT JOIN para mostrar citas sin servicios)
+// Últimas citas (INCLUYENDO foto y notas)
 $sql_citas = "SELECT 
                 c.id, 
                 c.fecha_cita, 
                 c.hora_cita, 
-                c.estado, 
-                m.nombre_mascota, 
+                c.estado,
+                c.notas,
+                m.nombre_mascota,
+                m.foto,
                 cl.nombre AS dueno,
                 GROUP_CONCAT(s.nombre_servicio SEPARATOR ', ') AS servicios
             FROM CITA c
@@ -64,6 +66,51 @@ $citas_recientes = $conn->query($sql_citas);
         .estado-completada { background: #2196f3; color: white; padding: 4px 8px; border-radius: 20px; font-size: 12px; display: inline-block; }
         .btn-nuevo { background: #4caf50; color: white; padding: 10px 20px; border-radius: var(--radius-sm); text-decoration: none; display: inline-block; margin-bottom: 20px; }
         .sin-servicios { color: #999; font-style: italic; }
+        .foto-miniatura {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .foto-miniatura:hover {
+            transform: scale(3);
+            z-index: 1000;
+            position: relative;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+        .sintomas-icono {
+            cursor: pointer;
+            font-size: 18px;
+            color: var(--primary);
+        }
+        .sintomas-tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .sintomas-tooltip .tooltip-texto {
+            visibility: hidden;
+            background-color: #333;
+            color: #fff;
+            text-align: left;
+            border-radius: 5px;
+            padding: 8px 12px;
+            position: absolute;
+            z-index: 100;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            font-size: 12px;
+            font-weight: normal;
+            min-width: 200px;
+            white-space: normal;
+        }
+        .sintomas-tooltip:hover .tooltip-texto {
+            visibility: visible;
+        }
     </style>
 </head>
 <body>
@@ -105,21 +152,51 @@ $citas_recientes = $conn->query($sql_citas);
         <h3>📋 Últimas Citas</h3>
         <table class="citas-table">
             <thead>
-                男生<th>ID</th><th>Fecha</th><th>Hora</th><th>Mascota</th><th>Dueño</th><th>Servicios</th><th>Estado</th><th>Acciones</th>\\
+                男生
+                    <th>ID</th>
+                    <th>Foto</th>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Mascota</th>
+                    <th>Dueño</th>
+                    <th>Motivo / Síntomas</th>
+                    <th>Servicios</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </
             </thead>
             <tbody>
                 <?php while($cita = $citas_recientes->fetch_assoc()): ?>
                 <tr>
                     <td><?php echo $cita['id']; ?></td>
+                    <td>
+                        <?php if (!empty($cita['foto']) && file_exists('../' . $cita['foto'])): ?>
+                            <img src="../<?php echo $cita['foto']; ?>" alt="Foto de <?php echo $cita['nombre_mascota']; ?>" class="foto-miniatura">
+                        <?php else: ?>
+                            <span style="color:#999; font-size:20px;">🐾</span>
+                        <?php endif; ?>
+                    </td>
                     <td><?php echo date('d/m/Y', strtotime($cita['fecha_cita'])); ?></td>
                     <td><?php echo $cita['hora_cita']; ?></td>
                     <td><?php echo htmlspecialchars($cita['nombre_mascota']); ?></td>
                     <td><?php echo htmlspecialchars($cita['dueno']); ?></td>
+                    <td class="sintomas-tooltip">
+                        <?php if (!empty($cita['notas'])): ?>
+                            <span class="sintomas-icono">📋</span>
+                            <span class="tooltip-texto">
+                                <strong>Motivo de consulta:</strong><br>
+                                <?php echo nl2br(htmlspecialchars(substr($cita['notas'], 0, 150))); ?>
+                                <?php if (strlen($cita['notas']) > 150): ?>...<?php endif; ?>
+                            </span>
+                        <?php else: ?>
+                            <span style="color:#ccc;">—</span>
+                        <?php endif; ?>
+                    </td>
                     <td>
                         <?php if (!empty($cita['servicios'])): ?>
                             <?php echo $cita['servicios']; ?>
                         <?php else: ?>
-                            <span class="sin-servicios">(Sin servicios asignados)</span>
+                            <span class="sin-servicios">(Sin servicios)</span>
                         <?php endif; ?>
                     </td>
                     <td>

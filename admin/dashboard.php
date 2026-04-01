@@ -15,7 +15,7 @@ if (!in_array($_SESSION['rol'], ['super_admin', 'admin'])) {
 
 require_once __DIR__ . '/../includes/conexion.php';
 
-// Obtener todas las citas (INCLUYENDO las que NO tienen servicios)
+// Obtener todas las citas (incluyendo foto de mascota y notas)
 $sql = "SELECT 
             c.id,
             c.fecha_cita,
@@ -24,6 +24,7 @@ $sql = "SELECT
             c.notas,
             m.nombre_mascota,
             m.especie,
+            m.foto,
             cl.nombre AS nombre_dueno,
             cl.telefono,
             cl.email,
@@ -49,6 +50,55 @@ $result = $conn->query($sql);
     <style>
         .sin-servicios { color: #999; font-style: italic; }
         .total-citas { background: white; padding: 15px; border-radius: var(--radius-md); margin-bottom: 20px; display: inline-block; }
+        .foto-miniatura {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .foto-miniatura:hover {
+            transform: scale(3);
+            z-index: 1000;
+            position: relative;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+        .sintomas-icono {
+            cursor: pointer;
+            font-size: 18px;
+            color: var(--primary);
+        }
+        .sintomas-tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .sintomas-tooltip .tooltip-texto {
+            visibility: hidden;
+            background-color: #333;
+            color: #fff;
+            text-align: left;
+            border-radius: 5px;
+            padding: 8px 12px;
+            position: absolute;
+            z-index: 100;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            font-size: 12px;
+            font-weight: normal;
+        }
+        .sintomas-tooltip:hover .tooltip-texto {
+            visibility: visible;
+        }
+        .notas-resumen {
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
     </style>
 </head>
 <body>
@@ -76,10 +126,12 @@ $result = $conn->query($sql);
             <thead>
                 构建
                     <th>ID</th>
+                    <th>Foto</th>
                     <th>Fecha</th>
                     <th>Hora</th>
                     <th>Dueño</th>
                     <th>Mascota</th>
+                    <th>Motivo / Síntomas</th>
                     <th>Servicios</th>
                     <th>Total</th>
                     <th>Estado</th>
@@ -88,8 +140,15 @@ $result = $conn->query($sql);
             </thead>
             <tbody>
                 <?php while($row = $result->fetch_assoc()): ?>
-                <tr>
+                 <tr>
                     <td><?php echo $row['id']; ?></td>
+                    <td>
+                        <?php if (!empty($row['foto']) && file_exists('../' . $row['foto'])): ?>
+                            <img src="../<?php echo $row['foto']; ?>" alt="Foto de <?php echo $row['nombre_mascota']; ?>" class="foto-miniatura">
+                        <?php else: ?>
+                            <span style="color:#999; font-size:20px;">🐾</span>
+                        <?php endif; ?>
+                    </td>
                     <td><?php echo date('d/m/Y', strtotime($row['fecha_cita'])); ?></td>
                     <td><?php echo $row['hora_cita']; ?></td>
                     <td>
@@ -100,11 +159,23 @@ $result = $conn->query($sql);
                         <?php echo htmlspecialchars($row['nombre_mascota']); ?><br>
                         <small><?php echo $row['especie']; ?></small>
                     </td>
+                    <td class="sintomas-tooltip">
+                        <?php if (!empty($row['notas'])): ?>
+                            <span class="sintomas-icono">📋</span>
+                            <span class="tooltip-texto">
+                                <strong>Motivo de consulta:</strong><br>
+                                <?php echo nl2br(htmlspecialchars(substr($row['notas'], 0, 150))); ?>
+                                <?php if (strlen($row['notas']) > 150): ?>...<?php endif; ?>
+                            </span>
+                        <?php else: ?>
+                            <span style="color:#ccc;">—</span>
+                        <?php endif; ?>
+                    </td>
                     <td>
                         <?php if (!empty($row['servicios'])): ?>
                             <?php echo $row['servicios']; ?>
                         <?php else: ?>
-                            <span class="sin-servicios">(Sin servicios asignados)</span>
+                            <span class="sin-servicios">(Sin servicios)</span>
                         <?php endif; ?>
                     </td>
                     <td>$<?php echo number_format($row['total'], 2); ?></td>
@@ -125,7 +196,7 @@ $result = $conn->query($sql);
                 </tr>
                 <?php endwhile; ?>
             </tbody>
-        </table>
+         </table>
     </div>
 </body>
 </html>
