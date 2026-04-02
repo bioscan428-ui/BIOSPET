@@ -1,18 +1,13 @@
 <?php
-require_once 'includes/enviar_email.php';
+$to = "bioscan428@gmail.com"; // CAMBIA POR TU CORREO
+$subject = "Prueba de correo BIOSPET";
+$message = "Este es un correo de prueba desde BIOSPET. Si lo recibes, mail() funciona.";
+$headers = "From: no-reply@biospet.bioscan.services\r\n";
+$headers .= "Reply-To: citas@biospet.bioscan.services\r\n";
 
-$resultado = enviarEmailConfirmacion(
-    'tu_email_de_prueba@gmail.com',  // Cambia por tu email
-    'Cliente Prueba',
-    '24/03/2026',
-    '15:30',
-    'Tomografía, Rayos X',
-    3300.00
-);
-
-if ($resultado) {
-    echo "✅ Email enviado correctamente. Revisa tu bandeja de entrada (y spam).";
+if (mail($to, $subject, $message, $headers)) {
+    echo "✅ Correo enviado correctamente";
 } else {
-    echo "❌ Error al enviar email. Revisa los logs del servidor.";
+    echo "❌ Error al enviar correo";
 }
 ?>

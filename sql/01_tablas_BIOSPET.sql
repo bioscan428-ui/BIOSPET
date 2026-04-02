@@ -86,6 +86,8 @@ CREATE TABLE USUARIO (
     rol ENUM('admin', 'veterinario', 'asistente', 'recepcionista') NOT NULL DEFAULT 'recepcionista',
     ultimo_acceso DATETIME,
     activo BOOLEAN DEFAULT TRUE,
+    reset_token VARCHAR(64),
+    reset_expira DATETIME,
     CONSTRAINT fk_usuario_empleado FOREIGN KEY (id_empleado) REFERENCES EMPLEADO(id) ON DELETE RESTRICT
 );
 

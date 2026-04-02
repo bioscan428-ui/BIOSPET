@@ -22,7 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($result->num_rows === 1) {
         $user = $result->fetch_assoc();
         
-        if ($password === $user['contrasena']) {
+        // Uso de password_verify() para comparar hash
+        if (password_verify($password, $user['contrasena'])) {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['empleado_id'] = $user['id_empleado'];
             $_SESSION['nombre'] = $user['nombre'] . ' ' . $user['ape_pat'];
@@ -96,6 +97,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="password" name="password" placeholder="Contraseña" required>
             </div>
             <button type="submit" class="btn">Ingresar</button>
+            <div class="info" style="margin-top: 15px;">
+                <a href="olvide_contrasena.php" style="color: var(--primary); text-decoration: none; font-size: 12px;">¿Olvidaste tu contraseña?</a>
+            </div>
         </form>
         <div class="info">
             
