@@ -200,6 +200,11 @@ if ($_SESSION['rol'] === 'veterinario') {
                     <a href="../carnet_mascota.php?id=<?php echo $cita['id_mascota']; ?>" class="btn-small" target="_blank" style="background: var(--primary);">
                         📄 Ver Carnet Digital
                     </a>
+                    <!-----DESCARGAR EN PDF----->
+                    <a href="../carnet_pdf.php?id=<?php echo $cita['id_mascota']; ?>" class="btn-small" target="_blank" style="background: #4caf50;">
+                        📑 Descargar PDF
+                    </a>
+                    <!-----FIN DE DESCARGA EN PDF----->
                 </div>
             </div>
         </div>
