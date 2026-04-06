@@ -2,11 +2,7 @@
 -- VISTAS BIOSPET - SISTEMA COMPLETO
 -- ============================================
 
--- ============================================
--- 1. VISTAS EXISTENTES (CITAS Y SERVICIOS)
--- ============================================
-
--- Vista: Citas completas con todos los datos
+-- 1. VISTAS DE CITAS Y SERVICIOS
 CREATE OR REPLACE VIEW vista_citas_completas AS
 SELECT 
     c.id AS cita_id,
@@ -33,7 +29,6 @@ JOIN DETALLE_CITA dc ON c.id = dc.id_cita
 JOIN SERVICIO s ON dc.id_servicio = s.id
 GROUP BY c.id;
 
--- Vista: Resumen de ingresos por día
 CREATE OR REPLACE VIEW vista_ingresos_diarios AS
 SELECT 
     c.fecha_cita,
@@ -47,7 +42,6 @@ WHERE c.estado IN ('confirmada', 'completada')
 GROUP BY c.fecha_cita
 ORDER BY c.fecha_cita DESC;
 
--- Vista: Historial completo de mascotas
 CREATE OR REPLACE VIEW vista_historial_mascota AS
 SELECT 
     m.id AS mascota_id,
@@ -67,11 +61,7 @@ LEFT JOIN SERVICIO s ON dc.id_servicio = s.id
 WHERE m.activo = 1
 ORDER BY m.id, c.fecha_cita DESC;
 
--- ============================================
 -- 2. VISTAS DE CLIENTES Y MASCOTAS
--- ============================================
-
--- Vista: Clientes con resumen de actividad
 CREATE OR REPLACE VIEW vista_clientes_activos AS
 SELECT 
     cl.id,
@@ -92,7 +82,6 @@ WHERE cl.activo = 1
 GROUP BY cl.id
 ORDER BY total_gastado DESC;
 
--- Vista: Mascotas activas con datos completos
 CREATE OR REPLACE VIEW vista_mascotas_completas AS
 SELECT 
     m.id,
@@ -113,11 +102,7 @@ LEFT JOIN CITA c ON m.id = c.id_mascota
 WHERE m.activo = 1
 GROUP BY m.id;
 
--- ============================================
 -- 3. VISTAS DE EMPLEADOS
--- ============================================
-
--- Vista: Empleados activos con asignaciones
 CREATE OR REPLACE VIEW vista_empleados_activos AS
 SELECT 
     e.id,
@@ -140,7 +125,6 @@ WHERE e.activo = 1
 GROUP BY e.id
 ORDER BY e.puesto, e.nombre;
 
--- Vista: Citas asignadas por empleado
 CREATE OR REPLACE VIEW vista_citas_por_empleado AS
 SELECT 
     e.id AS empleado_id,
@@ -161,11 +145,7 @@ JOIN CLIENTE cl ON m.id_cliente = cl.id
 WHERE e.activo = 1
 ORDER BY c.fecha_cita DESC, e.nombre;
 
--- ============================================
 -- 4. VISTAS DE INVENTARIO
--- ============================================
-
--- Vista: Productos con stock crítico
 CREATE OR REPLACE VIEW vista_stock_critico AS
 SELECT 
     p.id,
@@ -185,7 +165,6 @@ WHERE p.activo = 1
        OR p.fecha_vencimiento <= DATE_ADD(CURDATE(), INTERVAL 30 DAY))
 ORDER BY p.stock_actual ASC, p.fecha_vencimiento ASC;
 
--- Vista: Movimientos de inventario recientes
 CREATE OR REPLACE VIEW vista_movimientos_recientes AS
 SELECT 
     m.id,
@@ -202,7 +181,6 @@ JOIN EMPLEADO e ON m.id_empleado = e.id
 WHERE m.fecha_movimiento >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
 ORDER BY m.fecha_movimiento DESC;
 
--- Vista: Resumen de compras por proveedor
 CREATE OR REPLACE VIEW vista_compras_proveedor AS
 SELECT 
     pr.id AS proveedor_id,
@@ -218,11 +196,7 @@ WHERE pr.activo = 1
 GROUP BY pr.id
 ORDER BY total_gastado DESC;
 
--- ============================================
 -- 5. VISTAS DE VENTAS
--- ============================================
-
--- Vista: Ventas completas
 CREATE OR REPLACE VIEW vista_ventas_completas AS
 SELECT 
     v.id AS venta_id,
@@ -249,7 +223,6 @@ WHERE v.estado = 'completada'
 GROUP BY v.id
 ORDER BY v.fecha_venta DESC;
 
--- Vista: Productos más vendidos
 CREATE OR REPLACE VIEW vista_productos_mas_vendidos AS
 SELECT 
     p.id,
@@ -268,7 +241,6 @@ GROUP BY p.id
 ORDER BY unidades_vendidas DESC
 LIMIT 20;
 
--- Vista: Pagos por venta
 CREATE OR REPLACE VIEW vista_pagos_venta AS
 SELECT 
     v.id AS venta_id,
@@ -281,11 +253,7 @@ LEFT JOIN PAGO p ON v.id = p.id_venta
 WHERE v.estado IN ('completada', 'pendiente')
 GROUP BY v.id;
 
--- ============================================
 -- 6. VISTAS FINANCIERAS
--- ============================================
-
--- Vista: Ingresos mensuales consolidados
 CREATE OR REPLACE VIEW vista_ingresos_mensuales AS
 SELECT 
     DATE_FORMAT(fecha_venta, '%Y-%m') AS mes,
@@ -301,7 +269,6 @@ WHERE v.estado = 'completada' AND v.fecha_venta >= DATE_SUB(CURDATE(), INTERVAL 
 GROUP BY mes
 ORDER BY mes DESC;
 
--- Vista: Resumen general del negocio
 CREATE OR REPLACE VIEW vista_resumen_negocio AS
 SELECT 
     (SELECT COUNT(*) FROM CLIENTE WHERE activo = 1) AS clientes_activos,

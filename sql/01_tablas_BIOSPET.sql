@@ -219,7 +219,7 @@ CREATE TABLE SERVICIO_PRODUCTO (
 CREATE TABLE VENTA (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     id_cliente INT NOT NULL,
-    id_empleado INT NOT NULL,
+    id_empleado INT NULL,
     fecha_venta DATETIME DEFAULT CURRENT_TIMESTAMP,
     tipo_comprobante ENUM('ticket', 'factura') DEFAULT 'ticket',
     folio VARCHAR(50),

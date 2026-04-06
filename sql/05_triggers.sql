@@ -1,8 +1,3 @@
--- ============================================
--- TRIGGERS PARA CITAS Y SERVICIOS
--- ============================================
-
--- Trigger: Al insertar un detalle de cita, verificar que la cita esté pendiente (YA LO TIENES)
 DELIMITER $$
 CREATE TRIGGER before_insert_detalle_cita
 BEFORE INSERT ON DETALLE_CITA
@@ -19,7 +14,6 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Trigger: Al confirmar una cita, registrar en notas (YA LO TIENES)
 DELIMITER $$
 CREATE TRIGGER before_update_cita_estado
 BEFORE UPDATE ON CITA
@@ -31,7 +25,6 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Trigger: Al cancelar una cita, registrar motivo si viene en notas
 DELIMITER $$
 CREATE TRIGGER before_update_cita_cancelar
 BEFORE UPDATE ON CITA
@@ -47,7 +40,6 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Trigger: Al completar una cita, no permitir modificaciones posteriores
 DELIMITER $$
 CREATE TRIGGER before_update_cita_completada
 BEFORE UPDATE ON CITA
@@ -60,23 +52,15 @@ BEGIN
 END$$
 DELIMITER ;
 
-
--- ============================================
--- TRIGGERS PARA INVENTARIO
--- ============================================
-
--- Trigger: Al insertar un detalle de compra, actualizar stock automáticamente
 DELIMITER $$
 CREATE TRIGGER after_insert_detalle_compra
 AFTER INSERT ON DETALLE_COMPRA
 FOR EACH ROW
 BEGIN
-    -- Actualizar stock del producto
     UPDATE PRODUCTO 
     SET stock_actual = stock_actual + NEW.cantidad
     WHERE id = NEW.id_producto;
     
-    -- Registrar movimiento de inventario (entrada por compra)
     INSERT INTO MOVIMIENTO_INVENTARIO 
         (id_producto, tipo, cantidad, motivo, referencia, id_empleado)
     SELECT 
@@ -91,7 +75,6 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Trigger: Al insertar un detalle de venta, actualizar stock automáticamente
 DELIMITER $$
 CREATE TRIGGER after_insert_detalle_venta
 AFTER INSERT ON DETALLE_VENTA
@@ -100,24 +83,19 @@ BEGIN
     DECLARE stock_actual INT;
     DECLARE id_empleado_venta INT;
     
-    -- Obtener stock actual
     SELECT stock_actual INTO stock_actual FROM PRODUCTO WHERE id = NEW.id_producto;
     
-    -- Validar stock suficiente
     IF stock_actual < NEW.cantidad THEN
         SIGNAL SQLSTATE '45000' 
         SET MESSAGE_TEXT = 'Stock insuficiente para realizar la venta';
     END IF;
     
-    -- Actualizar stock del producto
     UPDATE PRODUCTO 
     SET stock_actual = stock_actual - NEW.cantidad
     WHERE id = NEW.id_producto;
     
-    -- Obtener empleado de la venta
     SELECT id_empleado INTO id_empleado_venta FROM VENTA WHERE id = NEW.id_venta;
     
-    -- Registrar movimiento de inventario (salida por venta)
     INSERT INTO MOVIMIENTO_INVENTARIO 
         (id_producto, tipo, cantidad, motivo, referencia, id_empleado)
     VALUES 
@@ -128,7 +106,6 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Trigger: Al cancelar una venta, restaurar stock
 DELIMITER $$
 CREATE TRIGGER after_update_venta_cancelar
 AFTER UPDATE ON VENTA
@@ -141,7 +118,6 @@ BEGIN
         SELECT id_producto, cantidad FROM DETALLE_VENTA WHERE id_venta = NEW.id;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
     
-    -- Si la venta cambió de completada a cancelada
     IF OLD.estado = 'completada' AND NEW.estado = 'cancelada' THEN
         OPEN cur;
         read_loop: LOOP
@@ -149,9 +125,7 @@ BEGIN
             IF done THEN
                 LEAVE read_loop;
             END IF;
-            -- Restaurar stock
             UPDATE PRODUCTO SET stock_actual = stock_actual + cant WHERE id = prod_id;
-            -- Registrar movimiento de reversión
             INSERT INTO MOVIMIENTO_INVENTARIO 
                 (id_producto, tipo, cantidad, motivo, referencia, id_empleado)
             VALUES 
@@ -165,7 +139,6 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Trigger: Evitar eliminar productos que tienen movimientos
 DELIMITER $$
 CREATE TRIGGER before_delete_producto
 BEFORE DELETE ON PRODUCTO
@@ -182,23 +155,16 @@ BEGIN
 END$$
 DELIMITER ;
 
-
--- ============================================
--- TRIGGERS PARA EMPLEADOS
--- ============================================
-
--- Trigger: Al crear un empleado, crear automáticamente su usuario si no existe
 DELIMITER $$
 CREATE TRIGGER after_insert_empleado
 AFTER INSERT ON EMPLEADO
 FOR EACH ROW
 BEGIN
-    -- Crear usuario por defecto (nombre de usuario = email)
     INSERT INTO USUARIO (id_empleado, nombre_usuario, contrasena, rol)
     VALUES (
         NEW.id, 
         NEW.email, 
-        '$2y$10$default_hash_para_cambiar', -- contraseña temporal
+        NULL,
         CASE 
             WHEN NEW.puesto = 'veterinario' THEN 'veterinario'
             WHEN NEW.puesto = 'administrador' THEN 'admin'
@@ -208,7 +174,6 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Trigger: Evitar eliminar empleado con citas asignadas
 DELIMITER $$
 CREATE TRIGGER before_delete_empleado
 BEFORE DELETE ON EMPLEADO
@@ -225,7 +190,6 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Trigger: Al desactivar empleado, desactivar su usuario
 DELIMITER $$
 CREATE TRIGGER after_update_empleado_estado
 AFTER UPDATE ON EMPLEADO
@@ -241,12 +205,6 @@ BEGIN
 END$$
 DELIMITER ;
 
-
--- ============================================
--- TRIGGERS PARA CLIENTES Y MASCOTAS
--- ============================================
-
--- Trigger: Al desactivar cliente, desactivar sus mascotas
 DELIMITER $$
 CREATE TRIGGER after_update_cliente_estado
 AFTER UPDATE ON CLIENTE
@@ -262,7 +220,6 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Trigger: Validar fecha de nacimiento de mascota (no puede ser futura)
 DELIMITER $$
 CREATE TRIGGER before_insert_mascota_fecha
 BEFORE INSERT ON MASCOTA
@@ -275,7 +232,6 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Trigger: Al insertar mascota, validar que el cliente exista y esté activo
 DELIMITER $$
 CREATE TRIGGER before_insert_mascota_cliente
 BEFORE INSERT ON MASCOTA
@@ -292,12 +248,6 @@ BEGIN
 END$$
 DELIMITER ;
 
-
--- ============================================
--- TRIGGERS PARA FACTURACIÓN
--- ============================================
-
--- Trigger: Al insertar factura, validar que la venta no tenga factura previa
 DELIMITER $$
 CREATE TRIGGER before_insert_factura
 BEFORE INSERT ON FACTURA
@@ -314,7 +264,6 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Trigger: Al actualizar venta, si se genera factura, actualizar tipo_comprobante
 DELIMITER $$
 CREATE TRIGGER after_insert_factura_update_venta
 AFTER INSERT ON FACTURA
@@ -323,3 +272,4 @@ BEGIN
     UPDATE VENTA SET tipo_comprobante = 'factura' WHERE id = NEW.id_venta;
 END$$
 DELIMITER ;
+

@@ -156,6 +156,7 @@ $result_productos = $stmt->get_result();
                         <p><?php echo htmlspecialchars(substr($producto['descripcion'], 0, 100)); ?>...</p>
                         <div class="producto-precio">$<?php echo number_format($producto['precio_venta'], 2); ?> MXN</div>
                         <a href="producto.php?id=<?php echo $producto['id']; ?>" class="btn-producto">Ver detalles</a>
+                        <a href="agregar_carrito.php?id=<?php echo $producto['id']; ?>" class="btn-producto" style="flex: 1; margin-top: 0; background: #4caf50;">🛒 Agregar</a>
                     </div>
                 </div>
                 <?php endwhile; ?>
