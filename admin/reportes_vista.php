@@ -9,47 +9,10 @@
     <title>Reportes - BIOSPET</title>
     <link rel="stylesheet" href="../assets/css/global.css">
     <link rel="stylesheet" href="../assets/css/reportes.css">
+    <link rel="stylesheet" href="../assets/css/reportes_vista.css">
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="../assets/js/reportes.js" defer></script>
-    <style>
-        .dashboard-grid-ventas {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .producto-item, .pago-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #eee;
-        }
-        .producto-item .nombre, .pago-item .nombre {
-            font-weight: 500;
-        }
-        .producto-item .total, .pago-item .total {
-            font-weight: bold;
-            color: var(--primary);
-        }
-        .ingresos-totales {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: var(--primary);
-            text-align: center;
-            margin: 20px 0;
-        }
-        .chart-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        @media (max-width: 768px) {
-            .chart-row {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
 </head>
 <body>
     <div class="admin-header">
@@ -64,8 +27,30 @@
     </div>
 
     <div class="container">
+        <!-- ========== SECCIÓN NUEVA: MÉTRICAS RÁPIDAS ========== -->
+        <h2 style="margin: 20px 0 10px;">📈 Métricas Rápidas</h2>
+
+        <div class="metricas-grid">
+            <div class="metrica-card">
+                <div class="metrica-valor"><?php echo number_format($tasa_conversion, 1); ?>%</div>
+                <div class="metrica-label">Tasa de conversión de citas</div>
+            </div>
+            <div class="metrica-card">
+                <div class="metrica-valor">$<?php echo number_format($ingresos_mes, 2); ?></div>
+                <div class="metrica-label">Ingresos del mes actual</div>
+            </div>
+            <div class="metrica-card">
+                <div class="metrica-valor"><?php echo $productos_stock_bajo; ?></div>
+                <div class="metrica-label">Productos con stock bajo</div>
+            </div>
+            <div class="metrica-card">
+                <div class="metrica-valor">$<?php echo number_format($ventas_hoy, 2); ?></div>
+                <div class="metrica-label">Ventas de hoy</div>
+            </div>
+        </div>
+
         <!-- ========== SECCIÓN 1: SERVICIOS ========== -->
-        <h2 style="margin: 20px 0 10px;">🏥 Servicios Médicos</h2>
+        <h2 style="margin: 40px 0 10px;">🏥 Servicios Médicos</h2>
         
         <div class="dashboard-grid">
             <div class="card">
@@ -213,7 +198,11 @@
         data-ventas-por-dia-fechas='<?php echo json_encode(array_keys($ventas_por_dia)); ?>'
         data-ventas-por-dia-cantidad='<?php echo json_encode(array_values($ventas_por_dia)); ?>'
         data-ingresos-ventas-por-dia='<?php echo json_encode(array_values($ingresos_ventas_por_dia)); ?>'
-        data-ingresos-combinados='<?php echo htmlspecialchars(json_encode($ingresos_combinados), ENT_QUOTES, 'UTF-8'); ?>'>
+        data-ingresos-combinados='<?php echo htmlspecialchars(json_encode($ingresos_combinados), ENT_QUOTES, 'UTF-8'); ?>'
+        data-tasa-conversion='<?php echo $tasa_conversion; ?>'
+        data-ingresos-mes='<?php echo $ingresos_mes; ?>'
+        data-productos-stock-bajo='<?php echo $productos_stock_bajo; ?>'
+        data-ventas-hoy='<?php echo $ventas_hoy; ?>'>
     </div>
 </body>
 </html>

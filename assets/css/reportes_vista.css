@@ -1,0 +1,62 @@
+.dashboard-grid-ventas {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .producto-item, .pago-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .producto-item .nombre, .pago-item .nombre {
+            font-weight: 500;
+        }
+        .producto-item .total, .pago-item .total {
+            font-weight: bold;
+            color: var(--primary);
+        }
+        .ingresos-totales {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--primary);
+            text-align: center;
+            margin: 20px 0;
+        }
+        .chart-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .metricas-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        .metrica-card {
+            background: white;
+            padding: 20px;
+            border-radius: var(--radius-md);
+            text-align: center;
+            box-shadow: var(--shadow-soft);
+        }
+        .metrica-valor {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        .metrica-label {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 5px;
+        }
+        @media (max-width: 768px) {
+            .chart-row {
+                grid-template-columns: 1fr;
+            }
+            .metricas-grid {
+                grid-template-columns: 1fr;
+            }
+        }

@@ -15,6 +15,12 @@ if (!in_array($_SESSION['rol'], ['super_admin', 'admin'])) {
 
 require_once __DIR__ . '/../includes/conexion.php';
 
+// ========== MÉTRICAS RÁPIDAS PARA EL DASHBOARD ==========
+$ventas_hoy = $conn->query("SELECT ventas_dia(CURDATE()) as total")->fetch_assoc()['total'];
+$citas_hoy = $conn->query("SELECT total_citas_dia(CURDATE()) as total")->fetch_assoc()['total'];
+$productos_stock_bajo = $conn->query("SELECT productos_stock_bajo() as total")->fetch_assoc()['total'];
+$ingresos_mes = $conn->query("SELECT ingresos_mes_actual() as total")->fetch_assoc()['total'];
+
 // Obtener todas las citas (incluyendo foto de mascota y notas)
 $sql = "SELECT 
             c.id,
@@ -99,6 +105,29 @@ $result = $conn->query($sql);
             overflow: hidden;
             text-overflow: ellipsis;
         }
+        .dashboard-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: var(--radius-md);
+            text-align: center;
+            box-shadow: var(--shadow-soft);
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -118,13 +147,33 @@ $result = $conn->query($sql);
     </div>
 
     <div class="container">
+        <!-- Tarjetas de resumen -->
+        <div class="dashboard-stats">
+            <div class="stat-card">
+                <div class="stat-number"><?php echo $citas_hoy; ?></div>
+                <div class="stat-label">Citas de hoy</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">$<?php echo number_format($ventas_hoy, 2); ?></div>
+                <div class="stat-label">Ventas de hoy</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number"><?php echo $productos_stock_bajo; ?></div>
+                <div class="stat-label">Productos con stock bajo</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">$<?php echo number_format($ingresos_mes, 2); ?></div>
+                <div class="stat-label">Ingresos del mes</div>
+            </div>
+        </div>
+
         <div class="total-citas">
             <strong>Total de citas:</strong> <?php echo $result->num_rows; ?>
         </div>
 
         <table class="citas-table">
             <thead>
-                构建
+                <tr>
                     <th>ID</th>
                     <th>Foto</th>
                     <th>Fecha</th>
@@ -136,11 +185,11 @@ $result = $conn->query($sql);
                     <th>Total</th>
                     <th>Estado</th>
                     <th>Acciones</th>
-                </
+                </tr>
             </thead>
             <tbody>
                 <?php while($row = $result->fetch_assoc()): ?>
-                 <tr>
+                <tr>
                     <td><?php echo $row['id']; ?></td>
                     <td>
                         <?php if (!empty($row['foto']) && file_exists('../' . $row['foto'])): ?>
@@ -196,7 +245,7 @@ $result = $conn->query($sql);
                 </tr>
                 <?php endwhile; ?>
             </tbody>
-         </table>
+        </table>
     </div>
 </body>
 </html>

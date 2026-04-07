@@ -25,11 +25,25 @@ if (empty($nombre) || empty($email) || empty($telefono)) {
     die("Error: Datos incompletos");
 }
 
-// Calcular total
+// Calcular total y validar stock con la función
 $total = 0;
 $productos_venta = [];
 $ids = array_keys($_SESSION['carrito']);
 $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+// Obtener productos y validar stock con la función
+$sql = "SELECT id, nombre, precio_venta, stock_suficiente(id, ?) as stock_ok 
+        FROM PRODUCTO 
+        WHERE id IN ($placeholders) AND activo = 1";
+$stmt = $conn->prepare($sql);
+$params = [];
+foreach ($ids as $id) {
+    $params[] = $_SESSION['carrito'][$id]; // cantidad para stock_suficiente
+    $params[] = $id; // para el IN
+}
+// Esto es más complejo de bindear, mejor mantener la validación manual o crear un procedimiento
+
+// Mantenemos la validación manual por simplicidad
 $sql = "SELECT id, nombre, precio_venta, stock_actual FROM PRODUCTO WHERE id IN ($placeholders) AND activo = 1";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param(str_repeat('i', count($ids)), ...$ids);
@@ -39,8 +53,15 @@ $result = $stmt->get_result();
 while ($producto = $result->fetch_assoc()) {
     $cantidad = $_SESSION['carrito'][$producto['id']];
     
-    // Validar stock
-    if ($producto['stock_actual'] < $cantidad) {
+    // Usar la función stock_suficiente para validar
+    $sql_check = "SELECT stock_suficiente(?, ?) as disponible";
+    $stmt_check = $conn->prepare($sql_check);
+    $stmt_check->bind_param("ii", $producto['id'], $cantidad);
+    $stmt_check->execute();
+    $result_check = $stmt_check->get_result();
+    $row_check = $result_check->fetch_assoc();
+    
+    if (!$row_check['disponible']) {
         die("Error: Stock insuficiente para {$producto['nombre']}. Disponible: {$producto['stock_actual']}");
     }
     
@@ -68,7 +89,6 @@ try {
         $cliente = $result->fetch_assoc();
         $id_cliente = $cliente['id'];
     } else {
-        // Crear cliente nuevo
         $sql_insert = "INSERT INTO CLIENTE (nombre, email, telefono, direccion, fecha_registro) VALUES (?, ?, ?, ?, NOW())";
         $stmt = $conn->prepare($sql_insert);
         $stmt->bind_param("ssss", $nombre, $email, $telefono, $direccion);
@@ -85,21 +105,13 @@ try {
     $stmt->execute();
     $id_venta = $conn->insert_id;
     
-    // 3. Registrar detalles de venta y actualizar stock
+    // 3. Registrar detalles de venta (el trigger after_insert_detalle_venta actualiza el stock)
     $sql_detalle = "INSERT INTO DETALLE_VENTA (id_venta, id_producto, cantidad, precio_unitario, subtotal) VALUES (?, ?, ?, ?, ?)";
     $stmt_detalle = $conn->prepare($sql_detalle);
     
-    $sql_update_stock = "UPDATE PRODUCTO SET stock_actual = stock_actual - ? WHERE id = ?";
-    $stmt_stock = $conn->prepare($sql_update_stock);
-    
     foreach ($productos_venta as $item) {
-        // Insertar detalle
         $stmt_detalle->bind_param("iiidd", $id_venta, $item['id'], $item['cantidad'], $item['precio'], $item['subtotal']);
         $stmt_detalle->execute();
-        
-        // Actualizar stock
-        $stmt_stock->bind_param("ii", $item['cantidad'], $item['id']);
-        $stmt_stock->execute();
     }
     
     $conn->commit();
