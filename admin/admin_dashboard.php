@@ -13,31 +13,27 @@ if ($_SESSION['rol'] === 'super_admin') {
 
 require_once __DIR__ . '/../includes/conexion.php';
 
-// Estadísticas rápidas
+// ========== ESTADÍSTICAS RÁPIDAS ==========
 $stats = [];
 $stats['citas_hoy'] = $conn->query("SELECT COUNT(*) FROM CITA WHERE fecha_cita = CURDATE()")->fetch_row()[0];
 $stats['citas_pendientes'] = $conn->query("SELECT COUNT(*) FROM CITA WHERE estado = 'pendiente'")->fetch_row()[0];
 $stats['productos_stock_bajo'] = $conn->query("SELECT COUNT(*) FROM PRODUCTO WHERE stock_actual <= stock_minimo AND activo = 1")->fetch_row()[0];
 $stats['ingresos_mes'] = $conn->query("SELECT IFNULL(SUM(total), 0) FROM VENTA WHERE MONTH(fecha_venta) = MONTH(CURDATE()) AND estado = 'completada'")->fetch_row()[0];
 
-// Últimas citas (INCLUYENDO foto y notas)
+// ========== USANDO VISTA ==========
+// Últimas citas usando vista_citas_completas
 $sql_citas = "SELECT 
-                c.id, 
-                c.fecha_cita, 
-                c.hora_cita, 
-                c.estado,
-                c.notas,
-                m.nombre_mascota,
-                m.foto,
-                cl.nombre AS dueno,
-                GROUP_CONCAT(s.nombre_servicio SEPARATOR ', ') AS servicios
-            FROM CITA c
-            JOIN MASCOTA m ON c.id_mascota = m.id
-            JOIN CLIENTE cl ON m.id_cliente = cl.id
-            LEFT JOIN DETALLE_CITA dc ON c.id = dc.id_cita
-            LEFT JOIN SERVICIO s ON dc.id_servicio = s.id
-            GROUP BY c.id
-            ORDER BY c.fecha_cita DESC, c.hora_cita DESC
+                cita_id as id,
+                fecha_cita,
+                hora_cita,
+                estado,
+                notas,
+                nombre_mascota,
+                foto,
+                nombre_dueno as dueno,
+                servicios
+            FROM vista_citas_completas 
+            ORDER BY fecha_cita DESC, hora_cita DESC 
             LIMIT 10";
 $citas_recientes = $conn->query($sql_citas);
 ?>

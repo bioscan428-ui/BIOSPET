@@ -21,30 +21,16 @@ $citas_hoy = $conn->query("SELECT total_citas_dia(CURDATE()) as total")->fetch_a
 $productos_stock_bajo = $conn->query("SELECT productos_stock_bajo() as total")->fetch_assoc()['total'];
 $ingresos_mes = $conn->query("SELECT ingresos_mes_actual() as total")->fetch_assoc()['total'];
 
-// Obtener todas las citas (incluyendo foto de mascota y notas)
-$sql = "SELECT 
-            c.id,
-            c.fecha_cita,
-            c.hora_cita,
-            c.estado,
-            c.notas,
-            m.nombre_mascota,
-            m.especie,
-            m.foto,
-            cl.nombre AS nombre_dueno,
-            cl.telefono,
-            cl.email,
-            GROUP_CONCAT(s.nombre_servicio SEPARATOR ', ') AS servicios,
-            IFNULL(SUM(dc.precio_fijado), 0) AS total
-        FROM CITA c
-        JOIN MASCOTA m ON c.id_mascota = m.id
-        JOIN CLIENTE cl ON m.id_cliente = cl.id
-        LEFT JOIN DETALLE_CITA dc ON c.id = dc.id_cita
-        LEFT JOIN SERVICIO s ON dc.id_servicio = s.id
-        GROUP BY c.id
-        ORDER BY c.fecha_cita DESC, c.hora_cita DESC";
-
+// ========== USANDO VISTA ==========
+// Simplificar la consulta de citas usando vista_citas_completas
+$sql = "SELECT * FROM vista_citas_completas ORDER BY fecha_cita DESC, hora_cita DESC";
 $result = $conn->query($sql);
+
+// ========== ADICIONAL: Productos con stock crítico usando vista ==========
+$stock_critico = $conn->query("SELECT * FROM vista_stock_critico LIMIT 5");
+
+// ========== ADICIONAL: Resumen ejecutivo usando vista ==========
+$resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -53,82 +39,6 @@ $result = $conn->query($sql);
     <title>Panel Admin - BIOSPET</title>
     <link rel="stylesheet" href="../assets/css/global.css">
     <link rel="stylesheet" href="../assets/css/dashboard.css">
-    <style>
-        .sin-servicios { color: #999; font-style: italic; }
-        .total-citas { background: white; padding: 15px; border-radius: var(--radius-md); margin-bottom: 20px; display: inline-block; }
-        .foto-miniatura {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .foto-miniatura:hover {
-            transform: scale(3);
-            z-index: 1000;
-            position: relative;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.3);
-        }
-        .sintomas-icono {
-            cursor: pointer;
-            font-size: 18px;
-            color: var(--primary);
-        }
-        .sintomas-tooltip {
-            position: relative;
-            display: inline-block;
-        }
-        .sintomas-tooltip .tooltip-texto {
-            visibility: hidden;
-            background-color: #333;
-            color: #fff;
-            text-align: left;
-            border-radius: 5px;
-            padding: 8px 12px;
-            position: absolute;
-            z-index: 100;
-            bottom: 125%;
-            left: 50%;
-            transform: translateX(-50%);
-            white-space: nowrap;
-            font-size: 12px;
-            font-weight: normal;
-        }
-        .sintomas-tooltip:hover .tooltip-texto {
-            visibility: visible;
-        }
-        .notas-resumen {
-            max-width: 200px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .dashboard-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: var(--radius-md);
-            text-align: center;
-            box-shadow: var(--shadow-soft);
-        }
-        .stat-number {
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--primary);
-        }
-        .stat-label {
-            font-size: 0.9rem;
-            color: #666;
-            margin-top: 5px;
-        }
-    </style>
 </head>
 <body>
     <div class="admin-header">
@@ -147,7 +57,27 @@ $result = $conn->query($sql);
     </div>
 
     <div class="container">
-        <!-- Tarjetas de resumen -->
+        <!-- Resumen Ejecutivo (usando vista_resumen_negocio) -->
+        <div class="resumen-grid">
+            <div class="resumen-card">
+                <div class="resumen-number"><?php echo $resumen['clientes_activos']; ?></div>
+                <div class="stat-label">Clientes Activos</div>
+            </div>
+            <div class="resumen-card">
+                <div class="resumen-number"><?php echo $resumen['mascotas_activas']; ?></div>
+                <div class="stat-label">Mascotas</div>
+            </div>
+            <div class="resumen-card">
+                <div class="resumen-number"><?php echo $resumen['empleados_activos']; ?></div>
+                <div class="stat-label">Empleados</div>
+            </div>
+            <div class="resumen-card">
+                <div class="resumen-number"><?php echo $resumen['citas_pendientes']; ?></div>
+                <div class="stat-label">Citas Pendientes</div>
+            </div>
+        </div>
+
+        <!-- Tarjetas de resumen rápidas -->
         <div class="dashboard-stats">
             <div class="stat-card">
                 <div class="stat-number"><?php echo $citas_hoy; ?></div>
@@ -166,6 +96,19 @@ $result = $conn->query($sql);
                 <div class="stat-label">Ingresos del mes</div>
             </div>
         </div>
+
+        <!-- Alerta de stock crítico (usando vista_stock_critico) -->
+        <?php if ($stock_critico->num_rows > 0): ?>
+        <div class="alert-card">
+            <h3 style="color: #f44336; margin-bottom: 15px;">⚠️ Productos con Stock Crítico</h3>
+            <?php while($producto = $stock_critico->fetch_assoc()): ?>
+            <div class="alert-item">
+                <span><strong><?php echo $producto['nombre']; ?></strong> (<?php echo $producto['categoria']; ?>)</span>
+                <span class="alert-stock-bajo">Stock: <?php echo $producto['stock_actual']; ?> / Mínimo: <?php echo $producto['stock_minimo']; ?></span>
+            </div>
+            <?php endwhile; ?>
+        </div>
+        <?php endif; ?>
 
         <div class="total-citas">
             <strong>Total de citas:</strong> <?php echo $result->num_rows; ?>
@@ -190,7 +133,7 @@ $result = $conn->query($sql);
             <tbody>
                 <?php while($row = $result->fetch_assoc()): ?>
                 <tr>
-                    <td><?php echo $row['id']; ?></td>
+                    <td><?php echo $row['cita_id']; ?></td>
                     <td>
                         <?php if (!empty($row['foto']) && file_exists('../' . $row['foto'])): ?>
                             <img src="../<?php echo $row['foto']; ?>" alt="Foto de <?php echo $row['nombre_mascota']; ?>" class="foto-miniatura">
@@ -227,19 +170,19 @@ $result = $conn->query($sql);
                             <span class="sin-servicios">(Sin servicios)</span>
                         <?php endif; ?>
                     </td>
-                    <td>$<?php echo number_format($row['total'], 2); ?></td>
+                    <td>$<?php echo number_format($row['total_cobrado'], 2); ?></td>
                     <td>
                         <span class="estado-<?php echo $row['estado']; ?>">
                             <?php echo ucfirst($row['estado']); ?>
                         </span>
                     </td>
                     <td>
-                        <a href="detalle_cita.php?id=<?php echo $row['id']; ?>" class="btn-small">Ver</a>
+                        <a href="detalle_cita.php?id=<?php echo $row['cita_id']; ?>" class="btn-small">Ver</a>
                         <?php if ($row['estado'] == 'pendiente'): ?>
-                            <a href="actualizar_estado.php?id=<?php echo $row['id']; ?>&estado=confirmada" class="btn-small">Confirmar</a>
+                            <a href="actualizar_estado.php?id=<?php echo $row['cita_id']; ?>&estado=confirmada" class="btn-small">Confirmar</a>
                         <?php endif; ?>
                         <?php if ($row['estado'] != 'cancelada' && $row['estado'] != 'completada'): ?>
-                            <a href="actualizar_estado.php?id=<?php echo $row['id']; ?>&estado=cancelada" class="btn-small" style="background:#f44336;">Cancelar</a>
+                            <a href="actualizar_estado.php?id=<?php echo $row['cita_id']; ?>&estado=cancelada" class="btn-small" style="background:#f44336;">Cancelar</a>
                         <?php endif; ?>
                     </td>
                 </tr>

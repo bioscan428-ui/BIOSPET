@@ -3,6 +3,8 @@
 -- ============================================
 
 -- 1. VISTAS DE CITAS Y SERVICIOS
+DROP VIEW IF EXISTS vista_citas_completas;
+
 CREATE OR REPLACE VIEW vista_citas_completas AS
 SELECT 
     c.id AS cita_id,
@@ -13,22 +15,25 @@ SELECT
     m.id AS mascota_id,
     m.nombre_mascota,
     m.especie,
+    m.foto,
     cl.id AS cliente_id,
     cl.nombre AS nombre_dueno,
     cl.ape_pat,
     cl.ape_mat,
     cl.telefono,
     cl.email,
-    GROUP_CONCAT(s.nombre_servicio SEPARATOR ', ') AS servicios,
-    GROUP_CONCAT(dc.precio_fijado SEPARATOR ', ') AS precios,
-    SUM(dc.precio_fijado) AS total_cobrado
+    COALESCE(GROUP_CONCAT(s.nombre_servicio SEPARATOR ', '), '') AS servicios,
+    COALESCE(GROUP_CONCAT(dc.precio_fijado SEPARATOR ', '), '') AS precios,
+    COALESCE(SUM(dc.precio_fijado), 0) AS total_cobrado
 FROM CITA c
 JOIN MASCOTA m ON c.id_mascota = m.id
 JOIN CLIENTE cl ON m.id_cliente = cl.id
-JOIN DETALLE_CITA dc ON c.id = dc.id_cita
-JOIN SERVICIO s ON dc.id_servicio = s.id
-GROUP BY c.id;
+LEFT JOIN DETALLE_CITA dc ON c.id = dc.id_cita
+LEFT JOIN SERVICIO s ON dc.id_servicio = s.id
+GROUP BY c.id
+ORDER BY c.fecha_cita DESC, c.hora_cita DESC;
 
+-------------------------------------------------------------
 CREATE OR REPLACE VIEW vista_ingresos_diarios AS
 SELECT 
     c.fecha_cita,

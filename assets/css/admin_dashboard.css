@@ -1,63 +1,190 @@
-body { background: var(--muted); }
-        .admin-header { background: var(--primary); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .admin-header a { color: white; text-decoration: none; margin-left: 20px; }
-        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .stat-card { background: white; padding: 20px; border-radius: var(--radius-md); text-align: center; box-shadow: var(--shadow-soft); }
-        .stat-card .numero { font-size: 2.5rem; font-weight: bold; color: var(--primary); }
-        .stat-card .label { color: #666; margin-top: 10px; }
-        .citas-table { width: 100%; background: white; border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-soft); }
-        .citas-table th, .citas-table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
-        .citas-table th { background: var(--black); color: white; }
-        .btn-small { background: var(--primary); color: white; padding: 5px 10px; border-radius: var(--radius-sm); text-decoration: none; font-size: 12px; }
-        .estado-pendiente { background: #ff9800; color: white; padding: 4px 8px; border-radius: 20px; font-size: 12px; display: inline-block; }
-        .estado-confirmada { background: #4caf50; color: white; padding: 4px 8px; border-radius: 20px; font-size: 12px; display: inline-block; }
-        .estado-cancelada { background: #f44336; color: white; padding: 4px 8px; border-radius: 20px; font-size: 12px; display: inline-block; }
-        .estado-completada { background: #2196f3; color: white; padding: 4px 8px; border-radius: 20px; font-size: 12px; display: inline-block; }
-        .btn-nuevo { background: #4caf50; color: white; padding: 10px 20px; border-radius: var(--radius-sm); text-decoration: none; display: inline-block; margin-bottom: 20px; }
-        .sin-servicios { color: #999; font-style: italic; }
-        .foto-miniatura {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .foto-miniatura:hover {
-            transform: scale(3);
-            z-index: 1000;
-            position: relative;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.3);
-        }
-        .sintomas-icono {
-            cursor: pointer;
-            font-size: 18px;
-            color: var(--primary);
-        }
-        .sintomas-tooltip {
-            position: relative;
-            display: inline-block;
-        }
-        .sintomas-tooltip .tooltip-texto {
-            visibility: hidden;
-            background-color: #333;
-            color: #fff;
-            text-align: left;
-            border-radius: 5px;
-            padding: 8px 12px;
-            position: absolute;
-            z-index: 100;
-            bottom: 125%;
-            left: 50%;
-            transform: translateX(-50%);
-            white-space: nowrap;
-            font-size: 12px;
-            font-weight: normal;
-            min-width: 200px;
-            white-space: normal;
-        }
-        .sintomas-tooltip:hover .tooltip-texto {
-            visibility: visible;
-        }
+/* assets/css/admin_dashboard.css */
+
+body { 
+    background: var(--muted); 
+}
+
+.admin-header { 
+    background: var(--primary); 
+    color: white; 
+    padding: 20px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+}
+
+.admin-header a { 
+    color: white; 
+    text-decoration: none; 
+    margin-left: 20px; 
+}
+
+.container { 
+    max-width: 1200px; 
+    margin: 20px auto; 
+    padding: 0 20px; 
+}
+
+/* Stats Grid */
+.stats-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+    gap: 20px; 
+    margin-bottom: 30px; 
+}
+
+.stat-card { 
+    background: white; 
+    padding: 20px; 
+    border-radius: var(--radius-md); 
+    text-align: center; 
+    box-shadow: var(--shadow-soft); 
+}
+
+.stat-card .numero { 
+    font-size: 2.5rem; 
+    font-weight: bold; 
+    color: var(--primary); 
+}
+
+.stat-card .label { 
+    color: #666; 
+    margin-top: 10px; 
+}
+
+/* Tabla de Citas */
+.citas-table { 
+    width: 100%; 
+    background: white; 
+    border-radius: var(--radius-md); 
+    overflow: hidden; 
+    box-shadow: var(--shadow-soft); 
+}
+
+.citas-table th, 
+.citas-table td { 
+    padding: 12px; 
+    text-align: left; 
+    border-bottom: 1px solid #eee; 
+}
+
+.citas-table th { 
+    background: var(--black); 
+    color: white; 
+}
+
+/* Botones */
+.btn-small { 
+    background: var(--primary); 
+    color: white; 
+    padding: 5px 10px; 
+    border-radius: var(--radius-sm); 
+    text-decoration: none; 
+    font-size: 12px; 
+}
+
+.btn-nuevo { 
+    background: #4caf50; 
+    color: white; 
+    padding: 10px 20px; 
+    border-radius: var(--radius-sm); 
+    text-decoration: none; 
+    display: inline-block; 
+    margin-bottom: 20px; 
+}
+
+/* Estados de Citas */
+.estado-pendiente { 
+    background: #ff9800; 
+    color: white; 
+    padding: 4px 8px; 
+    border-radius: 20px; 
+    font-size: 12px; 
+    display: inline-block; 
+}
+
+.estado-confirmada { 
+    background: #4caf50; 
+    color: white; 
+    padding: 4px 8px; 
+    border-radius: 20px; 
+    font-size: 12px; 
+    display: inline-block; 
+}
+
+.estado-cancelada { 
+    background: #f44336; 
+    color: white; 
+    padding: 4px 8px; 
+    border-radius: 20px; 
+    font-size: 12px; 
+    display: inline-block; 
+}
+
+.estado-completada { 
+    background: #2196f3; 
+    color: white; 
+    padding: 4px 8px; 
+    border-radius: 20px; 
+    font-size: 12px; 
+    display: inline-block; 
+}
+
+/* Servicios */
+.sin-servicios { 
+    color: #999; 
+    font-style: italic; 
+}
+
+/* Foto Miniatura */
+.foto-miniatura {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.foto-miniatura:hover {
+    transform: scale(3);
+    z-index: 1000;
+    position: relative;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+/* Tooltip de Síntomas */
+.sintomas-icono {
+    cursor: pointer;
+    font-size: 18px;
+    color: var(--primary);
+}
+
+.sintomas-tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.sintomas-tooltip .tooltip-texto {
+    visibility: hidden;
+    background-color: #333;
+    color: #fff;
+    text-align: left;
+    border-radius: 5px;
+    padding: 8px 12px;
+    position: absolute;
+    z-index: 100;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: normal;
+    min-width: 200px;
+    white-space: normal;
+}
+
+.sintomas-tooltip:hover .tooltip-texto {
+    visibility: visible;
+}

@@ -19,6 +19,25 @@ if (!$id_mascota) {
     die("Mascota no especificada");
 }
 
+// ========== USANDO FUNCIONES ==========
+// 1. Obtener edad de la mascota usando la función
+$sql_edad = "SELECT edad_mascota(fecha_nacimiento) as edad FROM MASCOTA WHERE id = ?";
+$stmt_edad = $conn->prepare($sql_edad);
+$stmt_edad->bind_param("i", $id_mascota);
+$stmt_edad->execute();
+$result_edad = $stmt_edad->get_result();
+$row_edad = $result_edad->fetch_assoc();
+$edad = $row_edad['edad'];
+
+// 2. Obtener última cita de la mascota usando la función
+$sql_ultima_cita = "SELECT ultima_cita_mascota(?) as ultima_cita";
+$stmt_ultima = $conn->prepare($sql_ultima_cita);
+$stmt_ultima->bind_param("i", $id_mascota);
+$stmt_ultima->execute();
+$result_ultima = $stmt_ultima->get_result();
+$row_ultima = $result_ultima->fetch_assoc();
+$ultima_cita = $row_ultima['ultima_cita'];
+
 // Obtener datos de la mascota y su dueño
 $sql = "SELECT 
             m.id,
@@ -44,14 +63,6 @@ $mascota = $result->fetch_assoc();
 
 if (!$mascota) {
     die("Mascota no encontrada");
-}
-
-// Calcular edad
-$edad = null;
-if ($mascota['fecha_nacimiento']) {
-    $fecha_nac = new DateTime($mascota['fecha_nacimiento']);
-    $hoy = new DateTime();
-    $edad = $fecha_nac->diff($hoy)->y;
 }
 
 // Obtener historial de citas (últimas 5)
@@ -89,134 +100,7 @@ $proxima = $stmt_proxima->get_result()->fetch_assoc();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Carnet de <?php echo htmlspecialchars($mascota['nombre_mascota']); ?> - BIOSPET</title>
     <link rel="stylesheet" href="assets/css/global.css">
-    <style>
-        body {
-            background: #f0f2f5;
-            font-family: 'Segoe UI', Arial, sans-serif;
-            padding: 40px 20px;
-        }
-        .carnet {
-            max-width: 500px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        .carnet-header {
-            background: var(--primary);
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
-        .carnet-header h1 {
-            margin: 0;
-            font-size: 1.8rem;
-        }
-        .carnet-header p {
-            margin: 5px 0 0;
-            opacity: 0.9;
-        }
-        .foto {
-            text-align: center;
-            padding: 20px;
-            background: #f9f9f9;
-            border-bottom: 1px solid #eee;
-        }
-        .foto img {
-            width: 150px;
-            height: 150px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 4px solid var(--primary);
-        }
-        .info {
-            padding: 20px;
-        }
-        .info-section {
-            margin-bottom: 20px;
-        }
-        .info-section h3 {
-            color: var(--primary);
-            border-bottom: 2px solid var(--primary);
-            padding-bottom: 8px;
-            margin-bottom: 15px;
-            font-size: 1.2rem;
-        }
-        .info-row {
-            display: flex;
-            margin-bottom: 10px;
-        }
-        .info-label {
-            width: 100px;
-            font-weight: bold;
-            color: #555;
-        }
-        .info-value {
-            flex: 1;
-            color: #333;
-        }
-        .proxima-cita {
-            background: #e8f5e9;
-            border-left: 4px solid #4caf50;
-            padding: 12px;
-            border-radius: 8px;
-            margin-top: 15px;
-        }
-        .historial-item {
-            background: #f5f5f5;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
-        .historial-fecha {
-            font-weight: bold;
-            color: var(--primary);
-        }
-        .btn-imprimir {
-            display: block;
-            width: calc(100% - 40px);
-            margin: 0 20px 20px;
-            background: var(--primary);
-            color: white;
-            text-align: center;
-            padding: 12px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: bold;
-            border: none;
-            cursor: pointer;
-        }
-        .btn-imprimir:hover {
-            background: var(--primary-dark);
-        }
-        .btn-volver {
-            display: inline-block;
-            margin: 10px auto 0;
-            text-align: center;
-            color: var(--primary);
-            text-decoration: none;
-        }
-        .admin-barra {
-            background: var(--primary-dark);
-            color: white;
-            padding: 8px 20px;
-            text-align: center;
-            font-size: 12px;
-        }
-        @media print {
-            .btn-imprimir, .btn-volver, .admin-barra {
-                display: none;
-            }
-            body {
-                background: white;
-                padding: 0;
-            }
-            .carnet {
-                box-shadow: none;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="assets/css/carnet_mascota.css">
 </head>
 <body>
     <div class="admin-barra">
@@ -258,7 +142,9 @@ $proxima = $stmt_proxima->get_result()->fetch_assoc();
                 </div>
                 <div class="info-row">
                     <div class="info-label">Edad:</div>
-                    <div class="info-value"><?php echo $edad !== null ? $edad . ' años' : 'No registrada'; ?></div>
+                    <div class="info-value">
+                        <?php echo $edad !== null ? $edad . ' años' : 'No registrada'; ?>
+                    </div>
                 </div>
             </div>
 
@@ -277,6 +163,15 @@ $proxima = $stmt_proxima->get_result()->fetch_assoc();
                     <div class="info-value"><?php echo $mascota['email'] ?: 'No registrado'; ?></div>
                 </div>
             </div>
+
+            <?php if ($ultima_cita): ?>
+            <div class="info-section">
+                <h3>📅 Última Cita</h3>
+                <div class="ultima-cita">
+                    <strong>📆 Fecha:</strong> <?php echo date('d/m/Y', strtotime($ultima_cita)); ?>
+                </div>
+            </div>
+            <?php endif; ?>
 
             <?php if ($proxima): ?>
             <div class="info-section">

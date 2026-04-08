@@ -155,24 +155,7 @@ BEGIN
 END$$
 DELIMITER ;
 
-DELIMITER $$
-CREATE TRIGGER after_insert_empleado
-AFTER INSERT ON EMPLEADO
-FOR EACH ROW
-BEGIN
-    INSERT INTO USUARIO (id_empleado, nombre_usuario, contrasena, rol)
-    VALUES (
-        NEW.id, 
-        NEW.email, 
-        NULL,
-        CASE 
-            WHEN NEW.puesto = 'veterinario' THEN 'veterinario'
-            WHEN NEW.puesto = 'administrador' THEN 'admin'
-            ELSE 'recepcionista'
-        END
-    );
-END$$
-DELIMITER ;
+
 
 DELIMITER $$
 CREATE TRIGGER before_delete_empleado

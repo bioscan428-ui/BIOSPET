@@ -1,0 +1,13 @@
+body { background: var(--muted); }
+        .admin-header { background: var(--primary); color: white; padding: 20px; }
+        .admin-header a { color: white; margin-left: 20px; }
+        .container { max-width: 700px; margin: 20px auto; background: white; padding: 30px; border-radius: var(--radius-md); }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: var(--radius-sm); }
+        .btn { background: var(--primary); color: white; padding: 12px 30px; border: none; border-radius: var(--radius-sm); cursor: pointer; }
+        .error { color: red; margin-bottom: 15px; }
+        .opcion-group { display: flex; gap: 20px; margin-bottom: 20px; }
+        .opcion-group label { display: inline-block; margin-left: 5px; font-weight: normal; }
+        .seccion-empleado { border: 1px solid #ddd; padding: 15px; border-radius: var(--radius-sm); margin-top: 15px; }
+        .seccion-empleado h4 { margin-top: 0; color: var(--primary); }

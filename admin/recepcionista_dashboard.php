@@ -120,7 +120,9 @@ $clientes_nuevos = $result->fetch_row()[0];
         <div>
             <a href="recepcionista_dashboard.php">📋 Inicio</a>
             <a href="citas.php">➕ Nueva Cita</a>
+            <!------
             <a href="clientes.php">👥 Clientes</a>
+            ------->
             <a href="../index.php" target="_blank">🌐 Ver Sitio</a>
             <a href="logout.php">🚪 Cerrar Sesión</a>
         </div>

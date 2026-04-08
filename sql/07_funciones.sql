@@ -240,16 +240,29 @@ DELIMITER $$
 CREATE FUNCTION stock_suficiente(p_producto_id INT, p_cantidad INT)
 RETURNS BOOLEAN
 DETERMINISTIC
+READS SQL DATA
 BEGIN
-    DECLARE stock_actual INT;
+    DECLARE stock_actual INT DEFAULT 0;
     
+    -- Manejar valores nulos o inválidos
+    IF p_producto_id IS NULL OR p_cantidad IS NULL OR p_cantidad <= 0 THEN
+        RETURN FALSE;
+    END IF;
+    
+    -- Obtener stock actual (solo productos activos)
     SELECT stock_actual INTO stock_actual
     FROM PRODUCTO
-    WHERE id = p_producto_id;
+    WHERE id = p_producto_id AND activo = 1;
+    
+    -- Si no se encontró el producto, retornar FALSE
+    IF stock_actual IS NULL THEN
+        RETURN FALSE;
+    END IF;
     
     RETURN stock_actual >= p_cantidad;
 END$$
 DELIMITER ;
+
 
 -- Función: Obtener valor total del inventario
 DELIMITER $$

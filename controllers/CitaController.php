@@ -5,6 +5,8 @@ require_once __DIR__ . '/../includes/conexion.php';
 class CitaController {
     
     public function guardar() {
+        global $conn;  // ← IMPORTANTE: traer $conn al ámbito del método
+        
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ../citas.php');
             exit;
@@ -27,38 +29,55 @@ class CitaController {
         $notas = trim($_POST['notas'] ?? '');
 
         // Validaciones de Formato
-        // Validar email (si se envió)
         if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             die("Error: El email no tiene un formato válido.");
         }
-        // Validar teléfono (solo números, 10-15 dígitos)
         if (!preg_match('/^[0-9]{10,15}$/', $telefono)) {
             die("Error: El teléfono debe contener solo números (10-15 dígitos).");
         }
-        // Validar que la fecha no sea pasada
         if ($fecha_cita < date('Y-m-d')) {
             die("Error: La fecha no puede ser anterior a hoy.");
         }
-        // Validar que la hora sea razonable (entre 8:00 y 20:00)
+        
+        // ========== VALIDACIÓN DE DISPONIBILIDAD ==========
+        // Usar la función total_citas_dia()
+        $sql_disponibilidad = "SELECT total_citas_dia(?) as total_citas";
+        $stmt_disp = $conn->prepare($sql_disponibilidad);
+        $stmt_disp->bind_param("s", $fecha_cita);
+        $stmt_disp->execute();
+        $result_disp = $stmt_disp->get_result();
+        $row_disp = $result_disp->fetch_assoc();
+        $citas_ese_dia = $row_disp['total_citas'];
+        
+        $limite_citas_dia = 20;
+        
+        if ($citas_ese_dia >= $limite_citas_dia) {
+            die("Error: No hay disponibilidad para la fecha seleccionada. Por favor, elige otro día.");
+        }
+        // ========== FIN VALIDACIÓN ==========
+        
+        // Validar hora
         $hora_valida = preg_match('/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/', $hora_cita);
         if (!$hora_valida) {
             die("Error: Formato de hora inválido.");
         }
-        // Validar nombre del dueño (solo letras y espacios)
+        
+        $hora_num = (int)substr($hora_cita, 0, 2);
+        if ($hora_num < 8 || $hora_num > 20) {
+            die("Error: El horario de atención es de 8:00 a 20:00 horas.");
+        }
+        
         if (!preg_match('/^[a-zA-ZáéíóúñÁÉÍÓÚÑ\s]+$/', $nombre_dueno)) {
             die("Error: El nombre solo debe contener letras.");
         }
-        // Validar nombre de mascota
         if (!preg_match('/^[a-zA-ZáéíóúñÁÉÍÓÚÑ\s]+$/', $nombre_mascota)) {
             die("Error: El nombre de la mascota solo debe contener letras.");
         }
 
-        // Validaciones básicas
         if (empty($nombre_dueno) || empty($telefono) || empty($nombre_mascota) || empty($fecha_cita) || empty($hora_cita)) {
             die("Error: Campos requeridos vacíos.");
         }
 
-        global $conn;
         $conn->begin_transaction();
 
         try {
@@ -70,9 +89,7 @@ class CitaController {
             $stmt->execute();
             $id_cliente = $conn->insert_id;
 
-            // 3. Insertar en MASCOTA (con género y foto)
-            
-            // Manejar la foto
+            // 3. Insertar en MASCOTA
             $foto_ruta = null;
             if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
                 $archivo = $_FILES['foto'];
@@ -83,7 +100,6 @@ class CitaController {
                     $nombre_archivo = 'mascota_' . time() . '_' . rand(1000, 9999) . '.' . $extension;
                     $ruta_destino = __DIR__ . '/../assets/images/mascotas/' . $nombre_archivo;
                     
-                    // Crear carpeta si no existe
                     if (!file_exists(__DIR__ . '/../assets/images/mascotas/')) {
                         mkdir(__DIR__ . '/../assets/images/mascotas/', 0777, true);
                     }
@@ -101,7 +117,7 @@ class CitaController {
             $stmt->execute();
             $id_mascota = $conn->insert_id;
 
-            // 4. Insertar en CITA (estado = 'pendiente')
+            // 4. Insertar en CITA
             $sql_cita = "INSERT INTO CITA (fecha_cita, hora_cita, id_mascota, notas, estado) 
                          VALUES (?, ?, ?, ?, 'pendiente')";
             $stmt = $conn->prepare($sql_cita);
@@ -109,10 +125,8 @@ class CitaController {
             $stmt->execute();
             $id_cita = $conn->insert_id;
 
-            // Confirmar transacción
             $conn->commit();
             
-            // Redirigir a éxito
             header('Location: ../gracias.php');
             exit;
 
@@ -125,3 +139,4 @@ class CitaController {
 
 $controller = new CitaController();
 $controller->guardar();
+?>

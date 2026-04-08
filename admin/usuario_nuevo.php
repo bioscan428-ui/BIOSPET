@@ -45,10 +45,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id_empleado = $conn->insert_id;
             
             // 2. Insertar en USUARIO
-            $sql_usuario = "INSERT INTO USUARIO (id_empleado, nombre_usuario, contrasena, rol) VALUES (?, ?, ?, ?)";
+            $sql_usuario = "INSERT INTO USUARIO (id_empleado, nombre_usuario, contrasena, rol, activo) 
+                            VALUES (?, ?, ?, ?, 1)";
             $stmt_user = $conn->prepare($sql_usuario);
+            // Verificar que la preparación fue exitosa
+            if (!$stmt_user) {
+                throw new Exception("Error preparando consulta: " . $conn->error);
+            }
             $stmt_user->bind_param("isss", $id_empleado, $nombre_usuario, $contrasena, $rol);
-            $stmt_user->execute();
+            // Depuración adicional
+            error_log("ID Empleado: $id_empleado");
+            error_log("Usuario: $nombre_usuario");
+            error_log("Contraseña hash: $contrasena");
+            error_log("Rol: $rol");
+
+            if (!$stmt_user->execute()) {
+                throw new Exception("Error al insertar usuario: " . $stmt_user->error);
+            }
             
             $conn->commit();
             header('Location: usuarios.php?success=1');
@@ -85,71 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <title>Nuevo Usuario / Empleado - BIOSPET</title>
     <link rel="stylesheet" href="../assets/css/global.css">
-    <style>
-        body { background: var(--muted); }
-        .admin-header { background: var(--primary); color: white; padding: 20px; }
-        .admin-header a { color: white; margin-left: 20px; }
-        .container { max-width: 700px; margin: 20px auto; background: white; padding: 30px; border-radius: var(--radius-md); }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: var(--radius-sm); }
-        .btn { background: var(--primary); color: white; padding: 12px 30px; border: none; border-radius: var(--radius-sm); cursor: pointer; }
-        .error { color: red; margin-bottom: 15px; }
-        .opcion-group { display: flex; gap: 20px; margin-bottom: 20px; }
-        .opcion-group label { display: inline-block; margin-left: 5px; font-weight: normal; }
-        .seccion-empleado { border: 1px solid #ddd; padding: 15px; border-radius: var(--radius-sm); margin-top: 15px; }
-        .seccion-empleado h4 { margin-top: 0; color: var(--primary); }
-    </style>
-    <script>
-        function toggleFormulario() {
-            const opcion = document.querySelector('input[name="opcion"]:checked').value;
-            const seccionNuevo = document.getElementById('seccion-nuevo');
-            const seccionExistente = document.getElementById('seccion-existente');
-            const selectExistente = document.getElementById('id_empleado');
-            
-            if (opcion === 'nuevo') {
-                seccionNuevo.style.display = 'block';
-                seccionExistente.style.display = 'none';
-                // Remover required del select existente
-                if (selectExistente) {
-                    selectExistente.removeAttribute('required');
-                }
-                // Agregar required a campos de nuevo empleado
-                document.querySelectorAll('#seccion-nuevo input, #seccion-nuevo select').forEach(input => {
-                    if (input.hasAttribute('data-required')) {
-                        input.setAttribute('required', 'required');
-                    }
-                });
-            } else {
-                seccionNuevo.style.display = 'none';
-                seccionExistente.style.display = 'block';
-                // Agregar required al select existente
-                if (selectExistente) {
-                    selectExistente.setAttribute('required', 'required');
-                }
-                // Remover required de campos de nuevo empleado
-                document.querySelectorAll('#seccion-nuevo input, #seccion-nuevo select').forEach(input => {
-                    input.removeAttribute('required');
-                });
-            }
-        }
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            // Marcar campos de nuevo empleado como requeridos condicionalmente
-            document.querySelectorAll('#seccion-nuevo input, #seccion-nuevo select').forEach(input => {
-                if (input.hasAttribute('required')) {
-                    input.setAttribute('data-required', 'true');
-                    input.removeAttribute('required');
-                }
-            });
-            
-            toggleFormulario();
-            
-            document.querySelectorAll('input[name="opcion"]').forEach(radio => {
-                radio.addEventListener('change', toggleFormulario);
-            });
-        });
-    </script>
+    <link rel="stylesheet" href="../assets/css/usuario_nuevo.css">
 </head>
 <body>
     <div class="admin-header">
@@ -254,5 +203,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <button type="submit" class="btn" style="margin-top: 20px;">Crear Usuario</button>
         </form>
     </div>
+    <script src="../assets/js/usuario_nuevo.js"></script>
 </body>
 </html>
