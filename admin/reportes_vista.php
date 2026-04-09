@@ -135,13 +135,29 @@
             </div>
 
             <div class="card">
-                <h3>🏆 Productos más vendidos</h3>
-                <?php foreach($productos_top as $p): ?>
-                <div class="producto-item">
-                    <span class="nombre"><?php echo $p['nombre']; ?></span>
-                    <span class="total"><?php echo $p['unidades_vendidas']; ?> unidades</span>
-                </div>
-                <?php endforeach; ?>
+                <h3>🏆 Top 5 Productos más vendidos</h3>
+                <table class="productos-top-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Producto</th>
+                            <th>Categoría</th>
+                            <th>Unidades</th>
+                            <th>Ingresos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php $i = 1; foreach($productos_top as $p): ?>
+                        <tr>
+                            <td><?php echo $i++; ?></td>
+                            <td><strong><?php echo htmlspecialchars($p['nombre']); ?></strong></td>
+                            <td><?php echo $p['categoria']; ?></td>
+                            <td><?php echo $p['unidades_vendidas']; ?> uni.</td>
+                            <td>$<?php echo number_format($p['ingresos_generados'], 2); ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
 
             <div class="card">
@@ -159,6 +175,39 @@
                     <span class="total">$<?php echo number_format($pago['total_ingresos'], 2); ?></span>
                 </div>
                 <?php endforeach; ?>
+            </div>
+        </div>
+
+        <!-- ========== NUEVA SECCIÓN: TOP 20 PRODUCTOS ========== -->
+        <div class="card" style="margin-top: 20px;">
+            <h3>📊 Top 20 Productos más vendidos (Completo)</h3>
+            <div style="overflow-x: auto;">
+                <table class="productos-top-table full-width">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Producto</th>
+                            <th>Código de Barras</th>
+                            <th>Categoría</th>
+                            <th>Unidades</th>
+                            <th>Ventas</th>
+                            <th>Ingresos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php $i = 1; foreach($productos_top20 as $p): ?>
+                        <tr>
+                            <td><?php echo $i++; ?></td>
+                            <td><strong><?php echo htmlspecialchars($p['nombre']); ?></strong></td>
+                            <td><?php echo $p['codigo_barras'] ?: '—'; ?></td>
+                            <td><?php echo $p['categoria']; ?></td>
+                            <td><?php echo $p['unidades_vendidas']; ?></td>
+                            <td><?php echo $p['total_ventas']; ?> ventas</td>
+                            <td class="ingreso">$<?php echo number_format($p['ingresos_generados'], 2); ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -190,15 +239,15 @@
 
     <!-- Datos ocultos para JavaScript -->
     <div id="datos-reportes" style="display: none;"
-        data-fechas='<?php echo json_encode($datos_js['fechas']); ?>'
-        data-citas='<?php echo json_encode($datos_js['citasData']); ?>'
-        data-ingresos='<?php echo json_encode($datos_js['ingresosData']); ?>'
-        data-meses='<?php echo json_encode($datos_js['meses']); ?>'
-        data-citas-mensuales='<?php echo json_encode($datos_js['citasMensuales']); ?>'
-        data-ventas-por-dia-fechas='<?php echo json_encode(array_keys($ventas_por_dia)); ?>'
-        data-ventas-por-dia-cantidad='<?php echo json_encode(array_values($ventas_por_dia)); ?>'
-        data-ingresos-ventas-por-dia='<?php echo json_encode(array_values($ingresos_ventas_por_dia)); ?>'
-        data-ingresos-combinados='<?php echo htmlspecialchars(json_encode($ingresos_combinados), ENT_QUOTES, 'UTF-8'); ?>'
+        data-fechas='<?php echo json_encode($datos_js['fechas'] ?? []); ?>'
+        data-citas='<?php echo json_encode($datos_js['citasData'] ?? []); ?>'
+        data-ingresos='<?php echo json_encode($datos_js['ingresosData'] ?? []); ?>'
+        data-meses='<?php echo json_encode($datos_js['meses'] ?? []); ?>'
+        data-citas-mensuales='<?php echo json_encode($datos_js['citasMensuales'] ?? []); ?>'
+        data-ventas-por-dia-fechas='<?php echo json_encode($datos_js['ventasPorDiaFechas'] ?? []); ?>'
+        data-ventas-por-dia-cantidad='<?php echo json_encode($datos_js['ventasPorDiaCantidad'] ?? []); ?>'
+        data-ingresos-ventas-por-dia='<?php echo json_encode($datos_js['ingresosVentasPorDia'] ?? []); ?>'
+        data-ingresos-combinados='<?php echo htmlspecialchars(json_encode($datos_js['ingresosCombinados'] ?? []), ENT_QUOTES, 'UTF-8'); ?>'
         data-tasa-conversion='<?php echo $tasa_conversion; ?>'
         data-ingresos-mes='<?php echo $ingresos_mes; ?>'
         data-productos-stock-bajo='<?php echo $productos_stock_bajo; ?>'

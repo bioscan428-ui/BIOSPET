@@ -1,0 +1,344 @@
+/* ============================================
+   PRODUCTOS.CSS - Estilos para gestión de productos
+   Usando variables de global.css
+   ============================================ */
+
+/* Contenedor principal */
+.container {
+    max-width: 1400px;
+    margin: 20px auto;
+    padding: 0 20px;
+}
+
+/* Header de acciones */
+.header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+/* Botón nuevo producto */
+.btn-nuevo {
+    background: var(--primary);
+    color: white;
+    padding: 10px 20px;
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-soft);
+}
+
+.btn-nuevo:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hard);
+}
+
+/* Pestañas */
+.tab-buttons {
+    display: flex;
+    gap: 5px;
+    background: var(--gray-light);
+    padding: 5px;
+    border-radius: var(--radius-md);
+    display: inline-flex;
+}
+
+.tab-btn {
+    background: transparent;
+    color: #666;
+    padding: 8px 20px;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.tab-btn.active {
+    background: white;
+    color: var(--primary);
+    box-shadow: var(--shadow-soft);
+}
+
+.tab-btn:hover:not(.active) {
+    background: rgba(255,255,255,0.5);
+    color: var(--black);
+}
+
+.badge-count {
+    background: #f44336;
+    color: white;
+    border-radius: 20px;
+    padding: 2px 8px;
+    font-size: 11px;
+    margin-left: 8px;
+    font-weight: bold;
+}
+
+/* Tabla de productos */
+.productos-table {
+    width: 100%;
+    background: var(--white);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-soft);
+    border-collapse: collapse;
+}
+
+.productos-table thead tr {
+    background: var(--black);
+}
+
+.productos-table th {
+    color: var(--white);
+    padding: 14px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.productos-table td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+    font-size: 14px;
+    background: var(--white);
+}
+
+.productos-table tbody tr:hover td {
+    background: var(--muted);
+}
+
+/* Imagen miniatura */
+.imagen-preview {
+    width: 45px;
+    height: 45px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-soft);
+}
+
+.sin-imagen {
+    display: inline-block;
+    width: 45px;
+    height: 45px;
+    background: var(--gray-light);
+    border-radius: var(--radius-sm);
+    text-align: center;
+    line-height: 45px;
+    font-size: 20px;
+    color: #999;
+}
+
+/* Estados de stock */
+.stock-normal {
+    color: #4caf50;
+    font-weight: 500;
+}
+
+.stock-bajo {
+    color: #f44336;
+    font-weight: bold;
+    background: #ffebee;
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 13px;
+}
+
+.stock-critico {
+    color: var(--white);
+    font-weight: bold;
+    background: #f44336;
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+/* Estado activo/inactivo */
+.estado-activo {
+    color: #4caf50;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.estado-inactivo {
+    color: #f44336;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Vencimiento */
+.vencimiento-normal {
+    color: #666;
+}
+
+.vencimiento-critico {
+    color: #f44336;
+    font-weight: bold;
+}
+
+.vencimiento-critico small {
+    color: #e53935;
+    font-size: 11px;
+}
+
+/* Botones de acción */
+.btn-editar, .btn-eliminar {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    margin: 0 3px;
+}
+
+.btn-editar {
+    background: var(--primary);
+    color: var(--white);
+}
+
+.btn-editar:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+}
+
+.btn-eliminar {
+    background: #f44336;
+    color: var(--white);
+}
+
+.btn-eliminar:hover {
+    background: #d32f2f;
+    transform: translateY(-1px);
+}
+
+/* Alerta de éxito */
+.alert-success {
+    background: #d4edda;
+    color: #155724;
+    padding: 15px 20px;
+    border-radius: var(--radius-md);
+    margin-bottom: 20px;
+    border-left: 4px solid #4caf50;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.alert-success::before {
+    content: "✅";
+    font-size: 18px;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .productos-table {
+        font-size: 13px;
+    }
+    
+    .productos-table th,
+    .productos-table td {
+        padding: 10px 8px;
+    }
+    
+    .btn-editar, .btn-eliminar {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 768px) {
+    .header-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .tab-buttons {
+        justify-content: center;
+    }
+    
+    .productos-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .imagen-preview, .sin-imagen {
+        width: 35px;
+        height: 35px;
+        line-height: 35px;
+        font-size: 16px;
+    }
+    
+    .btn-nuevo {
+        justify-content: center;
+    }
+}
+
+/* Scrollbar personalizado para tabla */
+.productos-table::-webkit-scrollbar {
+    height: 8px;
+}
+
+.productos-table::-webkit-scrollbar-track {
+    background: var(--gray-light);
+    border-radius: 10px;
+}
+
+.productos-table::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 10px;
+}
+
+.productos-table::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+}
+
+/* Header de admin - mantener consistencia */
+.admin-header {
+    background: var(--primary);
+    color: var(--white);
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.admin-header a {
+    color: var(--white);
+    text-decoration: none;
+    margin-left: 20px;
+    transition: opacity 0.3s ease;
+}
+
+.admin-header a:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+}
+
+/* Nombre del producto en negrita */
+.productos-table td strong {
+    color: var(--black);
+}

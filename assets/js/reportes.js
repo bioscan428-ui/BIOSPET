@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
+    // Obtener datos con valores por defecto seguros
     const fechas = JSON.parse(datosDiv.dataset.fechas || '[]');
     const citasData = JSON.parse(datosDiv.dataset.citas || '[]');
     const ingresosData = JSON.parse(datosDiv.dataset.ingresos || '[]');
@@ -18,8 +19,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const ingresosCombinados = JSON.parse(datosDiv.dataset.ingresosCombinados || '[]');
 
     // Gráfico de citas por día
-    if (document.getElementById('citasPorDiaChart')) {
-        new Chart(document.getElementById('citasPorDiaChart'), {
+    const citasPorDiaChart = document.getElementById('citasPorDiaChart');
+    if (citasPorDiaChart && fechas.length > 0 && citasData.length > 0) {
+        new Chart(citasPorDiaChart, {
             type: 'bar',
             data: {
                 labels: fechas,
@@ -33,17 +35,26 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: true,
                 scales: {
-                    y: { beginAtZero: true, title: { display: true, text: 'Número de citas' } },
-                    x: { title: { display: true, text: 'Fecha' } }
+                    y: { 
+                        beginAtZero: true, 
+                        title: { display: true, text: 'Número de citas' } 
+                    },
+                    x: { 
+                        title: { display: true, text: 'Fecha' } 
+                    }
                 }
             }
         });
+    } else if (citasPorDiaChart) {
+        console.log('No hay datos de citas por día para mostrar');
     }
 
     // Gráfico de ingresos por servicios
-    if (document.getElementById('ingresosPorDiaChart')) {
-        new Chart(document.getElementById('ingresosPorDiaChart'), {
+    const ingresosPorDiaChart = document.getElementById('ingresosPorDiaChart');
+    if (ingresosPorDiaChart && fechas.length > 0 && ingresosData.length > 0) {
+        new Chart(ingresosPorDiaChart, {
             type: 'line',
             data: {
                 labels: fechas,
@@ -59,17 +70,24 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: true,
                 scales: {
-                    y: { beginAtZero: true, title: { display: true, text: 'Ingresos (MXN)' } },
-                    x: { title: { display: true, text: 'Fecha' } }
+                    y: { 
+                        beginAtZero: true, 
+                        title: { display: true, text: 'Ingresos (MXN)' } 
+                    },
+                    x: { 
+                        title: { display: true, text: 'Fecha' } 
+                    }
                 }
             }
         });
     }
 
     // Gráfico de citas por mes
-    if (document.getElementById('citasPorMesChart')) {
-        new Chart(document.getElementById('citasPorMesChart'), {
+    const citasPorMesChart = document.getElementById('citasPorMesChart');
+    if (citasPorMesChart && meses.length > 0 && citasMensuales.length > 0) {
+        new Chart(citasPorMesChart, {
             type: 'bar',
             data: {
                 labels: meses,
@@ -83,17 +101,24 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: true,
                 scales: {
-                    y: { beginAtZero: true, title: { display: true, text: 'Número de citas' } },
-                    x: { title: { display: true, text: 'Mes' } }
+                    y: { 
+                        beginAtZero: true, 
+                        title: { display: true, text: 'Número de citas' } 
+                    },
+                    x: { 
+                        title: { display: true, text: 'Mes' } 
+                    }
                 }
             }
         });
     }
 
     // Gráfico de ventas por día
-    if (document.getElementById('ventasPorDiaChart')) {
-        new Chart(document.getElementById('ventasPorDiaChart'), {
+    const ventasPorDiaChart = document.getElementById('ventasPorDiaChart');
+    if (ventasPorDiaChart && ventasPorDiaFechas.length > 0 && ventasPorDiaCantidad.length > 0) {
+        new Chart(ventasPorDiaChart, {
             type: 'bar',
             data: {
                 labels: ventasPorDiaFechas,
@@ -107,17 +132,24 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: true,
                 scales: {
-                    y: { beginAtZero: true, title: { display: true, text: 'Número de ventas' } },
-                    x: { title: { display: true, text: 'Fecha' } }
+                    y: { 
+                        beginAtZero: true, 
+                        title: { display: true, text: 'Número de ventas' } 
+                    },
+                    x: { 
+                        title: { display: true, text: 'Fecha' } 
+                    }
                 }
             }
         });
     }
 
     // Gráfico de ingresos por ventas
-    if (document.getElementById('ingresosVentasPorDiaChart')) {
-        new Chart(document.getElementById('ingresosVentasPorDiaChart'), {
+    const ingresosVentasPorDiaChart = document.getElementById('ingresosVentasPorDiaChart');
+    if (ingresosVentasPorDiaChart && ventasPorDiaFechas.length > 0 && ingresosVentasPorDia.length > 0) {
+        new Chart(ingresosVentasPorDiaChart, {
             type: 'line',
             data: {
                 labels: ventasPorDiaFechas,
@@ -133,21 +165,28 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: true,
                 scales: {
-                    y: { beginAtZero: true, title: { display: true, text: 'Ingresos (MXN)' } },
-                    x: { title: { display: true, text: 'Fecha' } }
+                    y: { 
+                        beginAtZero: true, 
+                        title: { display: true, text: 'Ingresos (MXN)' } 
+                    },
+                    x: { 
+                        title: { display: true, text: 'Fecha' } 
+                    }
                 }
             }
         });
     }
 
     // Gráfico de ingresos combinados (Servicios vs Productos)
-    if (document.getElementById('ingresosCombinadosChart') && ingresosCombinados.length > 0) {
+    const ingresosCombinadosChart = document.getElementById('ingresosCombinadosChart');
+    if (ingresosCombinadosChart && ingresosCombinados.length > 0) {
         const mesesLabels = ingresosCombinados.map(item => item.mes);
-        const serviciosData = ingresosCombinados.map(item => item.ingresos_servicios);
-        const ventasData = ingresosCombinados.map(item => item.ingresos_ventas);
+        const serviciosData = ingresosCombinados.map(item => parseFloat(item.ingresos_servicios) || 0);
+        const ventasData = ingresosCombinados.map(item => parseFloat(item.ingresos_ventas) || 0);
         
-        new Chart(document.getElementById('ingresosCombinadosChart'), {
+        new Chart(ingresosCombinadosChart, {
             type: 'bar',
             data: {
                 labels: mesesLabels,
@@ -170,9 +209,15 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: true,
                 scales: {
-                    y: { beginAtZero: true, title: { display: true, text: 'Ingresos (MXN)' } },
-                    x: { title: { display: true, text: 'Mes' } }
+                    y: { 
+                        beginAtZero: true, 
+                        title: { display: true, text: 'Ingresos (MXN)' } 
+                    },
+                    x: { 
+                        title: { display: true, text: 'Mes' } 
+                    }
                 }
             }
         });

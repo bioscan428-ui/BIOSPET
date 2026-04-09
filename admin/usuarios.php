@@ -13,11 +13,8 @@ if ($_SESSION['rol'] !== 'super_admin') {
 
 require_once __DIR__ . '/../includes/conexion.php';
 
-// Obtener todos los usuarios
-$sql = "SELECT u.*, e.nombre, e.ape_pat, e.puesto, e.email, e.telefono 
-        FROM USUARIO u
-        JOIN EMPLEADO e ON u.id_empleado = e.id
-        ORDER BY u.rol, e.nombre";
+// Obtener todos los usuarios usando la vista
+$sql = "SELECT * FROM vista_empleados_activos ORDER BY puesto, nombre";
 $result = $conn->query($sql);
 
 // Procesar acciones
@@ -26,21 +23,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($_POST['action']) {
             case 'activar':
                 $id = (int)$_POST['id'];
-                $conn->query("UPDATE USUARIO SET activo = 1 WHERE id = $id");
+                $conn->query("UPDATE USUARIO SET activo = 1 WHERE id_empleado = $id");
                 break;
             case 'desactivar':
                 $id = (int)$_POST['id'];
-                $conn->query("UPDATE USUARIO SET activo = 0 WHERE id = $id");
+                $conn->query("UPDATE USUARIO SET activo = 0 WHERE id_empleado = $id");
                 break;
             case 'cambiar_rol':
                 $id = (int)$_POST['id'];
                 $rol = $_POST['rol'];
-                $conn->query("UPDATE USUARIO SET rol = '$rol' WHERE id = $id");
+                $conn->query("UPDATE USUARIO SET rol = '$rol' WHERE id_empleado = $id");
                 break;
         }
         header('Location: usuarios.php');
         exit;
     }
+}
+
+// Obtener detalles del empleado para el modal (vía AJAX o directamente)
+$detalle_empleado = null;
+if (isset($_GET['ver_historial']) && is_numeric($_GET['ver_historial'])) {
+    $empleado_id = (int)$_GET['ver_historial'];
+    
+    // Usar la vista para obtener información completa
+    $sql_detalle = "SELECT * FROM vista_empleados_activos WHERE id = ?";
+    $stmt_detalle = $conn->prepare($sql_detalle);
+    $stmt_detalle->bind_param("i", $empleado_id);
+    $stmt_detalle->execute();
+    $detalle_empleado = $stmt_detalle->get_result()->fetch_assoc();
+    
+    // Obtener citas del empleado
+    $sql_citas = "SELECT 
+                    c.id, c.fecha_cita, c.hora_cita, c.estado,
+                    m.nombre_mascota,
+                    cl.nombre AS dueno
+                  FROM ASIGNACION_CITA ac
+                  JOIN CITA c ON ac.id_cita = c.id
+                  JOIN MASCOTA m ON c.id_mascota = m.id
+                  JOIN CLIENTE cl ON m.id_cliente = cl.id
+                  WHERE ac.id_empleado = ?
+                  ORDER BY c.fecha_cita DESC, c.hora_cita DESC
+                  LIMIT 20";
+    $stmt_citas = $conn->prepare($sql_citas);
+    $stmt_citas->bind_param("i", $empleado_id);
+    $stmt_citas->execute();
+    $citas_empleado = $stmt_citas->get_result();
+    
+    // Obtener horario del empleado
+    $sql_horario = "SELECT * FROM HORARIO_EMPLEADO 
+                    WHERE id_empleado = ? AND activo = 1
+                    ORDER BY FIELD(dia_semana, 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo')";
+    $stmt_horario = $conn->prepare($sql_horario);
+    $stmt_horario->bind_param("i", $empleado_id);
+    $stmt_horario->execute();
+    $horario_empleado = $stmt_horario->get_result();
 }
 ?>
 <!DOCTYPE html>
@@ -50,27 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestión de Usuarios - BIOSPET</title>
     <link rel="stylesheet" href="../assets/css/global.css">
-    <style>
-        body { background: var(--muted); }
-        .admin-header { background: var(--primary); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .admin-header a { color: white; text-decoration: none; margin-left: 20px; }
-        .container { max-width: 1200px; margin: 20px auto; padding: 0 20px; }
-        .btn-nuevo { background: #4caf50; color: white; padding: 10px 20px; border-radius: var(--radius-sm); text-decoration: none; display: inline-block; margin-bottom: 20px; }
-        .usuarios-table { width: 100%; background: white; border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-soft); }
-        .usuarios-table th, .usuarios-table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
-        .usuarios-table th { background: var(--black); color: white; }
-        .rol-super_admin { background: #ff9800; color: white; padding: 4px 8px; border-radius: 20px; font-size: 12px; display: inline-block; }
-        .rol-admin { background: #2196f3; color: white; padding: 4px 8px; border-radius: 20px; font-size: 12px; display: inline-block; }
-        .rol-veterinario { background: #4caf50; color: white; padding: 4px 8px; border-radius: 20px; font-size: 12px; display: inline-block; }
-        .rol-asistente { background: #9c27b0; color: white; padding: 4px 8px; border-radius: 20px; font-size: 12px; display: inline-block; }
-        .rol-recepcionista { background: #00bcd4; color: white; padding: 4px 8px; border-radius: 20px; font-size: 12px; display: inline-block; }
-        .activo { color: #4caf50; font-weight: bold; }
-        .inactivo { color: #f44336; font-weight: bold; }
-        .select-rol { padding: 5px; border-radius: var(--radius-sm); }
-        .btn-accion { background: none; border: none; cursor: pointer; padding: 5px 10px; border-radius: var(--radius-sm); }
-        .btn-activar { background: #4caf50; color: white; }
-        .btn-desactivar { background: #f44336; color: white; }
-    </style>
+    <link rel="stylesheet" href="../assets/css/usuarios.css">
 </head>
 <body>
     <div class="admin-header">
@@ -84,7 +100,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <div class="container">
-        <a href="usuario_nuevo.php" class="btn-nuevo">+ Nuevo Usuario</a>
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <a href="usuario_nuevo.php" class="btn-nuevo">+ Nuevo Usuario</a>
+            <a href="empleados_sin_usuario.php" class="btn-nuevo" style="background: #6c757d;">👥 Empleados sin usuario</a>
+        </div>
         
         <table class="usuarios-table">
             <thead>
@@ -95,6 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <th>Email</th>
                     <th>Puesto</th>
                     <th>Rol</th>
+                    <th>Citas</th>
                     <th>Estado</th>
                     <th>Último Acceso</th>
                     <th>Acciones</th>
@@ -105,11 +125,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <tr>
                     <td><?php echo $user['id']; ?></td>
                     <td><?php echo htmlspecialchars($user['nombre'] . ' ' . $user['ape_pat']); ?></td>
-                    <td><?php echo htmlspecialchars($user['nombre_usuario']); ?></td>
+                    <td><?php echo htmlspecialchars($user['nombre_usuario'] ?? 'Sin usuario'); ?></td>
                     <td><?php echo htmlspecialchars($user['email']); ?></td>
                     <td><?php echo $user['puesto']; ?></td>
                     <td>
-                        <span class="rol-<?php echo $user['rol']; ?>">
+                        <span class="rol-<?php echo $user['rol'] ?? 'recepcionista'; ?>">
                             <?php 
                             $roles = [
                                 'super_admin' => 'Super Admin',
@@ -118,18 +138,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 'asistente' => 'Asistente',
                                 'recepcionista' => 'Recepcionista'
                             ];
-                            echo $roles[$user['rol']] ?? $user['rol'];
+                            echo $roles[$user['rol']] ?? ($user['rol'] ?? 'Sin rol');
                             ?>
                         </span>
                     </td>
-                    <td class="<?php echo $user['activo'] ? 'activo' : 'inactivo'; ?>">
-                        <?php echo $user['activo'] ? '✅ Activo' : '❌ Inactivo'; ?>
+                    <td style="text-align: center;">
+                        <span class="badge" style="background: #17a2b8;">
+                            <?php echo $user['citas_asignadas'] ?? 0; ?> citas
+                        </span>
+                    </td>
+                    <td class="<?php echo ($user['activo'] ?? 1) ? 'activo' : 'inactivo'; ?>">
+                        <?php echo ($user['activo'] ?? 1) ? '✅ Activo' : '❌ Inactivo'; ?>
                     </td>
                     <td><?php echo $user['ultimo_acceso'] ?: 'Nunca'; ?></td>
                     <td>
+                        <!-- Botón Historial -->
+                        <button onclick="verHistorial(<?php echo $user['id']; ?>)" class="btn-historial">
+                            📊 Historial
+                        </button>
+                        
+                        <?php if ($user['nombre_usuario']): ?>
                         <form method="POST" style="display: inline-block;">
                             <input type="hidden" name="id" value="<?php echo $user['id']; ?>">
-                            <?php if ($user['rol'] !== 'super_admin'): ?>
+                            <?php if (($user['rol'] ?? '') !== 'super_admin'): ?>
                                 <select name="rol" class="select-rol" onchange="this.form.submit()">
                                     <option value="">Cambiar rol</option>
                                     <option value="admin">Admin</option>
@@ -143,17 +174,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         <form method="POST" style="display: inline-block;">
                             <input type="hidden" name="id" value="<?php echo $user['id']; ?>">
-                            <?php if ($user['activo']): ?>
+                            <?php if ($user['activo'] ?? 1): ?>
                                 <button type="submit" name="action" value="desactivar" class="btn-accion btn-desactivar" onclick="return confirm('¿Desactivar este usuario?')">Desactivar</button>
                             <?php else: ?>
                                 <button type="submit" name="action" value="activar" class="btn-accion btn-activar" onclick="return confirm('¿Activar este usuario?')">Activar</button>
                             <?php endif; ?>
                         </form>
+                        <?php endif; ?>
                     </td>
                 </tr>
                 <?php endwhile; ?>
             </tbody>
         </table>
     </div>
+
+    <!-- Modal de Historial -->
+    <div id="historialModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📊 Historial del Empleado</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <div style="text-align: center; padding: 40px;">
+                    Cargando...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Modal functionality
+        const modal = document.getElementById('historialModal');
+        const closeBtn = document.getElementsByClassName('close')[0];
+        
+        function verHistorial(empleadoId) {
+            // Mostrar modal con loader
+            modal.style.display = 'block';
+            document.getElementById('modalBody').innerHTML = '<div style="text-align: center; padding: 40px;">Cargando...</div>';
+            
+            // Cargar datos vía AJAX
+            fetch(`get_historial_empleado.php?id=${empleadoId}`)
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('modalBody').innerHTML = html;
+                })
+                .catch(error => {
+                    document.getElementById('modalBody').innerHTML = '<div style="color: red; text-align: center; padding: 40px;">Error al cargar los datos</div>';
+                });
+        }
+        
+        closeBtn.onclick = function() {
+            modal.style.display = 'none';
+        }
+        
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
 </body>
 </html>

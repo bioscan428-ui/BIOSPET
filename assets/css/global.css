@@ -5,7 +5,7 @@
     --primary-dark: #CC7A00;
     --black: #1A1A1A;
     --white: #FFFFFF;
-    --muted: #F5E6CC;
+    --muted: #F5E6CC;  /* Este es el color amarillo/mostaza */
     --accent: #F2A33B;
     --gray-light: #f8f9fa;
     
@@ -28,8 +28,9 @@
 body {
     font-family: var(--font-main);
     color: var(--black);
+    background: var(--muted);  /* ← AGREGAR ESTA LÍNEA */
     line-height: 1.6;
-    overflow-x: hidden; /* Evita scroll horizontal accidental */
+    overflow-x: hidden;
 }
 
 .container {

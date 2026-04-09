@@ -15,7 +15,7 @@ if (!in_array($_SESSION['rol'], ['super_admin', 'admin'])) {
 
 require_once __DIR__ . '/../includes/conexion.php';
 
-// ========== 1. Resumen por estado de CITA (sin cambios) ==========
+// ========== 1. Resumen por estado de CITA ==========
 $sql_estados = "SELECT estado, COUNT(*) as total FROM CITA GROUP BY estado";
 $result_estados = $conn->query($sql_estados);
 $estados = [];
@@ -23,10 +23,7 @@ while ($row = $result_estados->fetch_assoc()) {
     $estados[$row['estado']] = $row['total'];
 }
 
-// ========== 2. Citas por día (usando función - OPCIONAL) ==========
-// Podrías crear un procedimiento para esto, pero mantenerlo así está bien
-
-// ========== 3. Servicios más solicitados (sin cambios) ==========
+// ========== 2. Servicios más solicitados ==========
 $sql_servicios = "SELECT 
                     s.nombre_servicio,
                     COUNT(dc.id) as total_solicitudes,
@@ -42,10 +39,10 @@ while ($row = $result_servicios->fetch_assoc()) {
     $servicios_top[] = $row;
 }
 
-// ========== 4. Tasa de conversión (usando función) ==========
+// ========== 3. Tasa de conversión (usando función) ==========
 $tasa_conversion = $conn->query("SELECT tasa_conversion_citas() as tasa")->fetch_assoc()['tasa'];
 
-// ========== 5. Totales de servicios (sin cambios) ==========
+// ========== 4. Totales de servicios ==========
 $sql_totales_servicios = "SELECT 
                     COUNT(*) as total_citas,
                     SUM(dc.precio_fijado) as total_ingresos
@@ -54,16 +51,16 @@ $sql_totales_servicios = "SELECT
 $result_totales_servicios = $conn->query($sql_totales_servicios);
 $totales_servicios = $result_totales_servicios->fetch_assoc();
 
-// ========== 6. Ingresos del mes actual (usando función) ==========
+// ========== 5. Ingresos del mes actual (usando función) ==========
 $ingresos_mes = $conn->query("SELECT ingresos_mes_actual() as total")->fetch_assoc()['total'];
 
-// ========== 7. Productos con stock bajo (usando función) ==========
+// ========== 6. Productos con stock bajo (usando función) ==========
 $productos_stock_bajo = $conn->query("SELECT productos_stock_bajo() as total")->fetch_assoc()['total'];
 
-// ========== 8. Ventas del día (usando función) ==========
+// ========== 7. Ventas del día (usando función) ==========
 $ventas_hoy = $conn->query("SELECT ventas_dia(CURDATE()) as total")->fetch_assoc()['total'];
 
-// ========== 9. Totales de ventas (sin cambios) ==========
+// ========== 8. Totales de ventas ==========
 $sql_totales_ventas = "SELECT 
                         COUNT(*) as total_ventas,
                         SUM(total) as total_ingresos,
@@ -73,26 +70,25 @@ $sql_totales_ventas = "SELECT
 $result_totales_ventas = $conn->query($sql_totales_ventas);
 $totales_ventas = $result_totales_ventas->fetch_assoc();
 
-// ========== 10. Productos más vendidos (sin cambios) ==========
-$sql_productos_top = "SELECT 
-                        p.nombre,
-                        SUM(dv.cantidad) as unidades_vendidas,
-                        COUNT(DISTINCT dv.id_venta) as total_ventas,
-                        SUM(dv.subtotal) as ingresos
-                    FROM DETALLE_VENTA dv
-                    JOIN PRODUCTO p ON dv.id_producto = p.id
-                    JOIN VENTA v ON dv.id_venta = v.id
-                    WHERE v.estado = 'completada'
-                    GROUP BY p.id
-                    ORDER BY unidades_vendidas DESC
-                    LIMIT 5";
+// ========== 9. Productos más vendidos (USANDO LA VISTA) ==========
+// Antes: consulta manual con LIMIT 5
+// Ahora: usar la vista con LIMIT 5 (o 20 si quieres mostrar más)
+$sql_productos_top = "SELECT * FROM vista_productos_mas_vendidos LIMIT 5";
 $result_productos_top = $conn->query($sql_productos_top);
 $productos_top = [];
 while ($row = $result_productos_top->fetch_assoc()) {
     $productos_top[] = $row;
 }
 
-// ========== 11. Ventas por método de pago (sin cambios) ==========
+// ========== 10. TOP 20 productos (para gráfico o tabla adicional) ==========
+$sql_productos_top20 = "SELECT * FROM vista_productos_mas_vendidos";
+$result_productos_top20 = $conn->query($sql_productos_top20);
+$productos_top20 = [];
+while ($row = $result_productos_top20->fetch_assoc()) {
+    $productos_top20[] = $row;
+}
+
+// ========== 11. Ventas por método de pago ==========
 $sql_pagos = "SELECT 
                 metodo_pago,
                 COUNT(*) as total_ventas,
@@ -106,13 +102,16 @@ while ($row = $result_pagos->fetch_assoc()) {
     $pagos[] = $row;
 }
 
-// Preparar datos para JavaScript
+// ========== 12. Datos para gráficos (mantener los existentes) ==========
+// ... (tus consultas existentes para gráficos)
+
 $datos_js = [
     'estados' => $estados,
     'serviciosTop' => $servicios_top,
     'totales_servicios' => $totales_servicios,
     'totales_ventas' => $totales_ventas,
     'productos_top' => $productos_top,
+    'productos_top20' => $productos_top20, // Nuevo
     'pagos' => $pagos,
     'tasa_conversion' => $tasa_conversion,
     'ingresos_mes' => $ingresos_mes,

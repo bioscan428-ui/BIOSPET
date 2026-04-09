@@ -277,4 +277,78 @@ CREATE TABLE FACTURA (
     
 );
 
+------ESTAS AUN NO ESTAN CREADAS EN LA BD NI EN EL DER-----
+-- 21. PROGRAMA_FIDELIDAD
+CREATE TABLE PROGRAMA_FIDELIDAD (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL DEFAULT 'Programa de Puntos',
+    puntos_por_gasto DECIMAL(10,2) NOT NULL DEFAULT 10, -- Puntos por cada $10 gastados
+    puntos_requeridos_canje INT NOT NULL DEFAULT 100,   -- Puntos necesarios para canjear
+    valor_canje DECIMAL(10,2) NOT NULL DEFAULT 50.00,   -- Valor del canje en dinero
+    activo BOOLEAN DEFAULT TRUE,
+    fecha_inicio DATE NOT NULL,
+    fecha_fin DATE NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_by INT NULL, -- Quién creó la configuración
+    CONSTRAINT fk_programa_empleado FOREIGN KEY (created_by) REFERENCES EMPLEADO(id) ON DELETE SET NULL
+);
+
+-- 22. CLIENTE_PUNTOS (agregar campo de fecha de ingreso al nivel)
+CREATE TABLE CLIENTE_PUNTOS (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id_cliente INT NOT NULL,
+    puntos_actuales INT NOT NULL DEFAULT 0,
+    puntos_acumulados_historial INT NOT NULL DEFAULT 0,
+    nivel ENUM('bronce', 'plata', 'oro', 'platino') DEFAULT 'bronce',
+    fecha_ingreso_nivel DATE DEFAULT NULL, -- Cuándo alcanzó este nivel
+    ultima_actualizacion DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_puntos_cliente FOREIGN KEY (id_cliente) REFERENCES CLIENTE(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_cliente_puntos (id_cliente),
+    INDEX idx_nivel (nivel)
+);
+
+-- 23. MOVIMIENTO_PUNTOS (agregar campo de vencimiento)
+CREATE TABLE MOVIMIENTO_PUNTOS (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id_cliente INT NOT NULL,
+    id_venta INT NULL,
+    tipo ENUM('ganados', 'canjeados', 'ajuste', 'vencidos', 'bonificacion') NOT NULL,
+    puntos INT NOT NULL,
+    saldo_antes INT NOT NULL,
+    saldo_despues INT NOT NULL,
+    concepto VARCHAR(255),
+    referencia VARCHAR(100),
+    fecha_movimiento DATETIME DEFAULT CURRENT_TIMESTAMP,
+    fecha_vencimiento DATE NULL, -- Cuándo vencen estos puntos (ej: 1 año después)
+    id_empleado INT NULL,
+    CONSTRAINT fk_mov_puntos_cliente FOREIGN KEY (id_cliente) REFERENCES CLIENTE(id) ON DELETE CASCADE,
+    CONSTRAINT fk_mov_puntos_venta FOREIGN KEY (id_venta) REFERENCES VENTA(id) ON DELETE SET NULL,
+    CONSTRAINT fk_mov_puntos_empleado FOREIGN KEY (id_empleado) REFERENCES EMPLEADO(id) ON DELETE SET NULL,
+    INDEX idx_cliente (id_cliente),
+    INDEX idx_fecha (fecha_movimiento),
+    INDEX idx_vencimiento (fecha_vencimiento)
+);
+
+-- 24. CANJE_PUNTOS (agregar campo de empleado que procesó)
+CREATE TABLE CANJE_PUNTOS (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id_cliente INT NOT NULL,
+    id_venta INT NULL,
+    puntos_usados INT NOT NULL,
+    valor_descuento DECIMAL(10,2) NOT NULL,
+    tipo_canje ENUM('descuento_venta', 'producto_gratis', 'servicio_gratis') DEFAULT 'descuento_venta',
+    id_producto INT NULL,
+    id_servicio INT NULL,
+    fecha_canje DATETIME DEFAULT CURRENT_TIMESTAMP,
+    estado ENUM('activo', 'usado', 'cancelado') DEFAULT 'activo',
+    id_empleado INT NULL, -- Quién procesó el canje
+    notas TEXT NULL, -- Observaciones del canje
+    CONSTRAINT fk_canje_cliente FOREIGN KEY (id_cliente) REFERENCES CLIENTE(id) ON DELETE CASCADE,
+    CONSTRAINT fk_canje_venta FOREIGN KEY (id_venta) REFERENCES VENTA(id) ON DELETE SET NULL,
+    CONSTRAINT fk_canje_producto FOREIGN KEY (id_producto) REFERENCES PRODUCTO(id) ON DELETE SET NULL,
+    CONSTRAINT fk_canje_servicio FOREIGN KEY (id_servicio) REFERENCES SERVICIO(id) ON DELETE SET NULL,
+    CONSTRAINT fk_canje_empleado FOREIGN KEY (id_empleado) REFERENCES EMPLEADO(id) ON DELETE SET NULL,
+    INDEX idx_cliente (id_cliente),
+    INDEX idx_fecha (fecha_canje)
+);
 

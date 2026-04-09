@@ -1,7 +1,15 @@
 <?php
 session_start();
-if (!isset($_SESSION['admin_logged'])) {
+
+// Cambiar de admin_logged a user_id
+if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
+    exit;
+}
+
+// Verificar rol para acceso
+if (!in_array($_SESSION['rol'], ['super_admin', 'admin'])) {
+    header('Location: dashboard.php');
     exit;
 }
 
@@ -25,12 +33,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $fecha_vencimiento = !empty($_POST['fecha_vencimiento']) ? $_POST['fecha_vencimiento'] : null;
     $activo = isset($_POST['activo']) ? 1 : 0;
     
+    // Crear directorio si no existe
+    $upload_dir = __DIR__ . '/../assets/images/productos/';
+    if (!file_exists($upload_dir)) {
+        mkdir($upload_dir, 0777, true);
+    }
+    
     // Manejo de imagen (opcional)
     $imagen = '';
     if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
         $extension = pathinfo($_FILES['imagen']['name'], PATHINFO_EXTENSION);
-        $nombre_imagen = 'producto_' . time() . '.' . $extension;
-        $ruta_destino = '../assets/images/productos/' . $nombre_imagen;
+        $nombre_imagen = 'producto_' . time() . '_' . uniqid() . '.' . $extension;
+        $ruta_destino = $upload_dir . $nombre_imagen;
         
         if (move_uploaded_file($_FILES['imagen']['tmp_name'], $ruta_destino)) {
             $imagen = 'assets/images/productos/' . $nombre_imagen;
@@ -64,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="../assets/css/global.css">
     <style>
         body { background: var(--muted); }
-        .admin-header { background: var(--primary); color: white; padding: 20px; }
+        .admin-header { background: var(--primary); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
         .admin-header a { color: white; text-decoration: none; margin-left: 20px; }
         .container { max-width: 800px; margin: 20px auto; padding: 20px; background: white; border-radius: var(--radius-md); }
         .form-group { margin-bottom: 15px; }
@@ -79,9 +93,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="admin-header">
         <h1>🐾 BIOSPET - Nuevo Producto</h1>
-        <a href="productos.php">← Volver</a>
-        <a href="../index.php" target="_blank">🌐 Ver Sitio</a>
-        <a href="logout.php">🚪 Cerrar Sesión</a>
+        <div>
+            <a href="productos.php">← Volver</a>
+            <a href="../index.php" target="_blank">🌐 Ver Sitio</a>
+            <a href="logout.php">🚪 Cerrar Sesión</a>
+        </div>
     </div>
 
     <div class="container">
@@ -101,8 +117,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
             <div class="form-group">
-                <label>Codigo de barras</label>
-                <textarea name="codigo_barras" rows="1"></textarea>
+                <label>Código de barras</label>
+                <input type="text" name="codigo_barras">
             </div>
             
             <div class="form-row">
@@ -131,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="form-row">
                 <div class="form-group">
                     <label>Precio compra (MXN)</label>
-                    <input type="number" step="0.01" name="precio_compra" required>
+                    <input type="number" step="0.01" name="precio_compra">
                 </div>
                 <div class="form-group">
                     <label>Precio venta (MXN) *</label>

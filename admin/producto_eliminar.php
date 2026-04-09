@@ -1,7 +1,15 @@
 <?php
 session_start();
-if (!isset($_SESSION['admin_logged'])) {
+
+// Cambiar de admin_logged a user_id
+if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
+    exit;
+}
+
+// Verificar rol para acceso
+if (!in_array($_SESSION['rol'], ['super_admin', 'admin'])) {
+    header('Location: dashboard.php');
     exit;
 }
 

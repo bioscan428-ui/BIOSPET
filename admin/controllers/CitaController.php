@@ -119,7 +119,7 @@ class CitaController {
 
             // 4. Insertar en CITA
             $sql_cita = "INSERT INTO CITA (fecha_cita, hora_cita, id_mascota, notas, estado) 
-                         VALUES (?, ?, ?, ?, 'pendiente')";
+                        VALUES (?, ?, ?, ?, 'pendiente')";
             $stmt = $conn->prepare($sql_cita);
             $stmt->bind_param("ssis", $fecha_cita, $hora_cita, $id_mascota, $notas);
             $stmt->execute();

@@ -142,30 +142,7 @@ $servicios_disponibles = $conn->query($sql_servicios);
     <meta charset="UTF-8">
     <title>Detalle Cita #<?php echo $id_cita; ?> - BIOSPET</title>
     <link rel="stylesheet" href="../assets/css/global.css">
-    <style>
-        body { background: var(--muted); }
-        .admin-header { background: var(--primary); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
-        .admin-header a { color: white; text-decoration: none; margin-left: 20px; }
-        .container { max-width: 800px; margin: 20px auto; padding: 20px; background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-soft); }
-        .section { margin-bottom: 30px; }
-        .section h3 { color: var(--primary); border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 15px; }
-        .info-row { display: flex; margin-bottom: 10px; }
-        .info-label { width: 150px; font-weight: bold; }
-        .info-value { flex: 1; }
-        .estado { display: inline-block; padding: 4px 12px; border-radius: 20px; color: white; }
-        .estado-pendiente { background: #ff9800; }
-        .estado-confirmada { background: #4caf50; }
-        .estado-cancelada { background: #f44336; }
-        .estado-completada { background: #2196f3; }
-        .btn-back { background: var(--primary); color: white; padding: 10px 20px; border-radius: var(--radius-sm); text-decoration: none; display: inline-block; }
-        .btn-small { background: var(--primary); color: white; padding: 5px 10px; border-radius: var(--radius-sm); text-decoration: none; font-size: 12px; display: inline-block; }
-        .sin-servicios { color: #999; font-style: italic; }
-        .form-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
-        select, input { padding: 8px; border: 1px solid #ddd; border-radius: var(--radius-sm); }
-        .foto-mascota { text-align: center; margin-bottom: 20px; }
-        .foto-mascota img { max-width: 200px; max-height: 200px; border-radius: 15px; box-shadow: var(--shadow-soft); object-fit: cover; }
-        .sintomas-box { background: #f9f9f9; padding: 15px; border-radius: var(--radius-sm); border-left: 4px solid var(--primary); margin-top: 10px; }
-    </style>
+    <link rel="stylesheet" href="../assets/css/detalle_cita.css">
 </head>
 <body>
     <div class="admin-header">
