@@ -1,0 +1,170 @@
+body { background: var(--muted); font-family: var(--font-main); }
+        
+        .container { 
+            max-width: 1200px; 
+            margin: 20px auto; 
+            background: white; 
+            border-radius: var(--radius-md); 
+            padding: 20px; 
+            box-shadow: var(--shadow-soft);
+        }
+        
+        .header-mascota { 
+            background: #9c27b0; 
+            color: white; 
+            padding: 20px; 
+            border-radius: var(--radius-md); 
+            margin-bottom: 20px;
+        }
+        
+        .header-mascota h1 {
+            margin: 0 0 10px 0;
+        }
+        
+        .header-mascota p {
+            margin: 5px 0;
+            opacity: 0.9;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .info-card {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 15px;
+            border-radius: 8px;
+        }
+        
+        .info-card .label {
+            font-size: 11px;
+            opacity: 0.8;
+            text-transform: uppercase;
+        }
+        
+        .info-card .value {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .seccion {
+            margin-top: 30px;
+        }
+        
+        .seccion h2 {
+            color: var(--primary);
+            border-left: 4px solid #9c27b0;
+            padding-left: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .seccion h3 {
+            color: #666;
+            margin: 20px 0 10px 0;
+            font-size: 1.1rem;
+        }
+        
+        .citas-table, .servicios-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        
+        .citas-table th, .citas-table td,
+        .servicios-table th, .servicios-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .citas-table th, .servicios-table th {
+            background: #f5f5f5;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .citas-table tr:hover, .servicios-table tr:hover {
+            background: #f9f9f9;
+        }
+        
+        .estado-pendiente { background: #ff9800; color: white; padding: 4px 8px; border-radius: 20px; font-size: 11px; display: inline-block; }
+        .estado-confirmada { background: #4caf50; color: white; padding: 4px 8px; border-radius: 20px; font-size: 11px; display: inline-block; }
+        .estado-cancelada { background: #f44336; color: white; padding: 4px 8px; border-radius: 20px; font-size: 11px; display: inline-block; }
+        .estado-completada { background: #2196f3; color: white; padding: 4px 8px; border-radius: 20px; font-size: 11px; display: inline-block; }
+        
+        .btn-small {
+            background: var(--primary);
+            color: white;
+            padding: 5px 10px;
+            border-radius: var(--radius-sm);
+            text-decoration: none;
+            font-size: 12px;
+        }
+        
+        .btn-small:hover {
+            background: var(--primary-dark);
+        }
+        
+        .btn-volver {
+            display: inline-block;
+            background: #666;
+            color: white;
+            padding: 8px 15px;
+            border-radius: var(--radius-sm);
+            text-decoration: none;
+            margin-bottom: 20px;
+        }
+        
+        .btn-volver:hover {
+            background: #555;
+        }
+        
+        .badge-servicio {
+            display: inline-block;
+            background: #e9ecef;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            color: #495057;
+            margin: 2px;
+        }
+        
+        .total-general {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: var(--radius-md);
+            text-align: right;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        
+        .total-general span {
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+        
+        hr {
+            margin: 20px 0;
+            border: none;
+            border-top: 1px solid #eee;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                margin: 10px;
+            }
+            
+            .citas-table, .servicios-table {
+                font-size: 12px;
+            }
+            
+            .citas-table th, .citas-table td,
+            .servicios-table th, .servicios-table td {
+                padding: 8px;
+            }
+        }

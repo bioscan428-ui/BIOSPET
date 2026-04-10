@@ -12,7 +12,7 @@ if (!$empleado_id) {
     die('ID de empleado no válido');
 }
 
-// Obtener información del empleado
+// Obtener información del empleado (YA usa vista)
 $sql_empleado = "SELECT * FROM vista_empleados_activos WHERE id = ?";
 $stmt = $conn->prepare($sql_empleado);
 $stmt->bind_param("i", $empleado_id);
@@ -23,24 +23,16 @@ if (!$empleado) {
     die('Empleado no encontrado');
 }
 
-// Obtener citas del empleado
-$sql_citas = "SELECT 
-                c.id, c.fecha_cita, c.hora_cita, c.estado,
-                m.nombre_mascota,
-                cl.nombre AS dueno, cl.telefono
-              FROM ASIGNACION_CITA ac
-              JOIN CITA c ON ac.id_cita = c.id
-              JOIN MASCOTA m ON c.id_mascota = m.id
-              JOIN CLIENTE cl ON m.id_cliente = cl.id
-              WHERE ac.id_empleado = ?
-              ORDER BY c.fecha_cita DESC, c.hora_cita DESC
-              LIMIT 20";
+// ========== AHORA USANDO vista_citas_por_empleado ==========
+// Antes: 15 líneas con JOINs manuales
+// Ahora: 1 línea
+$sql_citas = "SELECT * FROM vista_citas_por_empleado WHERE empleado_id = ? ORDER BY fecha_cita DESC, hora_cita DESC LIMIT 20";
 $stmt_citas = $conn->prepare($sql_citas);
 $stmt_citas->bind_param("i", $empleado_id);
 $stmt_citas->execute();
 $citas = $stmt_citas->get_result();
 
-// Obtener horario
+// Obtener horario (sin cambios)
 $sql_horario = "SELECT * FROM HORARIO_EMPLEADO 
                 WHERE id_empleado = ? AND activo = 1
                 ORDER BY FIELD(dia_semana, 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo')";
@@ -49,17 +41,22 @@ $stmt_horario->bind_param("i", $empleado_id);
 $stmt_horario->execute();
 $horario = $stmt_horario->get_result();
 
-// Contar citas por estado
+// Contar citas por estado (usando la misma vista)
+$sql_stats = "SELECT estado, COUNT(*) as total FROM vista_citas_por_empleado WHERE empleado_id = ? GROUP BY estado";
+$stmt_stats = $conn->prepare($sql_stats);
+$stmt_stats->bind_param("i", $empleado_id);
+$stmt_stats->execute();
+$stats_result = $stmt_stats->get_result();
+
 $citas_por_estado = [
     'pendiente' => 0,
     'confirmada' => 0,
     'completada' => 0,
     'cancelada' => 0
 ];
-while ($cita = $citas->fetch_assoc()) {
-    $citas_por_estado[$cita['estado']]++;
+while ($row = $stats_result->fetch_assoc()) {
+    $citas_por_estado[$row['estado']] = $row['total'];
 }
-$citas->data_seek(0); // Reset cursor
 ?>
 
 <div class="historial-section">
@@ -149,7 +146,14 @@ $citas->data_seek(0); // Reset cursor
     <?php if ($citas->num_rows > 0): ?>
         <table class="citas-table">
             <thead>
-                <tr><th>Fecha</th><th>Hora</th><th>Mascota</th><th>Dueño</th><th>Estado</th></tr>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Mascota</th>
+                    <th>Dueño</th>
+                    <th>Rol</th>
+                    <th>Estado</th>
+                </tr>
             </thead>
             <tbody>
                 <?php while($cita = $citas->fetch_assoc()): ?>
@@ -158,6 +162,17 @@ $citas->data_seek(0); // Reset cursor
                     <td><?php echo substr($cita['hora_cita'], 0, 5); ?></td>
                     <td><?php echo htmlspecialchars($cita['nombre_mascota']); ?></td>
                     <td><?php echo htmlspecialchars($cita['dueno']); ?></td>
+                    <td>
+                        <span class="badge-rol">
+                            <?php 
+                            if ($cita['rol_asignado'] == 'veterinario') {
+                                echo '🩺 Veterinario';
+                            } else {
+                                echo '🩹 Asistente';
+                            }
+                            ?>
+                        </span>
+                    </span>
                     <td><span class="badge badge-<?php echo $cita['estado']; ?>"><?php echo ucfirst($cita['estado']); ?></span></td>
                 </tr>
                 <?php endwhile; ?>
@@ -167,3 +182,14 @@ $citas->data_seek(0); // Reset cursor
         <p>No hay citas asignadas.</p>
     <?php endif; ?>
 </div>
+
+<style>
+    .badge-rol {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        background: #e9ecef;
+        color: #495057;
+    }
+</style>

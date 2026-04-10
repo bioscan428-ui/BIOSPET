@@ -284,3 +284,38 @@ SELECT
     (SELECT COUNT(*) FROM PRODUCTO WHERE stock_actual <= stock_minimo AND activo = 1) AS productos_stock_critico,
     (SELECT SUM(total) FROM VENTA WHERE estado = 'completada' AND fecha_venta >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)) AS ingresos_ultimos_30_dias,
     (SELECT SUM(total) FROM VENTA WHERE estado = 'completada') AS ingresos_totales;
+
+-- VISTA para nivel de puntos
+CREATE OR REPLACE VIEW vista_cliente_fidelidad AS
+SELECT 
+    c.id AS cliente_id,
+    c.nombre,
+    c.ape_pat,
+    c.ape_mat,
+    c.telefono,
+    c.email,
+    COALESCE(cp.puntos_actuales, 0) AS puntos_actuales,
+    COALESCE(cp.puntos_acumulados_historial, 0) AS puntos_acumulados,
+    cp.ultima_actualizacion,
+    CASE 
+        WHEN COALESCE(cp.puntos_actuales, 0) >= 3000 THEN 'platino'
+        WHEN COALESCE(cp.puntos_actuales, 0) >= 1500 THEN 'oro'
+        WHEN COALESCE(cp.puntos_actuales, 0) >= 500 THEN 'plata'
+        ELSE 'bronce'
+    END AS nivel,
+    -- Beneficios por nivel
+    CASE 
+        WHEN COALESCE(cp.puntos_actuales, 0) >= 3000 THEN 20.00
+        WHEN COALESCE(cp.puntos_actuales, 0) >= 1500 THEN 15.00
+        WHEN COALESCE(cp.puntos_actuales, 0) >= 500 THEN 10.00
+        ELSE 5.00
+    END AS descuento_maximo,
+    CASE 
+        WHEN COALESCE(cp.puntos_actuales, 0) >= 3000 THEN 2.50
+        WHEN COALESCE(cp.puntos_actuales, 0) >= 1500 THEN 2.00
+        WHEN COALESCE(cp.puntos_actuales, 0) >= 500 THEN 1.50
+        ELSE 1.00
+    END AS multiplicador_puntos
+FROM CLIENTE c
+LEFT JOIN CLIENTE_PUNTOS cp ON c.id = cp.id_cliente
+WHERE c.activo = 1;

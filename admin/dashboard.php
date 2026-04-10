@@ -48,14 +48,22 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
             <a href="calendario.php">📅 Calendario</a>
             <a href="reportes.php">📊 Reportes</a>
             <a href="productos.php">🛒 Productos</a>
+            <div class="dropdown">
+                <a href="javascript:void(0)">👥 Clientes ▼</a>
+                <div class="dropdown-content">
+                    <a href="clientes.php">📋 Lista de Clientes</a>
+                    <a href="fidelidad_config.php">⭐ Programa de Fidelidad</a>
+                    <a href="puntos_clientes.php">🎯 Puntos y Recompensas</a>
+                </div>
+            </div>
             <?php if ($_SESSION['rol'] === 'super_admin'): ?>
-            <a href="usuarios.php">👥 Usuarios</a>
-            <?php endif; ?>
-            <a href="../index.php" target="_blank">🌐 Ver Sitio</a>
-            <a href="logout.php">🚪 Cerrar Sesión</a>
+                <a href="usuarios.php">👥 Usuarios</a>
+                <?php endif; ?>
+                <a href="../index.php" target="_blank">🌐 Ver Sitio</a>
+                <a href="logout.php">🚪 Cerrar Sesión</a>
         </div>
     </div>
-
+        
     <div class="container">
         <!-- Resumen Ejecutivo (usando vista_resumen_negocio) -->
         <div class="resumen-grid">
@@ -76,7 +84,7 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
                 <div class="stat-label">Citas Pendientes</div>
             </div>
         </div>
-
+        
         <!-- Tarjetas de resumen rápidas -->
         <div class="dashboard-stats">
             <div class="stat-card">
@@ -112,6 +120,13 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
 
         <div class="total-citas">
             <strong>Total de citas:</strong> <?php echo $result->num_rows; ?>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 20px 0;">
+            <h2>📋 Listado de Citas</h2>
+            <button onclick="abrirModalMascotas()" class="btn-mascotas">
+                🐾 Ver Historial de Mascotas
+            </button>
         </div>
 
         <table class="citas-table">
@@ -190,5 +205,22 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
             </tbody>
         </table>
     </div>
+
+    <!-- Modal de Historial de Mascotas (FUERA de la tabla) -->
+    <div id="modalMascotas" class="modal">
+        <div class="modal-content modal-grande">
+            <div class="modal-header" style="background: #9c27b0;">
+                <h2>🐾 Historial de Mascotas</h2>
+                <span class="close-mascotas" style="color: white; font-size: 28px; cursor: pointer;">&times;</span>
+            </div>
+            <div class="modal-body" id="modalMascotasBody">
+                <div style="text-align: center; padding: 40px;">
+                    Cargando...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../assets/js/dashboard.js"></script>
 </body>
 </html>

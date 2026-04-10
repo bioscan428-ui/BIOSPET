@@ -299,12 +299,10 @@ CREATE TABLE CLIENTE_PUNTOS (
     id_cliente INT NOT NULL,
     puntos_actuales INT NOT NULL DEFAULT 0,
     puntos_acumulados_historial INT NOT NULL DEFAULT 0,
-    nivel ENUM('bronce', 'plata', 'oro', 'platino') DEFAULT 'bronce',
     fecha_ingreso_nivel DATE DEFAULT NULL, -- Cuándo alcanzó este nivel
     ultima_actualizacion DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_puntos_cliente FOREIGN KEY (id_cliente) REFERENCES CLIENTE(id) ON DELETE CASCADE,
-    UNIQUE KEY uk_cliente_puntos (id_cliente),
-    INDEX idx_nivel (nivel)
+    CONSTRAINT fk_puntos_cliente FOREIGN KEY (id_cliente) REFERENCES CLIENTE(id) ON DELETE RESTRIC,
+    UNIQUE KEY uk_cliente_puntos (id_cliente)
 );
 
 -- 23. MOVIMIENTO_PUNTOS (agregar campo de vencimiento)
@@ -321,7 +319,7 @@ CREATE TABLE MOVIMIENTO_PUNTOS (
     fecha_movimiento DATETIME DEFAULT CURRENT_TIMESTAMP,
     fecha_vencimiento DATE NULL, -- Cuándo vencen estos puntos (ej: 1 año después)
     id_empleado INT NULL,
-    CONSTRAINT fk_mov_puntos_cliente FOREIGN KEY (id_cliente) REFERENCES CLIENTE(id) ON DELETE CASCADE,
+    CONSTRAINT fk_mov_puntos_cliente FOREIGN KEY (id_cliente) REFERENCES CLIENTE(id) ON DELETE RESTRICT,
     CONSTRAINT fk_mov_puntos_venta FOREIGN KEY (id_venta) REFERENCES VENTA(id) ON DELETE SET NULL,
     CONSTRAINT fk_mov_puntos_empleado FOREIGN KEY (id_empleado) REFERENCES EMPLEADO(id) ON DELETE SET NULL,
     INDEX idx_cliente (id_cliente),
@@ -341,9 +339,8 @@ CREATE TABLE CANJE_PUNTOS (
     id_servicio INT NULL,
     fecha_canje DATETIME DEFAULT CURRENT_TIMESTAMP,
     estado ENUM('activo', 'usado', 'cancelado') DEFAULT 'activo',
-    id_empleado INT NULL, -- Quién procesó el canje
-    notas TEXT NULL, -- Observaciones del canje
-    CONSTRAINT fk_canje_cliente FOREIGN KEY (id_cliente) REFERENCES CLIENTE(id) ON DELETE CASCADE,
+    id_empleado INT NULL,
+    CONSTRAINT fk_canje_cliente FOREIGN KEY (id_cliente) REFERENCES CLIENTE(id) ON DELETE RESTRICT,  -- ✅ CAMBIADO
     CONSTRAINT fk_canje_venta FOREIGN KEY (id_venta) REFERENCES VENTA(id) ON DELETE SET NULL,
     CONSTRAINT fk_canje_producto FOREIGN KEY (id_producto) REFERENCES PRODUCTO(id) ON DELETE SET NULL,
     CONSTRAINT fk_canje_servicio FOREIGN KEY (id_servicio) REFERENCES SERVICIO(id) ON DELETE SET NULL,
@@ -351,4 +348,5 @@ CREATE TABLE CANJE_PUNTOS (
     INDEX idx_cliente (id_cliente),
     INDEX idx_fecha (fecha_canje)
 );
+
 
