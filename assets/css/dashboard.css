@@ -431,3 +431,81 @@ body {
     font-size: 10px;
     opacity: 0.7;
 }
+
+/* ===== PROVEEDORES SECTION ===== */
+.proveedores-section {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: var(--shadow-soft);
+}
+
+.proveedores-section h2 {
+    color: var(--primary);
+    border-left: 4px solid var(--primary);
+    padding-left: 15px;
+    margin-bottom: 20px;
+    font-size: 1.2rem;
+}
+
+.proveedores-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.proveedor-card {
+    background: #f9f9f9;
+    border-radius: 10px;
+    padding: 15px;
+    transition: transform 0.3s ease;
+    border: 1px solid #eee;
+}
+
+.proveedor-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.proveedor-nombre {
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    color: var(--primary);
+}
+
+.proveedor-stats {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.proveedor-stats span {
+    background: white;
+    padding: 3px 8px;
+    border-radius: 15px;
+}
+
+.proveedor-telefono {
+    font-size: 0.8rem;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.btn-ver-compras {
+    display: inline-block;
+    background: #9c27b0;
+    color: white;
+    padding: 5px 12px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-size: 11px;
+    transition: background 0.3s ease;
+}
+
+.btn-ver-compras:hover {
+    background: #7b1fa2;
+}

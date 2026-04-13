@@ -48,6 +48,7 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
             <a href="calendario.php">📅 Calendario</a>
             <a href="reportes.php">📊 Reportes</a>
             <a href="productos.php">🛒 Productos</a>
+            <!-- Dropdown Clientes -->
             <div class="dropdown">
                 <a href="javascript:void(0)">👥 Clientes ▼</a>
                 <div class="dropdown-content">
@@ -56,13 +57,27 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
                     <a href="puntos_clientes.php">🎯 Puntos y Recompensas</a>
                 </div>
             </div>
+
+            <!-- Dropdown Proveedores y Compras -->
+            <div class="dropdown">
+                <a href="javascript:void(0)">🏭 Proveedores ▼</a>
+                <div class="dropdown-content">
+                    <a href="proveedores.php">📋 Lista de Proveedores</a>
+                    <a href="proveedor_nuevo.php">➕ Nuevo Proveedor</a>
+                    <a href="compras.php">🛒 Historial de Compras</a>
+                    <a href="compra_nueva.php">📦 Registrar Compra</a>
+                </div>
+            </div>
+
             <?php if ($_SESSION['rol'] === 'super_admin'): ?>
                 <a href="usuarios.php">👥 Usuarios</a>
-                <?php endif; ?>
-                <a href="../index.php" target="_blank">🌐 Ver Sitio</a>
-                <a href="logout.php">🚪 Cerrar Sesión</a>
+            <?php endif; ?>
+
+            <a href="../index.php" target="_blank">🌐 Ver Sitio</a>
+            <a href="logout.php">🚪 Cerrar Sesión</a>
         </div>
     </div>
+
         
     <div class="container">
         <!-- Resumen Ejecutivo (usando vista_resumen_negocio) -->

@@ -259,7 +259,7 @@ CREATE PROCEDURE registrar_venta(
     IN p_cliente_id INT,
     IN p_empleado_id INT,
     IN p_metodo_pago ENUM('efectivo', 'tarjeta', 'transferencia', 'credito'),
-    IN p_productos JSON, -- JSON con [{id_producto, cantidad, descuento}]
+    IN p_productos JSON,
     OUT p_venta_id INT,
     OUT p_total DECIMAL(10,2)
 )
@@ -272,6 +272,7 @@ BEGIN
     DECLARE v_descuento DECIMAL(10,2);
     DECLARE v_producto_id INT;
     DECLARE v_stock_actual INT;
+    DECLARE v_total_items INT;
     
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
@@ -281,18 +282,22 @@ BEGIN
     
     START TRANSACTION;
     
-    -- Calcular subtotal y validar stock
-    WHILE v_idx < JSON_LENGTH(p_productos) DO
+    SET v_total_items = JSON_LENGTH(p_productos);
+    
+    -- 🔒 BLOQUEO PESIMISTA: Bloquear productos para evitar sobreventa
+    WHILE v_idx < v_total_items DO
         SET v_producto_id = JSON_EXTRACT(p_productos, CONCAT('$[', v_idx, '].id_producto'));
+        
+        -- SELECT con FOR UPDATE bloquea la fila hasta COMMIT
+        SELECT stock_actual, precio_venta INTO v_stock_actual, v_precio
+        FROM PRODUCTO WHERE id = v_producto_id FOR UPDATE;
+        
         SET v_cantidad = JSON_EXTRACT(p_productos, CONCAT('$[', v_idx, '].cantidad'));
         SET v_descuento = JSON_EXTRACT(p_productos, CONCAT('$[', v_idx, '].descuento'));
         
-        SELECT precio_venta, stock_actual INTO v_precio, v_stock_actual
-        FROM PRODUCTO WHERE id = v_producto_id;
-        
         IF v_stock_actual < v_cantidad THEN
             SIGNAL SQLSTATE '45000' 
-            SET MESSAGE_TEXT = CONCAT('Stock insuficiente para producto ID: ', v_producto_id);
+            SET MESSAGE_TEXT = CONCAT('Stock insuficiente para producto: ', v_producto_id);
         END IF;
         
         SET v_subtotal = v_subtotal + (v_cantidad * v_precio * (1 - v_descuento/100));
@@ -307,17 +312,22 @@ BEGIN
     VALUES (p_cliente_id, p_empleado_id, v_subtotal, v_iva, p_total, p_metodo_pago);
     SET p_venta_id = LAST_INSERT_ID();
     
-    -- Insertar detalles y actualizar stock (el trigger after_insert_detalle_venta se encarga del stock)
+    -- Insertar detalles y actualizar stock
     SET v_idx = 0;
-    WHILE v_idx < JSON_LENGTH(p_productos) DO
+    WHILE v_idx < v_total_items DO
         SET v_producto_id = JSON_EXTRACT(p_productos, CONCAT('$[', v_idx, '].id_producto'));
         SET v_cantidad = JSON_EXTRACT(p_productos, CONCAT('$[', v_idx, '].cantidad'));
         SET v_descuento = JSON_EXTRACT(p_productos, CONCAT('$[', v_idx, '].descuento'));
+        
         SELECT precio_venta INTO v_precio FROM PRODUCTO WHERE id = v_producto_id;
         
         INSERT INTO DETALLE_VENTA (id_venta, id_producto, cantidad, precio_unitario, descuento, subtotal)
         VALUES (p_venta_id, v_producto_id, v_cantidad, v_precio, v_descuento, 
                 v_cantidad * v_precio * (1 - v_descuento/100));
+        
+        -- Actualizar stock (ya tenemos el bloqueo)
+        UPDATE PRODUCTO SET stock_actual = stock_actual - v_cantidad 
+        WHERE id = v_producto_id;
         
         SET v_idx = v_idx + 1;
     END WHILE;
