@@ -1,0 +1,197 @@
+body { background: var(--muted); }
+        
+        .admin-header { 
+            background: var(--primary); 
+            color: white; 
+            padding: 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            flex-wrap: wrap;
+        }
+        
+        .admin-header a { 
+            color: white; 
+            text-decoration: none; 
+            margin-left: 20px; 
+        }
+        
+        .admin-header a:hover {
+            text-decoration: underline;
+        }
+        
+        .container { 
+            max-width: 1300px; 
+            margin: 20px auto; 
+            padding: 0 20px; 
+        }
+        
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .btn-nuevo {
+            background: #4caf50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-nuevo:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+        
+        .stats-badge {
+            background: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            color: var(--primary);
+            box-shadow: var(--shadow-soft);
+        }
+        
+        .stats-badge span {
+            font-size: 1.2rem;
+            margin: 0 5px;
+        }
+        
+        /* Mensajes de alerta */
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #f44336;
+        }
+        
+        /* Tabla */
+        .proveedores-table {
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-soft);
+            border-collapse: collapse;
+        }
+        
+        .proveedores-table th,
+        .proveedores-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .proveedores-table th {
+            background: var(--black);
+            color: white;
+            font-weight: bold;
+        }
+        
+        .proveedores-table tbody tr:hover {
+            background: #f9f9f9;
+        }
+        
+        .estado.activo {
+            color: #4caf50;
+            font-weight: bold;
+        }
+        
+        .estado.inactivo {
+            color: #f44336;
+            font-weight: bold;
+        }
+        
+        /* Botones de acción */
+        .acciones {
+            white-space: nowrap;
+        }
+        
+        .btn-ver, .btn-editar, .btn-compras, .btn-activar, .btn-desactivar, .btn-eliminar {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 11px;
+            margin: 0 2px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-ver { background: #2196f3; color: white; }
+        .btn-ver:hover { background: #1976d2; }
+        
+        .btn-editar { background: #ff9800; color: white; }
+        .btn-editar:hover { background: #fb8c00; }
+        
+        .btn-compras { background: #9c27b0; color: white; }
+        .btn-compras:hover { background: #7b1fa2; }
+        
+        .btn-activar { background: #4caf50; color: white; }
+        .btn-activar:hover { background: #388e3c; }
+        
+        .btn-desactivar { background: #ff9800; color: white; }
+        .btn-desactivar:hover { background: #fb8c00; }
+        
+        .btn-eliminar { background: #f44336; color: white; }
+        .btn-eliminar:hover { background: #d32f2f; }
+        
+        /* Badge de compras */
+        .compras-badge {
+            display: inline-block;
+            background: #e9ecef;
+            padding: 3px 8px;
+            border-radius: 15px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #495057;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .admin-header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .admin-header a {
+                display: inline-block;
+                margin: 10px 10px 0;
+            }
+            
+            .proveedores-table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+            
+            .header-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .btn-nuevo {
+                justify-content: center;
+            }
+        }

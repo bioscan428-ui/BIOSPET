@@ -1,0 +1,209 @@
+body { background: var(--muted); }
+        
+        .admin-header { 
+            background: var(--primary); 
+            color: white; 
+            padding: 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            flex-wrap: wrap;
+        }
+        
+        .admin-header a { 
+            color: white; 
+            text-decoration: none; 
+            margin-left: 20px; 
+        }
+        
+        .admin-header a:hover {
+            text-decoration: underline;
+        }
+        
+        .container { 
+            max-width: 1300px; 
+            margin: 20px auto; 
+            padding: 0 20px; 
+        }
+        
+        /* Header actions */
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .btn-nuevo {
+            background: #4caf50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-nuevo:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+        
+        /* Filtros */
+        .filtros {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            box-shadow: var(--shadow-soft);
+        }
+        
+        .filtros label {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .filtros select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            min-width: 200px;
+        }
+        
+        .filtros .btn-filtrar {
+            background: var(--primary);
+            color: white;
+            padding: 8px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        
+        .filtros .btn-limpiar {
+            background: #666;
+            color: white;
+            padding: 8px 20px;
+            text-decoration: none;
+            border-radius: 6px;
+        }
+        
+        /* Stats cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: var(--shadow-soft);
+        }
+        
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        /* Tabla */
+        .compras-table {
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-soft);
+            border-collapse: collapse;
+        }
+        
+        .compras-table th,
+        .compras-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .compras-table th {
+            background: var(--black);
+            color: white;
+            font-weight: bold;
+        }
+        
+        .compras-table tbody tr:hover {
+            background: #f9f9f9;
+        }
+        
+        /* Botones */
+        .btn-ver, .btn-editar {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 11px;
+            margin: 0 2px;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-ver { background: #2196f3; color: white; }
+        .btn-ver:hover { background: #1976d2; }
+        
+        .btn-editar { background: #ff9800; color: white; }
+        .btn-editar:hover { background: #fb8c00; }
+        
+        .acciones {
+            white-space: nowrap;
+        }
+        
+        .total-col {
+            font-weight: bold;
+            color: #2e7d32;
+        }
+        
+        /* Mensajes */
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4caf50;
+        }
+        
+        @media (max-width: 768px) {
+            .admin-header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .admin-header a {
+                display: inline-block;
+                margin: 10px 10px 0;
+            }
+            
+            .compras-table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
