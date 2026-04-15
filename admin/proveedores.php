@@ -35,9 +35,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Obtener lista de proveedores
+// Obtener lista de proveedores (directamente desde la tabla PROVEEDOR)
 $sql = "SELECT * FROM PROVEEDOR ORDER BY nombre ASC";
 $result = $conn->query($sql);
+
+// Obtener estadísticas de compras por proveedor (usando la vista)
+$stats = [];
+$stats_result = $conn->query("SELECT * FROM vista_compras_proveedor");
+while($row = $stats_result->fetch_assoc()) {
+    $stats[$row['proveedor_id']] = $row;
+}
 
 // Contar total de proveedores activos e inactivos
 $total_activos = $conn->query("SELECT COUNT(*) as total FROM PROVEEDOR WHERE activo = 1")->fetch_assoc()['total'];
@@ -100,6 +107,7 @@ $total_proveedores = $total_activos + $total_inactivos;
                     <th>Email</th>
                     <th>Dirección</th>
                     <th>Compras</th>
+                    <th>Total Gastado</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                 </tr>
@@ -107,9 +115,7 @@ $total_proveedores = $total_activos + $total_inactivos;
             <tbody>
                 <?php if ($result->num_rows > 0): ?>
                     <?php while($proveedor = $result->fetch_assoc()): 
-                        // Contar compras de este proveedor
-                        $sql_compras = "SELECT COUNT(*) as total FROM COMPRA WHERE id_proveedor = " . $proveedor['id'];
-                        $total_compras = $conn->query($sql_compras)->fetch_assoc()['total'];
+                        $stat = $stats[$proveedor['id']] ?? null;
                     ?>
                     <tr>
                         <td><?php echo $proveedor['id']; ?></td>
@@ -121,7 +127,10 @@ $total_proveedores = $total_activos + $total_inactivos;
                         <td><?php echo $proveedor['email'] ?: '—'; ?></td>
                         <td><?php echo htmlspecialchars(substr($proveedor['direccion'] ?? '', 0, 50)) . (strlen($proveedor['direccion'] ?? '') > 50 ? '...' : ''); ?></td>
                         <td>
-                            <span class="compras-badge">📦 <?php echo $total_compras; ?></span>
+                            <span class="compras-badge">📦 <?php echo $stat['total_compras'] ?? 0; ?></span>
+                        </td>
+                        <td class="total-col">
+                            $<?php echo number_format($stat['total_gastado'] ?? 0, 2); ?>
                         </td>
                         <td class="estado <?php echo $proveedor['activo'] ? 'activo' : 'inactivo'; ?>">
                             <?php echo $proveedor['activo'] ? '✅ Activo' : '❌ Inactivo'; ?>
@@ -147,7 +156,7 @@ $total_proveedores = $total_activos + $total_inactivos;
                     <?php endwhile; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="9" style="text-align: center; padding: 40px; color: #999;">
+                        <td colspan="10" style="text-align: center; padding: 40px; color: #999;">
                             No hay proveedores registrados. 
                             <a href="proveedor_nuevo.php" style="color: var(--primary);">Crear el primero</a>
                         </td>

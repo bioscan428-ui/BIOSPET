@@ -1,0 +1,189 @@
+ body { background: var(--muted); }
+        
+        .admin-header { 
+            background: var(--primary); 
+            color: white; 
+            padding: 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            flex-wrap: wrap;
+        }
+        
+        .admin-header a { 
+            color: white; 
+            text-decoration: none; 
+            margin-left: 20px; 
+        }
+        
+        .container { 
+            max-width: 1000px; 
+            margin: 20px auto; 
+            padding: 0 20px; 
+        }
+        
+        .btn-volver {
+            display: inline-block;
+            background: #666;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 8px;
+            text-decoration: none;
+            margin-bottom: 20px;
+        }
+        
+        .btn-volver:hover {
+            background: #555;
+        }
+        
+        /* Tarjeta de compra */
+        .compra-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-soft);
+            margin-bottom: 25px;
+        }
+        
+        .compra-header {
+            background: var(--primary);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .compra-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            padding: 20px;
+        }
+        
+        .info-item {
+            display: flex;
+            align-items: baseline;
+            flex-wrap: wrap;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            width: 120px;
+            color: #555;
+        }
+        
+        .info-value {
+            flex: 1;
+            color: #333;
+        }
+        
+        /* Sección de productos */
+        .productos-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: var(--shadow-soft);
+        }
+        
+        .productos-section h2 {
+            color: var(--primary);
+            border-left: 4px solid var(--primary);
+            padding-left: 15px;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+        }
+        
+        .detalles-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .detalles-table th,
+        .detalles-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .detalles-table th {
+            background: #f5f5f5;
+            font-weight: bold;
+        }
+        
+        .detalles-table tr:hover {
+            background: #f9f9f9;
+        }
+        
+        .total-row {
+            background: #f5f5f5;
+            font-weight: bold;
+        }
+        
+        .total-row td {
+            border-bottom: none;
+            padding: 15px;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .total-amount {
+            font-size: 1.2rem;
+            color: var(--primary);
+        }
+        
+        .badge-proveedor {
+            display: inline-block;
+            background: #e9ecef;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #495057;
+        }
+        
+        @media (max-width: 768px) {
+            .admin-header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .admin-header a {
+                display: inline-block;
+                margin: 10px 10px 0;
+            }
+            
+            .detalles-table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+            
+            .info-label {
+                width: 100px;
+            }
+        }
+        
+        @media print {
+            .admin-header, .btn-volver, .btn-imprimir {
+                display: none;
+            }
+            
+            .container {
+                margin: 0;
+                padding: 0;
+            }
+            
+            .compra-card, .productos-section {
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+        }

@@ -66,6 +66,9 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
                     <a href="proveedor_nuevo.php">➕ Nuevo Proveedor</a>
                     <a href="compras.php">🛒 Historial de Compras</a>
                     <a href="compra_nueva.php">📦 Registrar Compra</a>
+                    <hr style="margin: 5px 0; border-color: #eee;">
+                    <a href="reporte_proveedores.php">📊 Reporte de Proveedores</a>
+
                 </div>
             </div>
 
