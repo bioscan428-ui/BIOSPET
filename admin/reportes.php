@@ -105,6 +105,18 @@ while ($row = $result_pagos->fetch_assoc()) {
 // ========== 12. Datos para gráficos (mantener los existentes) ==========
 // ... (tus consultas existentes para gráficos)
 
+// Versión simplificada usando la vista
+$sql_ingresos_combinados = "SELECT * FROM vista_ingresos_mensuales ORDER BY mes DESC";
+$result_combinados = $conn->query($sql_ingresos_combinados);
+$ingresos_combinados = [];
+while ($row = $result_combinados->fetch_assoc()) {
+    $ingresos_combinados[] = [
+        'mes' => date('M Y', strtotime($row['mes'] . '-01')),
+        'ingresos_servicios' => $row['ingresos_servicios'],
+        'ingresos_ventas' => $row['ingresos_ventas']
+    ];
+}
+
 $datos_js = [
     'estados' => $estados,
     'serviciosTop' => $servicios_top,
@@ -116,7 +128,8 @@ $datos_js = [
     'tasa_conversion' => $tasa_conversion,
     'ingresos_mes' => $ingresos_mes,
     'productos_stock_bajo' => $productos_stock_bajo,
-    'ventas_hoy' => $ventas_hoy
+    'ventas_hoy' => $ventas_hoy,
+    'ingresosCombinados' => $ingresos_combinados
 ];
 
 // Incluir la vista

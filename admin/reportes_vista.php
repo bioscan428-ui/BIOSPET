@@ -112,6 +112,48 @@
             <canvas id="citasPorMesChart"></canvas>
         </div>
 
+        <!-- ========== NUEVA SECCIÓN: INGRESOS DIARIOS (usando vista_ingresos_diarios) ========== -->
+        <?php
+        // Consultar ingresos diarios usando la vista
+        $sql_ingresos_diarios = "SELECT * FROM vista_ingresos_diarios 
+                                 WHERE fecha_cita >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                                 ORDER BY fecha_cita DESC";
+        $ingresos_diarios = $conn->query($sql_ingresos_diarios);
+        ?>
+        
+        <div class="card" style="margin-top: 20px;">
+            <h2 style="margin: 0 0 20px 0; color: var(--primary); border-left: 4px solid var(--primary); padding-left: 15px;">💰 Ingresos Diarios (últimos 30 días)</h2>
+            
+            <?php if ($ingresos_diarios && $ingresos_diarios->num_rows > 0): ?>
+                <div style="overflow-x: auto;">
+                    <table class="productos-top-table full-width">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Citas</th>
+                                <th>Servicios</th>
+                                <th>Ingresos Totales</th>
+                                <th>Promedio por Servicio</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php while($row = $ingresos_diarios->fetch_assoc()): ?>
+                            <tr>
+                                <td><strong><?php echo date('d/m/Y', strtotime($row['fecha_cita'])); ?></strong></td>
+                                <td><?php echo $row['total_citas']; ?> citas</td>
+                                <td><?php echo $row['total_servicios']; ?> servicios</td>
+                                <td class="ingreso">$<?php echo number_format($row['ingresos_totales'], 2); ?></td>
+                                <td>$<?php echo number_format($row['promedio_por_servicio'], 2); ?></td>
+                            </tr>
+                            <?php endwhile; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php else: ?>
+                <p style="color: #999; text-align: center; padding: 20px;">No hay datos de ingresos en los últimos 30 días.</p>
+            <?php endif; ?>
+        </div>
+
         <!-- ========== SECCIÓN 2: VENTAS DE PRODUCTOS ========== -->
         <h2 style="margin: 40px 0 10px;">🛒 Ventas de Productos</h2>
 
@@ -202,7 +244,7 @@
                             <td><?php echo $p['codigo_barras'] ?: '—'; ?></td>
                             <td><?php echo $p['categoria']; ?></td>
                             <td><?php echo $p['unidades_vendidas']; ?></td>
-                            <td><?php echo $p['total_ventas']; ?> ventas</td>
+                            <td><?php echo $p['total_ventas']; ?> ventas</span></td>
                             <td class="ingreso">$<?php echo number_format($p['ingresos_generados'], 2); ?></td>
                         </tr>
                         <?php endforeach; ?>

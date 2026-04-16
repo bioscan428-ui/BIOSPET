@@ -114,7 +114,7 @@ if ($tab === 'criticos') {
                         <?php endif; ?>
                     </td>
                     <?php if ($tab === 'criticos'): ?>
-                        <td><?php echo $producto['stock_minimo']; ?> unidades</td>
+                        <td><?php echo $producto['stock_minimo']; ?> unidades</span></td>
                         <td class="<?php echo ($producto['dias_vencimiento'] ?? 999) <= 30 ? 'vencimiento-critico' : 'vencimiento-normal'; ?>">
                             <?php 
                             if ($producto['fecha_vencimiento']) {
@@ -135,14 +135,31 @@ if ($tab === 'criticos') {
                             <span class="estado-inactivo">❌ Inactivo</span>
                         <?php endif; ?>
                     </td>
-                    <td>
+                    <td class="acciones">
                         <a href="producto_editar.php?id=<?php echo $producto['id']; ?>" class="btn-editar">✏️ Editar</a>
                         <a href="producto_eliminar.php?id=<?php echo $producto['id']; ?>" class="btn-eliminar" onclick="return confirm('¿Eliminar este producto?')">🗑️ Eliminar</a>
-                    </td>
+                        <button onclick="verMovimientos(<?php echo $producto['id']; ?>, '<?php echo htmlspecialchars(addslashes($producto['nombre'])); ?>')" class="btn-movimientos">📦 Movimientos</button>
+                    </span>
                 </tr>
                 <?php endwhile; ?>
             </tbody>
         </table>
     </div>
+
+    <!-- Modal de Movimientos de Inventario -->
+    <div id="modalMovimientos" class="modal">
+        <div class="modal-content modal-grande">
+            <div class="modal-header" style="background: #2196f3;">
+                <h2>📦 Movimientos de Inventario</h2>
+                <span class="close-movimientos" style="color: white; font-size: 28px; cursor: pointer;">&times;</span>
+            </div>
+            <div class="modal-body" id="modalMovimientosBody">
+                <div style="text-align: center; padding: 40px;">
+                    Cargando...
+                </div>
+            </div>
+        </div>
+    </div>
+        <script src="../assets/js/productos.js"></script>
 </body>
 </html>
