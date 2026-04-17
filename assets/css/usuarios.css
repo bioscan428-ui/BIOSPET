@@ -476,3 +476,54 @@ body {
 .btn-empleados:hover {
     background: #5a6268;
 }
+
+/* Dropdown */
+.dropdown {
+    display: inline-block;
+    position: relative;
+}
+
+.dropdown > a {
+    cursor: pointer;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background: white;
+    min-width: 200px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    z-index: 1001;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 5px;
+}
+
+.dropdown-content a {
+    color: #333 !important;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    transition: background 0.2s ease;
+    margin: 0 !important;
+    border-bottom: 1px solid #eee;
+}
+
+.dropdown-content a:last-child {
+    border-bottom: none;
+}
+
+.dropdown-content a:hover {
+    background: #f5f5f5;
+    color: var(--primary) !important;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+.dropdown > a::after {
+    content: ' ▼';
+    font-size: 10px;
+    opacity: 0.7;
+}

@@ -1,0 +1,116 @@
+body { background: var(--muted); }
+        
+        .admin-header { 
+            background: var(--primary); 
+            color: white; 
+            padding: 20px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            flex-wrap: wrap;
+        }
+        
+        .admin-header a { 
+            color: white; 
+            text-decoration: none; 
+            margin-left: 20px; 
+        }
+        
+        .container { 
+            max-width: 1200px; 
+            margin: 20px auto; 
+            padding: 0 20px; 
+        }
+        
+        .btn-volver {
+            display: inline-block;
+            background: #666;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 8px;
+            text-decoration: none;
+            margin-bottom: 20px;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .horarios-table {
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-soft);
+            border-collapse: collapse;
+        }
+        
+        .horarios-table th,
+        .horarios-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .horarios-table th {
+            background: var(--black);
+            color: white;
+            font-weight: bold;
+        }
+        
+        .horarios-table tr:hover {
+            background: #f9f9f9;
+        }
+        
+        .horario-badge {
+            display: inline-block;
+            background: #e9ecef;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin: 2px;
+        }
+        
+        .btn-asignar {
+            background: var(--primary);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 12px;
+            margin-right: 5px;
+        }
+        
+        .btn-eliminar {
+            background: #f44336;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 12px;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .sin-horario {
+            color: #999;
+            font-style: italic;
+        }
+        
+        @media (max-width: 768px) {
+            .admin-header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .horarios-table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+        }

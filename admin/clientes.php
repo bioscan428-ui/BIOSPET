@@ -7,7 +7,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-// Verificar rol para acceso (admin puede ver clientes)
+// Verificar rol para acceso
 if (!in_array($_SESSION['rol'], ['super_admin', 'admin', 'veterinario', 'asistente', 'recepcionista'])) {
     header('Location: login.php');
     exit;
@@ -23,9 +23,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         switch ($_POST['action']) {
             case 'activar':
                 $conn->query("UPDATE CLIENTE SET activo = 1 WHERE id = $id_cliente");
+                $_SESSION['mensaje'] = "Cliente activado correctamente";
                 break;
             case 'desactivar':
                 $conn->query("UPDATE CLIENTE SET activo = 0 WHERE id = $id_cliente");
+                $_SESSION['mensaje'] = "Cliente desactivado correctamente";
                 break;
         }
         header('Location: clientes.php');
@@ -33,9 +35,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Obtener lista de clientes con sus puntos y nivel usando la vista de fidelidad
-$sql = "SELECT * FROM vista_cliente_fidelidad ORDER BY puntos_actuales DESC, nombre ASC";
-$result = $conn->query($sql);
+// ========== BUSCADOR DE CLIENTES ==========
+$busqueda = isset($_GET['buscar']) ? trim($_GET['buscar']) : '';
+$clientes = [];
+
+if (!empty($busqueda)) {
+    // Usar el procedimiento buscar_cliente
+    $stmt = $conn->prepare("CALL buscar_cliente(?)");
+    $stmt->bind_param("s", $busqueda);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    // Guardar resultados
+    while ($row = $result->fetch_assoc()) {
+        $clientes[] = $row;
+    }
+    
+    // IMPORTANTE: Cerrar el resultado y consumir siguientes resultados
+    $stmt->close();
+    $conn->next_result(); // Limpiar resultados pendientes
+} else {
+    // Sin búsqueda, mostrar todos usando la vista
+    $sql = "SELECT * FROM vista_cliente_fidelidad ORDER BY puntos_actuales DESC, nombre ASC";
+    $result = $conn->query($sql);
+    while ($row = $result->fetch_assoc()) {
+        $clientes[] = $row;
+    }
+}
+
+// Contar total de clientes (para el badge)
+$total_clientes = $conn->query("SELECT COUNT(*) as total FROM CLIENTE WHERE activo = 1")->fetch_assoc()['total'];
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -63,10 +92,32 @@ $result = $conn->query($sql);
     </div>
 
     <div class="container">
+        <!-- Mostrar mensajes -->
+        <?php if (isset($_SESSION['mensaje'])): ?>
+            <div class="alert-success"><?php echo $_SESSION['mensaje']; ?></div>
+            <?php unset($_SESSION['mensaje']); ?>
+        <?php endif; ?>
+
         <div class="header-actions">
-            <a href="cliente_nuevo.php" class="btn-nuevo">+ Nuevo Cliente</a>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <a href="cliente_nuevo.php" class="btn-nuevo">+ Nuevo Cliente</a>
+                
+                <!-- Formulario de búsqueda -->
+                <form method="GET" style="display: flex; gap: 10px;">
+                    <input type="text" name="buscar" placeholder="Buscar por nombre, teléfono o email..." 
+                           value="<?php echo htmlspecialchars($busqueda); ?>" 
+                           style="padding: 10px; width: 250px; border: 1px solid #ddd; border-radius: 8px;">
+                    <button type="submit" class="btn-buscar">🔍 Buscar</button>
+                    <?php if (!empty($busqueda)): ?>
+                        <a href="clientes.php" class="btn-limpiar">🗑️ Limpiar</a>
+                    <?php endif; ?>
+                </form>
+            </div>
             <div class="stats-badge">
-                📊 Total clientes: <?php echo $result->num_rows; ?>
+                📊 Total clientes: <?php echo $total_clientes; ?>
+                <?php if (!empty($busqueda)): ?>
+                    <span style="color: var(--primary);"> | Resultados: <?php echo count($clientes); ?></span>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -86,60 +137,83 @@ $result = $conn->query($sql);
                 </tr>
             </thead>
             <tbody>
-                <?php while($cliente = $result->fetch_assoc()): ?>
-                <tr class="nivel-<?php echo $cliente['nivel']; ?>">
-                    <td><?php echo $cliente['cliente_id']; ?></td>
-                    <td>
-                        <strong><?php echo htmlspecialchars($cliente['nombre'] . ' ' . $cliente['ape_pat']); ?></strong>
-                     </td>
-                    <td><?php echo $cliente['telefono'] ?: '—'; ?></td>
-                    <td><?php echo $cliente['email'] ?: '—'; ?></td>
-                    <td class="nivel-badge">
-                        <?php
-                        $nivel_icono = [
-                            'bronce' => '🥉',
-                            'plata' => '🥈',
-                            'oro' => '🥇',
-                            'platino' => '💎'
-                        ];
-                        echo $nivel_icono[$cliente['nivel']] . ' ' . ucfirst($cliente['nivel']);
-                        ?>
-                    </td>
-                    <td class="puntos">
-                        <span class="puntos-number"><?php echo number_format($cliente['puntos_actuales']); ?></span>
-                        <span class="puntos-label">pts</span>
-                    </td>
-                    <td class="gastado">
-                        $<?php echo number_format($cliente['total_gastado'] ?? 0, 2); ?>
-                    </td>
-                    <td>
-                        <?php 
-                        $sql_mascotas = "SELECT COUNT(*) as total FROM MASCOTA WHERE id_cliente = " . $cliente['cliente_id'] . " AND activo = 1";
+                <?php if (count($clientes) > 0): ?>
+                    <?php foreach($clientes as $cliente): 
+                        // Para la vista fidelidad, el campo es 'cliente_id', para el procedimiento es 'id'
+                        $id_cliente = $cliente['cliente_id'] ?? $cliente['id'];
+                        $nombre = $cliente['nombre'];
+                        $ape_pat = $cliente['ape_pat'] ?? '';
+                        $ape_mat = $cliente['ape_mat'] ?? ''; 
+                        $telefono = $cliente['telefono'] ?? '';
+                        $email = $cliente['email'] ?? '';
+                        $nivel = $cliente['nivel'] ?? 'bronce';
+                        $puntos = $cliente['puntos_actuales'] ?? 0;
+                        $total_gastado = $cliente['total_gastado'] ?? 0;
+                        $activo = $cliente['activo'] ?? 1;
+                        
+                        // Contar mascotas
+                        $sql_mascotas = "SELECT COUNT(*) as total FROM MASCOTA WHERE id_cliente = $id_cliente AND activo = 1";
                         $total_mascotas = $conn->query($sql_mascotas)->fetch_assoc()['total'];
-                        echo $total_mascotas;
-                        ?>
-                     </td>
-                    <td class="estado <?php echo ($cliente['activo'] ?? 1) ? 'activo' : 'inactivo'; ?>">
-                        <?php echo ($cliente['activo'] ?? 1) ? '✅ Activo' : '❌ Inactivo'; ?>
-                    </td>
-                    <td class="acciones">
-                        <a href="cliente_detalle.php?id=<?php echo $cliente['cliente_id']; ?>" class="btn-ver">👁️ Ver</a>
-                        <a href="cliente_editar.php?id=<?php echo $cliente['cliente_id']; ?>" class="btn-editar">✏️ Editar</a>
-                        <?php if (($cliente['activo'] ?? 1)): ?>
-                            <form method="POST" style="display: inline-block;">
-                                <input type="hidden" name="id_cliente" value="<?php echo $cliente['cliente_id']; ?>">
-                                <button type="submit" name="action" value="desactivar" class="btn-desactivar" onclick="return confirm('¿Desactivar este cliente?')">🔴 Desactivar</button>
-                            </form>
-                        <?php else: ?>
-                            <form method="POST" style="display: inline-block;">
-                                <input type="hidden" name="id_cliente" value="<?php echo $cliente['cliente_id']; ?>">
-                                <button type="submit" name="action" value="activar" class="btn-activar" onclick="return confirm('¿Activar este cliente?')">🟢 Activar</button>
-                            </form>
-                        <?php endif; ?>
-                        <a href="cliente_puntos.php?id=<?php echo $cliente['cliente_id']; ?>" class="btn-puntos">⭐ Puntos</a>
-                    </td>
-                </tr>
-                <?php endwhile; ?>
+                    ?>
+                    <tr class="nivel-<?php echo $nivel; ?>">
+                        <td><?php echo $id_cliente; ?></td>
+                        <td>
+                            <strong><?php echo htmlspecialchars(trim($nombre . ' ' . $ape_pat . ' ' . $ape_mat)); ?></strong>
+                        </span>
+                        <td><?php echo $telefono ?: '—'; ?></td>
+                        <td><?php echo $email ?: '—'; ?></td>
+                        <td class="nivel-badge">
+                            <?php
+                            $nivel_icono = [
+                                'bronce' => '🥉',
+                                'plata' => '🥈',
+                                'oro' => '🥇',
+                                'platino' => '💎'
+                            ];
+                            echo $nivel_icono[$nivel] . ' ' . ucfirst($nivel);
+                            ?>
+                        </span>
+                        <td class="puntos">
+                            <span class="puntos-number"><?php echo number_format($puntos); ?></span>
+                            <span class="puntos-label">pts</span>
+                        </span>
+                        <td class="gastado">
+                            $<?php echo number_format($total_gastado, 2); ?>
+                        </span>
+                        <td><?php echo $total_mascotas; ?></td>
+                        <td class="estado <?php echo $activo ? 'activo' : 'inactivo'; ?>">
+                            <?php echo $activo ? '✅ Activo' : '❌ Inactivo'; ?>
+                        </span>
+                        <td class="acciones">
+                            <a href="cliente_detalle.php?id=<?php echo $id_cliente; ?>" class="btn-ver">👁️ Ver</a>
+                            <a href="cliente_editar.php?id=<?php echo $id_cliente; ?>" class="btn-editar">✏️ Editar</a>
+                            <?php if ($activo): ?>
+                                <form method="POST" style="display: inline-block;">
+                                    <input type="hidden" name="id_cliente" value="<?php echo $id_cliente; ?>">
+                                    <button type="submit" name="action" value="desactivar" class="btn-desactivar" onclick="return confirm('¿Desactivar este cliente?')">🔴 Desactivar</button>
+                                </form>
+                            <?php else: ?>
+                                <form method="POST" style="display: inline-block;">
+                                    <input type="hidden" name="id_cliente" value="<?php echo $id_cliente; ?>">
+                                    <button type="submit" name="action" value="activar" class="btn-activar" onclick="return confirm('¿Activar este cliente?')">🟢 Activar</button>
+                                </form>
+                            <?php endif; ?>
+                            <a href="cliente_puntos.php?id=<?php echo $id_cliente; ?>" class="btn-puntos">⭐ Puntos</a>
+                        </span>
+                    </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="10" style="text-align: center; padding: 40px; color: #999;">
+                            <?php if (!empty($busqueda)): ?>
+                                No se encontraron clientes con "<strong><?php echo htmlspecialchars($busqueda); ?></strong>"
+                            <?php else: ?>
+                                No hay clientes registrados. 
+                                <a href="cliente_nuevo.php" style="color: var(--primary);">Crear el primero</a>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endif; ?>
             </tbody>
         </table>
     </div>

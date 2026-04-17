@@ -93,7 +93,18 @@ if (isset($_GET['ver_historial']) && is_numeric($_GET['ver_historial'])) {
         <h1>🐾 BIOSPET - Gestión de Usuarios</h1>
         <div>
             <a href="dashboard.php">📋 Dashboard</a>
-            <a href="usuarios.php">👥 Usuarios</a>
+            
+            <!-- Dropdown Empleados -->
+            <div class="dropdown">
+                <a href="javascript:void(0)">👥 Empleados ▼</a>
+                <div class="dropdown-content">
+                    <a href="usuarios.php">📋 Lista de Usuarios</a>
+                    <a href="empleados_sin_usuario.php">➕ Empleados sin usuario</a>
+                    <hr style="margin: 5px 0; border-color: #eee;">
+                    <a href="horarios_empleado.php">🕐 Horarios de Empleados</a>
+                </div>
+            </div>
+            
             <a href="productos.php">🛒 Productos</a>
             <a href="logout.php">🚪 Cerrar Sesión</a>
         </div>
@@ -102,7 +113,6 @@ if (isset($_GET['ver_historial']) && is_numeric($_GET['ver_historial'])) {
     <div class="container">
         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
             <a href="usuario_nuevo.php" class="btn-nuevo">+ Nuevo Usuario</a>
-            <a href="empleados_sin_usuario.php" class="btn-nuevo" style="background: #6c757d;">👥 Empleados sin usuario</a>
         </div>
         
         <table class="usuarios-table">
@@ -124,9 +134,9 @@ if (isset($_GET['ver_historial']) && is_numeric($_GET['ver_historial'])) {
                 <?php while($user = $result->fetch_assoc()): ?>
                 <tr>
                     <td><?php echo $user['id']; ?></td>
-                    <td><?php echo htmlspecialchars($user['nombre'] . ' ' . $user['ape_pat']); ?></td>
+                    <td><?php echo htmlspecialchars($user['nombre'] . ' ' . $user['ape_pat']); ?></span>
                     <td><?php echo htmlspecialchars($user['nombre_usuario'] ?? 'Sin usuario'); ?></td>
-                    <td><?php echo htmlspecialchars($user['email']); ?></td>
+                    <td><?php echo htmlspecialchars($user['email']); ?></span>
                     <td><?php echo $user['puesto']; ?></td>
                     <td>
                         <span class="rol-<?php echo $user['rol'] ?? 'recepcionista'; ?>">
@@ -146,10 +156,10 @@ if (isset($_GET['ver_historial']) && is_numeric($_GET['ver_historial'])) {
                         <span class="badge" style="background: #17a2b8;">
                             <?php echo $user['citas_asignadas'] ?? 0; ?> citas
                         </span>
-                    </td>
+                    </span>
                     <td class="<?php echo ($user['activo'] ?? 1) ? 'activo' : 'inactivo'; ?>">
                         <?php echo ($user['activo'] ?? 1) ? '✅ Activo' : '❌ Inactivo'; ?>
-                    </td>
+                    </span>
                     <td><?php echo $user['ultimo_acceso'] ?: 'Nunca'; ?></td>
                     <td>
                         <!-- Botón Historial -->
@@ -181,7 +191,7 @@ if (isset($_GET['ver_historial']) && is_numeric($_GET['ver_historial'])) {
                             <?php endif; ?>
                         </form>
                         <?php endif; ?>
-                    </td>
+                    </span>
                 </tr>
                 <?php endwhile; ?>
             </tbody>

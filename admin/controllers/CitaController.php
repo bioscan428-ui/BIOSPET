@@ -5,7 +5,7 @@ require_once __DIR__ . '/../includes/conexion.php';
 class CitaController {
     
     public function guardar() {
-        global $conn;  // ← IMPORTANTE: traer $conn al ámbito del método
+        global $conn;
         
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ../citas.php');
@@ -40,7 +40,6 @@ class CitaController {
         }
         
         // ========== VALIDACIÓN DE DISPONIBILIDAD ==========
-        // Usar la función total_citas_dia()
         $sql_disponibilidad = "SELECT total_citas_dia(?) as total_citas";
         $stmt_disp = $conn->prepare($sql_disponibilidad);
         $stmt_disp->bind_param("s", $fecha_cita);
@@ -54,7 +53,6 @@ class CitaController {
         if ($citas_ese_dia >= $limite_citas_dia) {
             die("Error: No hay disponibilidad para la fecha seleccionada. Por favor, elige otro día.");
         }
-        // ========== FIN VALIDACIÓN ==========
         
         // Validar hora
         $hora_valida = preg_match('/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/', $hora_cita);
@@ -78,46 +76,56 @@ class CitaController {
             die("Error: Campos requeridos vacíos.");
         }
 
+        // ========== PROCESAR FOTO (si existe) ==========
+        $foto_ruta = null;
+        if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
+            $archivo = $_FILES['foto'];
+            $extension = strtolower(pathinfo($archivo['name'], PATHINFO_EXTENSION));
+            $extensiones_validas = ['jpg', 'jpeg', 'png'];
+            
+            if (in_array($extension, $extensiones_validas)) {
+                $nombre_archivo = 'mascota_' . time() . '_' . rand(1000, 9999) . '.' . $extension;
+                $ruta_destino = __DIR__ . '/../assets/images/mascotas/' . $nombre_archivo;
+                
+                if (!file_exists(__DIR__ . '/../assets/images/mascotas/')) {
+                    mkdir(__DIR__ . '/../assets/images/mascotas/', 0777, true);
+                }
+                
+                if (move_uploaded_file($archivo['tmp_name'], $ruta_destino)) {
+                    $foto_ruta = 'assets/images/mascotas/' . $nombre_archivo;
+                }
+            }
+        }
+
         $conn->begin_transaction();
 
         try {
-            // 2. Insertar en CLIENTE
-            $sql_cliente = "INSERT INTO CLIENTE (nombre, ape_pat, ape_mat, telefono, email) 
-                            VALUES (?, ?, ?, ?, ?)";
-            $stmt = $conn->prepare($sql_cliente);
-            $stmt->bind_param("sssss", $nombre_dueno, $ape_pat, $ape_mat, $telefono, $email);
+            // ========== USANDO EL PROCEDIMIENTO registrar_cliente_mascota ==========
+            // Nota: El procedimiento debe tener el parámetro p_foto agregado
+            $sql = "CALL registrar_cliente_mascota(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @id_cliente, @id_mascota)";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("sssssssssss", 
+                $nombre_dueno,      // p_nombre_cliente
+                $ape_pat,           // p_ape_pat
+                $ape_mat,           // p_ape_mat
+                $telefono,          // p_telefono
+                $email,             // p_email
+                $nombre_mascota,    // p_nombre_mascota
+                $especie,           // p_especie
+                $raza,              // p_raza
+                $fecha_nac,         // p_fecha_nacimiento
+                $genero,            // p_genero
+                $foto_ruta          // p_foto (nuevo parámetro)
+            );
             $stmt->execute();
-            $id_cliente = $conn->insert_id;
-
-            // 3. Insertar en MASCOTA
-            $foto_ruta = null;
-            if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
-                $archivo = $_FILES['foto'];
-                $extension = strtolower(pathinfo($archivo['name'], PATHINFO_EXTENSION));
-                $extensiones_validas = ['jpg', 'jpeg', 'png'];
-                
-                if (in_array($extension, $extensiones_validas)) {
-                    $nombre_archivo = 'mascota_' . time() . '_' . rand(1000, 9999) . '.' . $extension;
-                    $ruta_destino = __DIR__ . '/../assets/images/mascotas/' . $nombre_archivo;
-                    
-                    if (!file_exists(__DIR__ . '/../assets/images/mascotas/')) {
-                        mkdir(__DIR__ . '/../assets/images/mascotas/', 0777, true);
-                    }
-                    
-                    if (move_uploaded_file($archivo['tmp_name'], $ruta_destino)) {
-                        $foto_ruta = 'assets/images/mascotas/' . $nombre_archivo;
-                    }
-                }
-            }
             
-            $sql_mascota = "INSERT INTO MASCOTA (id_cliente, nombre_mascota, especie, raza, fecha_nacimiento, genero, foto) 
-                            VALUES (?, ?, ?, ?, ?, ?, ?)";
-            $stmt = $conn->prepare($sql_mascota);
-            $stmt->bind_param("issssss", $id_cliente, $nombre_mascota, $especie, $raza, $fecha_nac, $genero, $foto_ruta);
-            $stmt->execute();
-            $id_mascota = $conn->insert_id;
+            // Obtener los IDs generados por el procedimiento
+            $result = $conn->query("SELECT @id_cliente as id_cliente, @id_mascota as id_mascota");
+            $ids = $result->fetch_assoc();
+            $id_cliente = $ids['id_cliente'];
+            $id_mascota = $ids['id_mascota'];
 
-            // 4. Insertar en CITA
+            // Insertar en CITA
             $sql_cita = "INSERT INTO CITA (fecha_cita, hora_cita, id_mascota, notas, estado) 
                         VALUES (?, ?, ?, ?, 'pendiente')";
             $stmt = $conn->prepare($sql_cita);

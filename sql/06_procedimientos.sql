@@ -2,7 +2,7 @@
 -- PROCEDIMIENTOS PARA CLIENTES Y MASCOTAS
 -- ============================================
 
--- Procedimiento: Registrar nuevo cliente con mascota
+-- Procedimiento: Registrar nuevo cliente con mascota - ✅ YA SE ESTA USANDO (citas.php)
 DELIMITER $$
 CREATE PROCEDURE registrar_cliente_mascota(
     IN p_nombre_cliente VARCHAR(100),
@@ -15,6 +15,7 @@ CREATE PROCEDURE registrar_cliente_mascota(
     IN p_raza VARCHAR(50),
     IN p_fecha_nacimiento DATE,
     IN p_genero ENUM('MACHO', 'HEMBRA'),
+    IN p_foto VARCHAR(500),  -- ← NUEVO PARÁMETRO
     OUT p_id_cliente INT,
     OUT p_id_mascota INT
 )
@@ -27,21 +28,19 @@ BEGIN
     
     START TRANSACTION;
     
-    -- Insertar cliente
     INSERT INTO CLIENTE (nombre, ape_pat, ape_mat, telefono, email)
     VALUES (p_nombre_cliente, p_ape_pat, p_ape_mat, p_telefono, p_email);
     SET p_id_cliente = LAST_INSERT_ID();
     
-    -- Insertar mascota
-    INSERT INTO MASCOTA (id_cliente, nombre_mascota, especie, raza, fecha_nacimiento, genero)
-    VALUES (p_id_cliente, p_nombre_mascota, p_especie, p_raza, p_fecha_nacimiento, p_genero);
+    INSERT INTO MASCOTA (id_cliente, nombre_mascota, especie, raza, fecha_nacimiento, genero, foto)
+    VALUES (p_id_cliente, p_nombre_mascota, p_especie, p_raza, p_fecha_nacimiento, p_genero, p_foto);
     SET p_id_mascota = LAST_INSERT_ID();
     
     COMMIT;
 END$$
 DELIMITER ;
 
--- Procedimiento: Buscar cliente por teléfono o email
+-- Procedimiento: Buscar cliente por teléfono o email ✅ YA SE ESTA USANDO (clientes.php)
 DELIMITER $$
 CREATE PROCEDURE buscar_cliente(
     IN p_criterio VARCHAR(100)
@@ -58,83 +57,12 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Procedimiento: Obtener historial completo de un cliente
-DELIMITER $$
-CREATE PROCEDURE historial_cliente(
-    IN p_cliente_id INT
-)
-BEGIN
-    -- Datos del cliente
-    SELECT id, nombre, ape_pat, ape_mat, telefono, email, activo
-    FROM CLIENTE WHERE id = p_cliente_id;
-    
-    -- Mascotas del cliente
-    SELECT id, nombre_mascota, especie, raza, fecha_nacimiento, genero, activo
-    FROM MASCOTA WHERE id_cliente = p_cliente_id;
-    
-    -- Citas de todas sus mascotas
-    SELECT 
-        c.id AS cita_id,
-        c.fecha_cita,
-        c.hora_cita,
-        c.estado,
-        m.nombre_mascota,
-        GROUP_CONCAT(s.nombre_servicio SEPARATOR ', ') AS servicios,
-        SUM(dc.precio_fijado) AS total
-    FROM CITA c
-    JOIN MASCOTA m ON c.id_mascota = m.id
-    JOIN DETALLE_CITA dc ON c.id = dc.id_cita
-    JOIN SERVICIO s ON dc.id_servicio = s.id
-    WHERE m.id_cliente = p_cliente_id
-    GROUP BY c.id
-    ORDER BY c.fecha_cita DESC;
-END$$
-DELIMITER ;
-
-
 -- ============================================
 -- PROCEDIMIENTOS PARA EMPLEADOS
 -- ============================================
 
--- Procedimiento: Registrar nuevo empleado con usuario
-DELIMITER $$
-CREATE PROCEDURE registrar_empleado(
-    IN p_nombre VARCHAR(100),
-    IN p_ape_pat VARCHAR(50),
-    IN p_ape_mat VARCHAR(50),
-    IN p_email VARCHAR(100),
-    IN p_telefono VARCHAR(15),
-    IN p_puesto ENUM('veterinario', 'asistente', 'administrador', 'recepcionista'),
-    IN p_especialidad VARCHAR(100),
-    IN p_fecha_contratacion DATE,
-    IN p_nombre_usuario VARCHAR(50),
-    IN p_contrasena VARCHAR(255),
-    IN p_rol ENUM('admin', 'veterinario', 'asistente', 'recepcionista'),
-    OUT p_id_empleado INT
-)
-BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
-    
-    START TRANSACTION;
-    
-    -- Insertar empleado
-    INSERT INTO EMPLEADO (nombre, ape_pat, ape_mat, email, telefono, puesto, especialidad, fecha_contratacion)
-    VALUES (p_nombre, p_ape_pat, p_ape_mat, p_email, p_telefono, p_puesto, p_especialidad, p_fecha_contratacion);
-    SET p_id_empleado = LAST_INSERT_ID();
-    
-    -- Insertar usuario
-    INSERT INTO USUARIO (id_empleado, nombre_usuario, contrasena, rol)
-    VALUES (p_id_empleado, p_nombre_usuario, p_contrasena, p_rol);
-    
-    COMMIT;
-END$$
-DELIMITER ;
 
--- Procedimiento: Asignar horario a empleado
+-- Procedimiento: Asignar horario a empleado ✅ YA SE ESTA USANDO (horario_asignar.php)
 DELIMITER $$
 CREATE PROCEDURE asignar_horario(
     IN p_empleado_id INT,
