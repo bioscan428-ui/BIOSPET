@@ -13,11 +13,10 @@ CREATE PROCEDURE registrar_cliente_mascota(
     IN p_ape_mat VARCHAR(50),
     IN p_telefono VARCHAR(15),
     IN p_email VARCHAR(100),
-    IN p_direccion TEXT,                    -- ← NUEVO PARÁMETRO
+    IN p_direccion TEXT,
     IN p_nombre_mascota VARCHAR(100),
-    IN p_especie ENUM('Canino', 'Felino', 'Ave', 'Reptil', 'Otro'),
+    IN p_especie ENUM('Canino', 'Felino', 'Otro'),
     IN p_raza VARCHAR(50),
-    IN p_fecha_nacimiento DATE,
     IN p_genero ENUM('MACHO', 'HEMBRA'),
     IN p_foto VARCHAR(500),
     OUT p_id_cliente INT,
@@ -32,14 +31,14 @@ BEGIN
     
     START TRANSACTION;
     
-    -- Insertar cliente (ahora con dirección)
+    -- Insertar cliente
     INSERT INTO CLIENTE (nombre, ape_pat, ape_mat, telefono, email, direccion)
     VALUES (p_nombre_cliente, p_ape_pat, p_ape_mat, p_telefono, p_email, p_direccion);
     SET p_id_cliente = LAST_INSERT_ID();
     
-    -- Insertar mascota
-    INSERT INTO MASCOTA (id_cliente, nombre_mascota, especie, raza, fecha_nacimiento, genero, foto)
-    VALUES (p_id_cliente, p_nombre_mascota, p_especie, p_raza, p_fecha_nacimiento, p_genero, p_foto);
+    -- Insertar mascota (sin fecha_nacimiento)
+    INSERT INTO MASCOTA (id_cliente, nombre_mascota, especie, raza, genero, foto)
+    VALUES (p_id_cliente, p_nombre_mascota, p_especie, p_raza, p_genero, p_foto);
     SET p_id_mascota = LAST_INSERT_ID();
     
     COMMIT;
