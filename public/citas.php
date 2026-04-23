@@ -115,6 +115,12 @@ if (!$conn) {
                         <input type="email" name="email">
                     </div>
 
+                    <!-- NUEVO CAMPO: Dirección -->
+                    <div class="form-group full-width">
+                        <label>Dirección</label>
+                        <input type="text" name="direccion" placeholder="Calle, número, colonia, ciudad, código postal">
+                    </div>
+
                     <h3 style="grid-column: span 2; color: var(--primary); margin-top: 20px;">Datos de la Mascota</h3>
                     
                     <div class="form-group full-width">
