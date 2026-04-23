@@ -159,6 +159,7 @@ SELECT
     c.nombre AS categoria,
     p.stock_actual,
     p.stock_minimo,
+    p.precio_compra,
     p.precio_venta,
     p.ubicacion,
     p.fecha_vencimiento,
