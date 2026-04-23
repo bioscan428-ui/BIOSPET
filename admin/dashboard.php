@@ -1,5 +1,9 @@
 <?php
 session_start();
+// ========== NOTIFICACIONES PARA EL ADMIN ==========
+// Verificar si hay notificación desde el controlador
+$notificacion_admin = $_SESSION['notificacion_admin'] ?? null;
+unset($_SESSION['notificacion_admin']);
 
 // Verificar que el usuario haya iniciado sesión
 if (!isset($_SESSION['user_id'])) {
