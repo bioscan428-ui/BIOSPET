@@ -133,8 +133,6 @@ if (!$conn) {
                             <option value="">Seleccione...</option>
                             <option value="Canino">Perro</option>
                             <option value="Felino">Gato</option>
-                            <option value="Ave">Ave</option>
-                            <option value="Reptil">Reptil</option>
                             <option value="Otro">Otro</option>
                         </select>
                     </div>
