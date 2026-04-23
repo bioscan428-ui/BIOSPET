@@ -18,6 +18,7 @@ class CitaController {
         $ape_mat = trim($_POST['ape_mat'] ?? '');
         $telefono = trim($_POST['telefono'] ?? '');
         $email = trim($_POST['email'] ?? '');
+        $direccion = trim($_POST['direccion'] ?? '');  // NUEVO CAMPO
         $nombre_mascota = trim($_POST['nombre_mascota'] ?? '');
         $especie = $_POST['especie'] ?? '';
         $raza = trim($_POST['raza'] ?? '');
@@ -101,21 +102,22 @@ class CitaController {
 
         try {
             // ========== USANDO EL PROCEDIMIENTO registrar_cliente_mascota ==========
-            // Nota: El procedimiento debe tener el parámetro p_foto agregado
-            $sql = "CALL registrar_cliente_mascota(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @id_cliente, @id_mascota)";
+            // Nota: El procedimiento debe tener los parámetros actualizados
+            $sql = "CALL registrar_cliente_mascota(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @id_cliente, @id_mascota)";
             $stmt = $conn->prepare($sql);
-            $stmt->bind_param("sssssssssss", 
+            $stmt->bind_param("ssssssssssss", 
                 $nombre_dueno,      // p_nombre_cliente
                 $ape_pat,           // p_ape_pat
                 $ape_mat,           // p_ape_mat
                 $telefono,          // p_telefono
                 $email,             // p_email
+                $direccion,         // p_direccion (NUEVO)
                 $nombre_mascota,    // p_nombre_mascota
                 $especie,           // p_especie
                 $raza,              // p_raza
                 $fecha_nac,         // p_fecha_nacimiento
                 $genero,            // p_genero
-                $foto_ruta          // p_foto (nuevo parámetro)
+                $foto_ruta          // p_foto
             );
             $stmt->execute();
             
