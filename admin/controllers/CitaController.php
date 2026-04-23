@@ -135,6 +135,14 @@ class CitaController {
             $id_cita = $conn->insert_id;
 
             $conn->commit();
+
+            //Enviar Email de confirmación
+            $_SESSION['notificacion'] = [
+                'tipo' => 'success',
+                'titulo' => '¡Cita Agendada!',
+                'mensaje' => 'Tu cita ha sido registrada correctamente. Te contactaremos para confirmar.',
+                'cita_id' => $id_cita
+            ];
             
             header('Location: ../gracias.php');
             exit;
