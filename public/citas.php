@@ -115,7 +115,6 @@ if (!$conn) {
                         <input type="email" name="email">
                     </div>
 
-                    <!-- NUEVO CAMPO: Dirección -->
                     <div class="form-group full-width">
                         <label>Dirección</label>
                         <input type="text" name="direccion" placeholder="Calle, número, colonia, ciudad, código postal">
@@ -145,10 +144,11 @@ if (!$conn) {
                         <input type="text" name="raza">
                     </div>
 
-                    <div class="form-group">
+                    <!-- ELIMINADO: Campo Fecha de Nacimiento -->
+                    <!-- <div class="form-group">
                         <label>Fecha de Nacimiento</label>
                         <input type="date" name="fecha_nacimiento" max="<?php echo date('Y-m-d'); ?>">
-                    </div>
+                    </div> -->
 
                     <div class="form-group">
                         <label>Género</label>
