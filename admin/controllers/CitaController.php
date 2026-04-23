@@ -140,8 +140,7 @@ class CitaController {
             $_SESSION['notificacion'] = [
                 'tipo' => 'success',
                 'titulo' => '¡Cita Agendada!',
-                'mensaje' => 'Tu cita ha sido registrada correctamente. Te contactaremos para confirmar.',
-                'cita_id' => $id_cita
+                'mensaje' => "Tu cita para {$nombre_mascota} el " . date('d/m/Y', strtotime($fecha_cita)) . " a las {$hora_cita} ha sido registrada. Te contactaremos para confirmar."
             ];
             
             header('Location: ../gracias.php');
