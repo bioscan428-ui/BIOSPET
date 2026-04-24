@@ -101,6 +101,23 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
             font-size: 0.8rem;
             color: #666;
         }
+        
+        /* Botón para nueva cita */
+        .btn-nueva-cita {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .btn-nueva-cita:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
     </style>
 </head>
 <body>
@@ -235,11 +252,17 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
             <strong>Total de citas:</strong> <?php echo $result->num_rows; ?>
         </div>
         
-        <div style="display: flex; justify-content: space-between; align-items: center; margin: 20px 0;">
+        <!-- Botones de acción -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 20px 0; gap: 15px; flex-wrap: wrap;">
             <h2>📋 Listado de Citas</h2>
-            <button onclick="abrirModalMascotas()" class="btn-mascotas">
-                🐾 Ver Historial de Mascotas
-            </button>
+            <div style="display: flex; gap: 10px;">
+                <a href="../citas.php" class="btn-nueva-cita" target="_blank">
+                    📝 Agendar Nueva Cita
+                </a>
+                <button onclick="abrirModalMascotas()" class="btn-mascotas">
+                    🐾 Ver Historial de Mascotas
+                </button>
+            </div>
         </div>
 
         <table class="citas-table">
@@ -257,7 +280,7 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
                     <th>Origen</th>
                     <th>Estado</th>
                     <th>Acciones</th>
-                <tr>
+                </tr>
             </thead>
             <tbody>
                 <?php while($row = $result->fetch_assoc()): 
