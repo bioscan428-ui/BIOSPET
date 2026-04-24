@@ -12,6 +12,88 @@ ini_set('display_errors', 1);
     <link rel="stylesheet" href="assets/css/estilo.css">
     <script src="assets/js/modal.js" defer></script>
     <script src="assets/js/slider.js" defer></script>
+    <style>
+        /* ===== BOTÓN FLOTANTE DE WHATSAPP ===== */
+        .whatsapp-float {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background-color: #25d366;
+            color: white;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 1000;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        
+        .whatsapp-float:hover {
+            transform: scale(1.1);
+            background-color: #20b359;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+        
+        /* Tooltip del botón */
+        .whatsapp-float::before {
+            content: "¡Contáctanos por WhatsApp!";
+            position: absolute;
+            right: 70px;
+            background: #333;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .whatsapp-float:hover::before {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* Botón de WhatsApp en el footer */
+        .whatsapp-footer {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background-color: #25d366;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            text-decoration: none;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .whatsapp-footer:hover {
+            background-color: #20b359;
+            transform: translateY(-2px);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .whatsapp-float {
+                width: 50px;
+                height: 50px;
+                font-size: 25px;
+                bottom: 20px;
+                right: 20px;
+            }
+            
+            .whatsapp-float::before {
+                display: none;
+            }
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -44,13 +126,8 @@ ini_set('display_errors', 1);
                     <!-- <a href="citas.php" class="btn">Agendar Cita</a> -->
                 </div>
             </div>
-            
-            <!-- Botones de navegación -->
-            <!-- <a class="prev" onclick="cambiarSlide(-1)">❮</a>
-            <a class="next" onclick="cambiarSlide(1)">❯</a> -->
         </div>
         
-        <!-- Indicadores de posición (puntos) -->
         <div class="dots-container">
             <span class="dot" onclick="slideActual(1)"></span>
             <span class="dot" onclick="slideActual(2)"></span>
@@ -139,7 +216,6 @@ ini_set('display_errors', 1);
                 
                 if ($result_productos->num_rows > 0) {
                     while($producto = $result_productos->fetch_assoc()) {
-                        // Si no hay imagen, usar placeholder
                         $imagen = !empty($producto['imagen']) ? $producto['imagen'] : 'assets/images/productos/placeholder.jpg';
                         $stock_texto = $producto['stock_actual'] < 10 ? '¡Últimas unidades!' : 'En stock';
                         $stock_clase = $producto['stock_actual'] < 10 ? 'stock-bajo' : 'stock-normal';
@@ -169,7 +245,7 @@ ini_set('display_errors', 1);
         </div>
     </section>
 
-    <footer class="main-footer">
+    <footer class="main-footer" id="contacto">
         <div class="container">
             <div class="footer-grid">
                 <div>
@@ -180,6 +256,11 @@ ini_set('display_errors', 1);
                     <h3 class="footer-title">Contacto</h3>
                     <p>📞 Tel: (123) 456-7890</p>
                     <p>📧 Email: info@biospet.com</p>
+                    <!-- Botón de WhatsApp en el footer -->
+                    <a href="https://wa.me/521234567890?text=Hola%2C%20me%20gustar%C3%ADa%20agendar%20una%20cita%20para%20mi%20mascota." 
+                       class="whatsapp-footer" target="_blank">
+                        💬 Envíanos un WhatsApp
+                    </a>
                 </div>
                 <div>
                     <h3 class="footer-title">Síguenos</h3>
@@ -192,5 +273,11 @@ ini_set('display_errors', 1);
             <p class="footer-copyright">© <?php echo date('Y'); ?> BIOSPET. Todos los derechos reservados.</p>
         </div>
     </footer>
+
+    <!-- BOTÓN FLOTANTE DE WHATSAPP -->
+    <a href="https://wa.me/521234567890?text=Hola%2C%20me%20gustar%C3%ADa%20agendar%20una%20cita%20para%20mi%20mascota." 
+       class="whatsapp-float" target="_blank">
+        💬
+    </a>
 </body>
 </html>
