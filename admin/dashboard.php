@@ -1,7 +1,6 @@
 <?php
 session_start();
 // ========== NOTIFICACIONES PARA EL ADMIN ==========
-// Verificar si hay notificación desde el controlador
 $notificacion_admin = $_SESSION['notificacion_admin'] ?? null;
 unset($_SESSION['notificacion_admin']);
 
@@ -26,9 +25,15 @@ $productos_stock_bajo = $conn->query("SELECT productos_stock_bajo() as total")->
 $ingresos_mes = $conn->query("SELECT ingresos_mes_actual() as total")->fetch_assoc()['total'];
 
 // ========== USANDO VISTA ==========
-// Simplificar la consulta de citas usando vista_citas_completas
 $sql = "SELECT * FROM vista_citas_completas ORDER BY fecha_cita DESC, hora_cita DESC";
 $result = $conn->query($sql);
+
+// ========== ADICIONAL: Estadísticas de origen ==========
+$stats_origen = $conn->query("SELECT origen, COUNT(*) as total FROM CITA WHERE origen IS NOT NULL GROUP BY origen");
+$origen_data = [];
+while ($row = $stats_origen->fetch_assoc()) {
+    $origen_data[$row['origen']] = $row['total'];
+}
 
 // ========== ADICIONAL: Productos con stock crítico usando vista ==========
 $stock_critico = $conn->query("SELECT * FROM vista_stock_critico LIMIT 5");
@@ -43,6 +48,65 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
     <title>Panel Admin - BIOSPET</title>
     <link rel="stylesheet" href="../assets/css/global.css">
     <link rel="stylesheet" href="../assets/css/dashboard.css">
+    <style>
+        /* Estilos para el badge de origen */
+        .origen-whatsapp {
+            background: #25d366;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            display: inline-block;
+        }
+        .origen-web {
+            background: #2196f3;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            display: inline-block;
+        }
+        .origen-presencial {
+            background: #ff9800;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            display: inline-block;
+        }
+        
+        /* Tarjeta de estadísticas de origen */
+        .origen-stats {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .origen-card {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: var(--shadow-soft);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .origen-card .icono {
+            font-size: 2rem;
+        }
+        .origen-card .info {
+            text-align: center;
+        }
+        .origen-card .numero {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        .origen-card .label {
+            font-size: 0.8rem;
+            color: #666;
+        }
+    </style>
 </head>
 <body>
     <div class="admin-header">
@@ -72,7 +136,6 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
                     <a href="compra_nueva.php">📦 Registrar Compra</a>
                     <hr style="margin: 5px 0; border-color: #eee;">
                     <a href="reporte_proveedores.php">📊 Reporte de Proveedores</a>
-
                 </div>
             </div>
 
@@ -85,9 +148,24 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
         </div>
     </div>
 
+    <!-- Mostrar notificación si existe -->
+    <?php if ($notificacion_admin): ?>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            Swal.fire({
+                title: '<?php echo $notificacion_admin['titulo']; ?>',
+                text: '<?php echo $notificacion_admin['mensaje']; ?>',
+                icon: '<?php echo $notificacion_admin['tipo']; ?>',
+                confirmButtonColor: '#E68A00',
+                confirmButtonText: 'OK'
+            });
+        });
+    </script>
+    <?php endif; ?>
         
     <div class="container">
-        <!-- Resumen Ejecutivo (usando vista_resumen_negocio) -->
+        <!-- Resumen Ejecutivo -->
         <div class="resumen-grid">
             <div class="resumen-card">
                 <div class="resumen-number"><?php echo $resumen['clientes_activos']; ?></div>
@@ -127,7 +205,32 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
             </div>
         </div>
 
-        <!-- Alerta de stock crítico (usando vista_stock_critico) -->
+        <!-- Estadísticas de origen de citas -->
+        <div class="origen-stats">
+            <div class="origen-card">
+                <div class="icono">🌐</div>
+                <div class="info">
+                    <div class="numero"><?php echo $origen_data['web'] ?? 0; ?></div>
+                    <div class="label">Citas por Web</div>
+                </div>
+            </div>
+            <div class="origen-card">
+                <div class="icono">💬</div>
+                <div class="info">
+                    <div class="numero"><?php echo $origen_data['whatsapp'] ?? 0; ?></div>
+                    <div class="label">Citas por WhatsApp</div>
+                </div>
+            </div>
+            <div class="origen-card">
+                <div class="icono">🏥</div>
+                <div class="info">
+                    <div class="numero"><?php echo $origen_data['presencial'] ?? 0; ?></div>
+                    <div class="label">Citas Presenciales</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerta de stock crítico -->
         <?php if ($stock_critico->num_rows > 0): ?>
         <div class="alert-card">
             <h3 style="color: #f44336; margin-bottom: 15px;">⚠️ Productos con Stock Crítico</h3>
@@ -160,15 +263,33 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
                     <th>Hora</th>
                     <th>Dueño</th>
                     <th>Mascota</th>
-                    <th>Motivo / Síntomas</th>
+                    <th>Motivo</th>
                     <th>Servicios</th>
                     <th>Total</th>
+                    <th>Origen</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
-                <?php while($row = $result->fetch_assoc()): ?>
+                <?php while($row = $result->fetch_assoc()): 
+                    // Determinar clase CSS para el origen
+                    $origen_class = '';
+                    $origen_icono = '';
+                    switch($row['origen'] ?? 'web') {
+                        case 'whatsapp':
+                            $origen_class = 'origen-whatsapp';
+                            $origen_icono = '💬';
+                            break;
+                        case 'presencial':
+                            $origen_class = 'origen-presencial';
+                            $origen_icono = '🏥';
+                            break;
+                        default:
+                            $origen_class = 'origen-web';
+                            $origen_icono = '🌐';
+                    }
+                ?>
                 <tr>
                     <td><?php echo $row['cita_id']; ?></td>
                     <td>
@@ -192,9 +313,8 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
                         <?php if (!empty($row['notas'])): ?>
                             <span class="sintomas-icono">📋</span>
                             <span class="tooltip-texto">
-                                <strong>Motivo de consulta:</strong><br>
-                                <?php echo nl2br(htmlspecialchars(substr($row['notas'], 0, 150))); ?>
-                                <?php if (strlen($row['notas']) > 150): ?>...<?php endif; ?>
+                                <strong>Motivo:</strong><br>
+                                <?php echo nl2br(htmlspecialchars(substr($row['notas'], 0, 100))); ?>
                             </span>
                         <?php else: ?>
                             <span style="color:#ccc;">—</span>
@@ -202,18 +322,23 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
                     </td>
                     <td>
                         <?php if (!empty($row['servicios'])): ?>
-                            <?php echo $row['servicios']; ?>
+                            <?php echo substr($row['servicios'], 0, 50); ?>
                         <?php else: ?>
-                            <span class="sin-servicios">(Sin servicios)</span>
+                            <span class="sin-servicios">—</span>
                         <?php endif; ?>
                     </td>
                     <td>$<?php echo number_format($row['total_cobrado'], 2); ?></td>
                     <td>
+                        <span class="<?php echo $origen_class; ?>">
+                            <?php echo $origen_icono; ?> <?php echo ucfirst($row['origen'] ?? 'web'); ?>
+                        </span>
+                    </span>
+                    <td>
                         <span class="estado-<?php echo $row['estado']; ?>">
                             <?php echo ucfirst($row['estado']); ?>
                         </span>
-                    </td>
-                    <td>
+                    </span>
+                    <td class="acciones">
                         <a href="detalle_cita.php?id=<?php echo $row['cita_id']; ?>" class="btn-small">Ver</a>
                         <?php if ($row['estado'] == 'pendiente'): ?>
                             <a href="actualizar_estado.php?id=<?php echo $row['cita_id']; ?>&estado=confirmada" class="btn-small">Confirmar</a>
@@ -221,14 +346,14 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
                         <?php if ($row['estado'] != 'cancelada' && $row['estado'] != 'completada'): ?>
                             <a href="actualizar_estado.php?id=<?php echo $row['cita_id']; ?>&estado=cancelada" class="btn-small" style="background:#f44336;">Cancelar</a>
                         <?php endif; ?>
-                    </td>
+                    </span>
                 </tr>
                 <?php endwhile; ?>
             </tbody>
         </table>
     </div>
 
-    <!-- Modal de Historial de Mascotas (FUERA de la tabla) -->
+    <!-- Modal de Historial de Mascotas -->
     <div id="modalMascotas" class="modal">
         <div class="modal-content modal-grande">
             <div class="modal-header" style="background: #9c27b0;">
