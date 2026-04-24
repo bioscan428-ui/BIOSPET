@@ -44,6 +44,7 @@ CREATE TABLE CITA (
     id_mascota INT NOT NULL,
     estado ENUM('pendiente', 'confirmada', 'cancelada', 'completada') DEFAULT 'pendiente',
     notas TEXT,
+    origen ENUM('Whatsapp', 'Presencial'),
     INDEX (fecha_cita),
     CONSTRAINT fk_cita_mascota FOREIGN KEY (id_mascota) REFERENCES MASCOTA(id) ON DELETE RESTRICT,  -- ← CAMBIADO
 );
