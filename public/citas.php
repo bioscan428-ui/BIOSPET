@@ -186,7 +186,7 @@ if (!$conn) {
                 <div class="form-group full-width">
                     <label>¿Cómo te gustaría agendar?</label>
                     <select name="origen" required>
-                        <option value="web">📱 Por la página web</option>
+                        <option value="web">📱 Por Whatssap</option>
                         <option value="presencial">🏥 Directamente en la clínica</option>
                     </select>
                 </div>
