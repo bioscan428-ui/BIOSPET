@@ -189,7 +189,6 @@ if (!$conn) {
                         <option value="web">📱 Por la página web</option>
                         <option value="presencial">🏥 Directamente en la clínica</option>
                     </select>
-                    <small>¿Cómo te enteraste de nosotros?</small>
                 </div>
                 
                 <button type="submit" class="btn" style="width: 100%; margin-top: 20px;">Solicitar Cita</button>
