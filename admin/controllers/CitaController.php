@@ -24,10 +24,10 @@ class CitaController {
         $raza = trim($_POST['raza'] ?? '');
         // ELIMINADO: $fecha_nac = !empty($_POST['fecha_nacimiento']) ? $_POST['fecha_nacimiento'] : null;
         $genero = $_POST['genero'] ?? null;
-        
         $fecha_cita = $_POST['fecha_cita'] ?? '';
         $hora_cita = $_POST['hora_cita'] ?? '';
         $notas = trim($_POST['notas'] ?? '');
+        $origen = $_POST['origen'] ?? 'Whatsapp';
 
         // Validaciones de Formato
         if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -127,10 +127,10 @@ class CitaController {
             $id_mascota = $ids['id_mascota'];
 
             // Insertar en CITA
-            $sql_cita = "INSERT INTO CITA (fecha_cita, hora_cita, id_mascota, notas, estado) 
-                        VALUES (?, ?, ?, ?, 'pendiente')";
+            $sql_cita = "INSERT INTO CITA (fecha_cita, hora_cita, id_mascota, notas, origen, estado) 
+            VALUES (?, ?, ?, ?, ?, 'pendiente')";
             $stmt = $conn->prepare($sql_cita);
-            $stmt->bind_param("ssis", $fecha_cita, $hora_cita, $id_mascota, $notas);
+            $stmt->bind_param("ssiss", $fecha_cita, $hora_cita, $id_mascota, $notas, $origen);
             $stmt->execute();
             $id_cita = $conn->insert_id;
 
