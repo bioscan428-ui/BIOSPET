@@ -3,14 +3,15 @@
 -- ============================================
 
 -- 1. VISTAS DE CITAS Y SERVICIOS
-DROP VIEW IF EXISTS vista_citas_completas;
-
+-- 1. Modificar la vista (recomendado)
 CREATE OR REPLACE VIEW vista_citas_completas AS
 SELECT 
     c.id AS cita_id,
     c.fecha_cita,
     c.hora_cita,
     c.estado,
+    c.pagada,
+    c.metodo_pago,
     c.notas,
     m.id AS mascota_id,
     m.nombre_mascota,
