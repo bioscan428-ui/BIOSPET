@@ -28,17 +28,17 @@ $ingresos_mes = $conn->query("SELECT ingresos_mes_actual() as total")->fetch_ass
 $sql = "SELECT * FROM vista_citas_completas ORDER BY fecha_cita DESC, hora_cita DESC";
 $result = $conn->query($sql);
 
-// ========== ADICIONAL: Estadísticas de origen ==========
+// ========== ESTADÍSTICAS DE ORIGEN ==========
 $stats_origen = $conn->query("SELECT origen, COUNT(*) as total FROM CITA WHERE origen IS NOT NULL GROUP BY origen");
 $origen_data = [];
 while ($row = $stats_origen->fetch_assoc()) {
     $origen_data[$row['origen']] = $row['total'];
 }
 
-// ========== ADICIONAL: Productos con stock crítico usando vista ==========
+// ========== ADICIONAL: Productos con stock crítico ==========
 $stock_critico = $conn->query("SELECT * FROM vista_stock_critico LIMIT 5");
 
-// ========== ADICIONAL: Resumen ejecutivo usando vista ==========
+// ========== ADICIONAL: Resumen ejecutivo ==========
 $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
 ?>
 <!DOCTYPE html>
@@ -52,14 +52,6 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
         /* Estilos para el badge de origen */
         .origen-whatsapp {
             background: #25d366;
-            color: white;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            display: inline-block;
-        }
-        .origen-web {
-            background: #2196f3;
             color: white;
             padding: 4px 10px;
             border-radius: 20px;
@@ -90,12 +82,15 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
             display: flex;
             align-items: center;
             gap: 15px;
+            flex: 1;
+            min-width: 150px;
         }
         .origen-card .icono {
             font-size: 2rem;
         }
         .origen-card .info {
             text-align: center;
+            flex: 1;
         }
         .origen-card .numero {
             font-size: 1.5rem;
@@ -208,13 +203,6 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
         <!-- Estadísticas de origen de citas -->
         <div class="origen-stats">
             <div class="origen-card">
-                <div class="icono">🌐</div>
-                <div class="info">
-                    <div class="numero"><?php echo $origen_data['web'] ?? 0; ?></div>
-                    <div class="label">Citas por Web</div>
-                </div>
-            </div>
-            <div class="origen-card">
                 <div class="icono">💬</div>
                 <div class="info">
                     <div class="numero"><?php echo $origen_data['whatsapp'] ?? 0; ?></div>
@@ -269,26 +257,13 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
                     <th>Origen</th>
                     <th>Estado</th>
                     <th>Acciones</th>
-                </tr>
+                <tr>
             </thead>
             <tbody>
                 <?php while($row = $result->fetch_assoc()): 
-                    // Determinar clase CSS para el origen
-                    $origen_class = '';
-                    $origen_icono = '';
-                    switch($row['origen'] ?? 'web') {
-                        case 'whatsapp':
-                            $origen_class = 'origen-whatsapp';
-                            $origen_icono = '💬';
-                            break;
-                        case 'presencial':
-                            $origen_class = 'origen-presencial';
-                            $origen_icono = '🏥';
-                            break;
-                        default:
-                            $origen_class = 'origen-web';
-                            $origen_icono = '🌐';
-                    }
+                    $origen_class = ($row['origen'] ?? 'presencial') == 'whatsapp' ? 'origen-whatsapp' : 'origen-presencial';
+                    $origen_icono = ($row['origen'] ?? 'presencial') == 'whatsapp' ? '💬' : '🏥';
+                    $origen_texto = ($row['origen'] ?? 'presencial') == 'whatsapp' ? 'WhatsApp' : 'Presencial';
                 ?>
                 <tr>
                     <td><?php echo $row['cita_id']; ?></td>
@@ -330,14 +305,14 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
                     <td>$<?php echo number_format($row['total_cobrado'], 2); ?></td>
                     <td>
                         <span class="<?php echo $origen_class; ?>">
-                            <?php echo $origen_icono; ?> <?php echo ucfirst($row['origen'] ?? 'web'); ?>
+                            <?php echo $origen_icono; ?> <?php echo $origen_texto; ?>
                         </span>
-                    </span>
+                    </td>
                     <td>
                         <span class="estado-<?php echo $row['estado']; ?>">
                             <?php echo ucfirst($row['estado']); ?>
                         </span>
-                    </span>
+                    </td>
                     <td class="acciones">
                         <a href="detalle_cita.php?id=<?php echo $row['cita_id']; ?>" class="btn-small">Ver</a>
                         <?php if ($row['estado'] == 'pendiente'): ?>
