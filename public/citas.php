@@ -181,6 +181,16 @@ if (!$conn) {
                         <textarea name="notas" rows="4" placeholder="Describe los síntomas que presenta tu mascota, desde cuándo, y cualquier detalle importante para el veterinario."></textarea>
                     </div>
                 </div>
+
+                <!--------DIFERENCIA DE CLIENTES: EN LINEA Y ORESENCIAL----->
+                <div class="form-group full-width">
+                    <label>¿Cómo te gustaría agendar?</label>
+                    <select name="origen" required>
+                        <option value="web">📱 Por la página web</option>
+                        <option value="presencial">🏥 Directamente en la clínica</option>
+                    </select>
+                    <small>¿Cómo te enteraste de nosotros?</small>
+                </div>
                 
                 <button type="submit" class="btn" style="width: 100%; margin-top: 20px;">Solicitar Cita</button>
             </form>
