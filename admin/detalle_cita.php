@@ -1,6 +1,9 @@
 <?php
 session_start();
 
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 // Verificar que el usuario haya iniciado sesión
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
