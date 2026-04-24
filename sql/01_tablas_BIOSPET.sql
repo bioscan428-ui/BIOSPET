@@ -43,6 +43,9 @@ CREATE TABLE CITA (
     hora_cita TIME NOT NULL,
     id_mascota INT NOT NULL,
     estado ENUM('pendiente', 'confirmada', 'cancelada', 'completada') DEFAULT 'pendiente',
+    pagada TINYINT(1),
+    metodo_pago VARCHAR(20),
+    referencia_pago VARCHAR(100)
     notas TEXT,
     origen ENUM('Whatsapp', 'Presencial'),
     INDEX (fecha_cita),
