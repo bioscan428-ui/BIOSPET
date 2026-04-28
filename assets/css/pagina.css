@@ -1,3 +1,7 @@
+/*DEFINICION DE VARIABLES*/
+
+
+
 /* ===== BASE ===== */
 body {
     font-family: 'Poppins', sans-serif;
@@ -13,23 +17,23 @@ section {
 header {
     position: sticky;
     top: 0;
-    background: white;
-    border-bottom: 1px solid #eee;
+        background: var(--primary);
+    border-bottom: 2px solid var(--primary-light);
     z-index: 1000;
 }
 
 nav a {
-    color: #333;
+    color: var(--white);
     font-weight: 500;
 }
 
 nav a:hover {
-    color: var(--primary);
+    color: var(--white);
 }
 
 /* ===== HERO ===== */
 .hero {
-    background: white;
+    background: var(--muted);
 }
 
 .hero-flex {
@@ -61,6 +65,11 @@ nav a:hover {
     max-width: 420px;
 }
 
+.hero-logo{
+    width: 120px;
+    margin-bottom: 20px;
+}
+
 /* ===== BOTONES ===== */
 .btn {
     padding: 12px 22px;
@@ -71,12 +80,11 @@ nav a:hover {
 }
 
 .btn-primary {
-    background: black;
-    color: white;
+    background: var(--primary);
 }
 
 .btn-primary:hover {
-    background: #333;
+    background: var(--primary-dark);
 }
 
 .btn-outline {
@@ -91,7 +99,7 @@ nav a:hover {
 
 /* ===== SERVICIOS ===== */
 .servicios {
-    background: #fafafa;
+    background: var(--muted);
 }
 
 .servicios-grid {
@@ -108,6 +116,7 @@ nav a:hover {
 
 .servicio-icono {
     font-size: 24px;
+    color: var(--primary);
 }
 
 .servicio-item h3 {
@@ -123,7 +132,8 @@ nav a:hover {
 
 /* ===== PRODUCTOS ===== */
 .productos {
-    background: white;
+    background: var(--white);
+    border-top: 4px solid var(--primary);
 }
 
 .productos-grid {
@@ -168,7 +178,7 @@ nav a:hover {
     position: absolute;
     top: 10px;
     right: 10px;
-    background: black;
+    background: var(--primary);
     color: white;
     padding: 5px 10px;
     font-size: 0.7rem;
@@ -200,15 +210,28 @@ nav a:hover {
     position: fixed;
     bottom: 25px;
     right: 25px;
-    background: #25d366;
+    background: white; 
+    border: 2px solid #25d366;
     width: 55px;
     height: 55px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
     text-decoration: none;
+    z-index: 1000;
+    transition: 0.3s;
+}
+
+.whatsapp-float img {
+    width: 30px;
+    height: 30px;
+}
+
+/* Hover pro */
+.whatsapp-float:hover {
+    transform: scale(1.1);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
 }
 
 /* ===== RESPONSIVE ===== */
@@ -266,7 +289,7 @@ nav a:hover {
 
 /* ===== CONFIANZA BANNER ===== */
 .confianza-banner {
-    background: linear-gradient(135deg, #0d6efd, #00c6ff);
+    background: linear-gradient(135deg, var(--primary), var(--accent));
     padding: 100px 0;
     position: relative;
     overflow: hidden;
@@ -328,3 +351,96 @@ nav a:hover {
 .img-4 { height: 160px; transform: translateX(10px); }
 .img-5 { height: 200px; }
 .img-6 { height: 140px; transform: translateX(20px); }
+
+/* ===== HEADER FLEX ===== */
+.header-flex {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* ===== HAMBURGUESA ===== */
+.menu-toggle {
+    display: none;
+    font-size: 26px;
+    cursor: pointer;
+    color: white;
+    background: black;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: 0.3s;
+}
+.menu-toggle:hover {
+    background: #333;
+}
+
+/* ===== NAV DESKTOP ===== */
+nav {
+    display: flex;
+    gap: 20px;
+}
+
+/* ===== MOBILE ===== */
+@media (max-width: 768px) {
+
+    .menu-toggle {
+        display: block;
+    }
+
+    nav {
+        position: absolute;
+        top: 70px;
+        right: 0;
+        background: white;
+        width: 220px;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+
+        display: none; /* oculto */
+    }
+
+    nav.active {
+        display: flex;
+    }
+
+    nav a {
+        padding: 10px 0;
+        width: 100%;
+    }
+}
+
+/* ===== SERVICIOS LAYOUT CON IMAGEN ===== */
+.servicios-layout {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 40px;
+    align-items: start;
+}
+
+/* Imagen */
+.servicios-img img {
+    width: 100%;
+    border-radius: 12px;
+    object-fit: cover;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .servicios-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .servicios-img {
+        text-align: center;
+    }
+
+    .servicios-img img {
+        max-width: 250px;
+    }
+}
+
+.section-header h2 span {
+    color: var(--primary);
+}

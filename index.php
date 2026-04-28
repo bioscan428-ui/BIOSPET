@@ -18,18 +18,25 @@ ini_set('display_errors', 1);
 
     <!-- WhatsApp Flotante -->
     <a href="https://wa.me/521234567890?text=Hola%2C%20me%20gustar%C3%ADa%20agendar%20una%20cita%20para%20mi%20mascota." 
-       class="whatsapp-float" target="_blank" aria-label="WhatsApp">
-        💬
+        class="whatsapp-float" target="_blank" aria-label="WhatsApp">
+        <img src="assets/images/whatsapp.png" alt="WhatsApp">
     </a>
 
     <!-- Header -->
     <header>
-        <div class="container">
+        <div class="container header-flex">
+            <!-- LOGO -->
             <a href="index.php" class="logo">
-                <img src="assets/images/biospet.JPG" alt="Logo BIOSPET" class="logo-img">
+                
                 <span>BIOSPET</span>
             </a>
-            <nav>
+            <!-- BOTÓN HAMBURGUESA -->
+            <div class="menu-toggle" id="menu-toggle">
+                ☰
+            </div>
+
+            <!-- MENÚ -->
+            <nav id="menu">
                 <a href="index.php">Inicio</a>
                 <a href="#servicios">Servicios</a>
                 <a href="#tienda">Tienda</a>
@@ -44,6 +51,7 @@ ini_set('display_errors', 1);
     <section class="hero">
         <div class="container hero-flex">
             <div class="hero-texto">
+                
                 <h1>
                     Cuidamos a tu mascota<br>
                     <span>como parte de la familia</span>
@@ -57,7 +65,7 @@ ini_set('display_errors', 1);
             </div>
 
             <div class="hero-img">
-                <img src="assets/images/perro_doctor.jpg" alt="Veterinario">
+                <img src="assets/images/biospet.JPG" alt="Veterinario">
             </div>
         </div>
     </section>
@@ -69,6 +77,12 @@ ini_set('display_errors', 1);
                 <h2>Nuestros <span>Servicios</span></h2>
                 <p class="section-subtitle">Cuidado integral con tecnología de vanguardia para tu mascota</p>
             </div>
+            <div class="servicios-layout">
+                <!-- IMAGEN DEL PERRITO -->
+                <div class="servicios-img">
+                    <img src="assets/images/perro_doctor.jpg" alt="Perro Doctor">
+            </div>
+            <!-- LISTA DE SERVICIOS -->
             <div class="servicios-grid">
                 <?php
                 $servicios_destacados = [
@@ -90,6 +104,7 @@ ini_set('display_errors', 1);
                 }
                 ?>
             </div>
+
         </div>
     </section>
 
@@ -99,9 +114,9 @@ ini_set('display_errors', 1);
 
         <!-- IZQUIERDA -->
         <div class="confianza-imgs">
-            <img src="assets/images/tomografia.jpg" class="img img-1">
-            <img src="assets/images/rayosx.jpg" class="img img-2">
-            <img src="assets/images/ultrasonido.jpg" class="img img-3">
+            <img src="assets/images/tomografia.png" class="img img-1">
+            <img src="assets/images/rayosx.png" class="img img-2">
+            <img src="assets/images/ultrasonido.png" class="img img-3">
         </div>
 
         <!-- CENTRO -->
@@ -116,9 +131,9 @@ ini_set('display_errors', 1);
 
         <!-- DERECHA -->
         <div class="confianza-imgs">
-            <img src="assets/images/electro.jpg" class="img img-4">
-            <img src="assets/images/consulta.jpg" class="img img-5">
-            <img src="assets/images/bano.jpg" class="img img-6">
+            <img src="assets/images/electrocardiograma.png" class="img img-4">
+            <img src="assets/images/consulta.png" class="img img-5">
+            <img src="assets/images/bano.png" class="img img-6">
         </div>
     </div>
     </section>
@@ -127,7 +142,7 @@ ini_set('display_errors', 1);
     <section class="productos" id="tienda">
         <div class="container">
             <div class="section-header">
-                <h2>🛒 Productos <span>Destacados</span></h2>
+                <h2>🛒 Sección de <span>Productos</span></h2>
                 <p class="section-subtitle">Alimentos, medicamentos y accesorios para tu mascota</p>
             </div>
             
@@ -191,12 +206,15 @@ ini_set('display_errors', 1);
                 <p>🕒 Abierto 24 horas</p>
                 <p>📞 55 9025 2000</p>
 
+                <!-------------
                 <a href="https://www.google.com/maps/place/Bioscan+Sonata/" 
                     target="_blank" 
                     class="btn-primary">
                     Ver en Google Maps
                 </a>
+                ---------------->
             </div>
+            
 
             <!-- MAPA -->
             <div class="ubicacion-mapa">
@@ -250,18 +268,28 @@ ini_set('display_errors', 1);
     <div id="modal-equipo" class="modal">
         <div class="modal-contenido">
             <span class="modal-cerrar">&times;</span>
-            <img id="modal-imagen" src="" alt="Equipo BIOSPET">
+            <img id="modal-imagen" src="">
             <h3 id="modal-titulo"></h3>
             <p id="modal-descripcion"></p>
         </div>
     </div>
 
     <script>
-        // Tooltip para WhatsApp flotante
-        const whatsappFloat = document.querySelector('.whatsapp-float');
-        if (whatsappFloat) {
-            whatsappFloat.setAttribute('title', '¡Contáctanos por WhatsApp!');
-        }
+        // ===== WhatsApp Tooltip =====
+    const whatsappFloat = document.querySelector('.whatsapp-float');
+    if (whatsappFloat) {
+        whatsappFloat.setAttribute('title', '¡Contáctanos por WhatsApp!');
+    }
+
+    // ===== MENÚ HAMBURGUESA =====
+    const toggle = document.getElementById('menu-toggle');
+    const menu = document.getElementById('menu');
+
+    if (toggle && menu) {
+        toggle.addEventListener('click', () => {
+            menu.classList.toggle('active');
+        });
+    }
     </script>
 </body>
 </html>
