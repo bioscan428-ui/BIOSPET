@@ -36,7 +36,7 @@ BEGIN
     VALUES (p_nombre_cliente, p_ape_pat, p_ape_mat, p_telefono, p_email, p_direccion);
     SET p_id_cliente = LAST_INSERT_ID();
     
-    -- Insertar mascota (sin fecha_nacimiento)
+    -- Insertar mascota
     INSERT INTO MASCOTA (id_cliente, nombre_mascota, especie, raza, genero, foto)
     VALUES (p_id_cliente, p_nombre_mascota, p_especie, p_raza, p_genero, p_foto);
     SET p_id_mascota = LAST_INSERT_ID();

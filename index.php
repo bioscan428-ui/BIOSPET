@@ -26,10 +26,10 @@ ini_set('display_errors', 1);
     <header>
         <div class="container header-flex">
             <!-- LOGO -->
-            <a href="index.php" class="logo">
+            
                 
                 <span>BIOSPET</span>
-            </a>
+    
             <!-- BOTÓN HAMBURGUESA -->
             <div class="menu-toggle" id="menu-toggle">
                 ☰
@@ -52,6 +52,7 @@ ini_set('display_errors', 1);
         <div class="container hero-flex">
             <div class="hero-texto">
                 
+                
                 <h1>
                     Cuidamos a tu mascota<br>
                     <span>como parte de la familia</span>
@@ -65,7 +66,7 @@ ini_set('display_errors', 1);
             </div>
 
             <div class="hero-img">
-                <img src="assets/images/biospet.JPG" alt="Veterinario">
+                <img src="assets/images/biospet.JPG" alt="BIOSPET">
             </div>
         </div>
     </section>

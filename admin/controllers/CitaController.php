@@ -22,14 +22,14 @@ class CitaController {
         $nombre_mascota = trim($_POST['nombre_mascota'] ?? '');
         $especie = $_POST['especie'] ?? '';
         $raza = trim($_POST['raza'] ?? '');
-        // ELIMINADO: $fecha_nac = !empty($_POST['fecha_nacimiento']) ? $_POST['fecha_nacimiento'] : null;
         $genero = $_POST['genero'] ?? null;
         $fecha_cita = $_POST['fecha_cita'] ?? '';
         $hora_cita = $_POST['hora_cita'] ?? '';
         $notas = trim($_POST['notas'] ?? '');
         $origen = $_POST['origen'] ?? 'Whatsapp';
+        $servicios = $_POST['servicios'] ?? [];
 
-        // Validaciones de Formato
+        // Validaciones
         if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             die("Error: El email no tiene un formato válido.");
         }
@@ -40,7 +40,7 @@ class CitaController {
             die("Error: La fecha no puede ser anterior a hoy.");
         }
         
-        // ========== VALIDACIÓN DE DISPONIBILIDAD ==========
+        // Validación de disponibilidad
         $sql_disponibilidad = "SELECT total_citas_dia(?) as total_citas";
         $stmt_disp = $conn->prepare($sql_disponibilidad);
         $stmt_disp->bind_param("s", $fecha_cita);
@@ -66,6 +66,7 @@ class CitaController {
             die("Error: El horario de atención es de 8:00 a 20:00 horas.");
         }
         
+        // Validar nombres
         if (!preg_match('/^[a-zA-ZáéíóúñÁÉÍÓÚÑ\s]+$/', $nombre_dueno)) {
             die("Error: El nombre solo debe contener letras.");
         }
@@ -77,7 +78,7 @@ class CitaController {
             die("Error: Campos requeridos vacíos.");
         }
 
-        // ========== PROCESAR FOTO (si existe) ==========
+        // Procesar foto
         $foto_ruta = null;
         if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
             $archivo = $_FILES['foto'];
@@ -101,26 +102,25 @@ class CitaController {
         $conn->begin_transaction();
 
         try {
-            // ========== USANDO EL PROCEDIMIENTO registrar_cliente_mascota ==========
-            // ELIMINADO: p_fecha_nacimiento (se envía NULL)
+            // Llamar al procedimiento registrar_cliente_mascota
             $sql = "CALL registrar_cliente_mascota(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @id_cliente, @id_mascota)";
             $stmt = $conn->prepare($sql);
             $stmt->bind_param("sssssssssss", 
-                $nombre_dueno,      // p_nombre_cliente
-                $ape_pat,           // p_ape_pat
-                $ape_mat,           // p_ape_mat
-                $telefono,          // p_telefono
-                $email,             // p_email
-                $direccion,         // p_direccion
-                $nombre_mascota,    // p_nombre_mascota
-                $especie,           // p_especie
-                $raza,              // p_raza
-                $genero,            // p_genero (ahora en posición 10)
-                $foto_ruta          // p_foto (ahora en posición 11)
+                $nombre_dueno,
+                $ape_pat,
+                $ape_mat,
+                $telefono,
+                $email,
+                $direccion,
+                $nombre_mascota,
+                $especie,
+                $raza,
+                $genero,
+                $foto_ruta
             );
             $stmt->execute();
             
-            // Obtener los IDs generados por el procedimiento
+            // Obtener IDs
             $result = $conn->query("SELECT @id_cliente as id_cliente, @id_mascota as id_mascota");
             $ids = $result->fetch_assoc();
             $id_cliente = $ids['id_cliente'];
@@ -128,15 +128,35 @@ class CitaController {
 
             // Insertar en CITA
             $sql_cita = "INSERT INTO CITA (fecha_cita, hora_cita, id_mascota, notas, origen, estado) 
-            VALUES (?, ?, ?, ?, ?, 'pendiente')";
+                        VALUES (?, ?, ?, ?, ?, 'pendiente')";
             $stmt = $conn->prepare($sql_cita);
             $stmt->bind_param("ssiss", $fecha_cita, $hora_cita, $id_mascota, $notas, $origen);
             $stmt->execute();
             $id_cita = $conn->insert_id;
 
+            // Insertar servicios seleccionados en DETALLE_CITA
+            if (!empty($servicios)) {
+                foreach ($servicios as $id_servicio) {
+                    // Obtener precio actual del servicio
+                    $sql_precio = "SELECT precio FROM SERVICIO WHERE id = ?";
+                    $stmt_precio = $conn->prepare($sql_precio);
+                    $stmt_precio->bind_param("i", $id_servicio);
+                    $stmt_precio->execute();
+                    $result_precio = $stmt_precio->get_result();
+                    $servicio = $result_precio->fetch_assoc();
+                    $precio = $servicio['precio'];
+                    
+                    // Insertar en DETALLE_CITA
+                    $sql_detalle = "INSERT INTO DETALLE_CITA (id_cita, id_servicio, precio_fijado) VALUES (?, ?, ?)";
+                    $stmt_detalle = $conn->prepare($sql_detalle);
+                    $stmt_detalle->bind_param("iid", $id_cita, $id_servicio, $precio);
+                    $stmt_detalle->execute();
+                }
+            }
+
             $conn->commit();
 
-            //Enviar Email de confirmación
+            // Notificación
             $_SESSION['notificacion'] = [
                 'tipo' => 'success',
                 'titulo' => '¡Cita Agendada!',

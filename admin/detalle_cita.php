@@ -1,6 +1,5 @@
 <?php
 session_start();
-
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
@@ -58,12 +57,8 @@ if (!$cita) {
     die("Cita no encontrada");
 }
 
-// Verificar si la cita tiene pago registrado
-$sql_pago = "SELECT * FROM PAGO_CITA WHERE id_cita = ?";
-$stmt_pago = $conn->prepare($sql_pago);
-$stmt_pago->bind_param("i", $id_cita);
-$stmt_pago->execute();
-$pago = $stmt_pago->get_result()->fetch_assoc();
+// Verificar si la cita ya tiene pago
+$pago_existente = $cita['pagada'] ? true : false;
 
 // Calcular edad de la mascota
 $edad_mascota = null;
@@ -199,11 +194,8 @@ $productos = $conn->query($sql_productos);
         .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
         .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
         .btn-guardar { background: var(--primary); color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
-        
-        /* Botones de pago */
         .btn-pago { background: #4caf50; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 12px; }
-        .btn-recibo { background: #2196f3; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 12px; text-decoration: none; display: inline-block; }
-        .btn-recibo-disabled { background: #ccc; color: #666; padding: 8px 15px; border-radius: 5px; font-size: 12px; cursor: not-allowed; display: inline-block; }
+        .btn-producto { background: #ff9800; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 12px; }
         
         /* Productos en el modal */
         .producto-item {
@@ -245,7 +237,7 @@ $productos = $conn->query($sql_productos);
     </div>
 
     <div class="container">
-        <!-- Mostrar mensajes de éxito/error -->
+        <!-- Mostrar mensajes -->
         <?php if (isset($_SESSION['mensaje'])): ?>
             <div class="alert-success" style="background: #d4edda; color: #155724; padding: 12px; border-radius: 8px; margin-bottom: 20px;"><?php echo $_SESSION['mensaje']; unset($_SESSION['mensaje']); ?></div>
         <?php endif; ?>
@@ -268,7 +260,7 @@ $productos = $conn->query($sql_productos);
                 <div class="info-label">Estado:</div>
                 <div class="info-value"><span class="estado estado-<?php echo $cita['estado']; ?>"><?php echo ucfirst($cita['estado']); ?></span></div>
             </div>
-            <?php if ($pago): ?>
+            <?php if ($pago_existente): ?>
             <div class="info-row">
                 <div class="info-label">Estado de pago:</div>
                 <div class="info-value"><span style="background: #4caf50; color: white; padding: 4px 10px; border-radius: 20px; font-size: 12px;">✅ Pagado</span></div>
@@ -443,26 +435,24 @@ $productos = $conn->query($sql_productos);
         </script>
         <?php endif; ?>
 
-        <!-- SECCIÓN: PAGO Y RECIBO -->
+        <!-- NUEVA SECCIÓN: Botones de Pago y Productos -->
         <div class="section">
-            <h3>💰 Pago y Recibo</h3>
+            <h3>💰 Pago y Productos</h3>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <?php if ($pago): ?>
+                <?php if ($pago_existente): ?>
                     <span style="background: #4caf50; color: white; padding: 10px 15px; border-radius: 5px;">✅ Cita pagada - Total: $<?php echo number_format($cita['total'], 2); ?></span>
-                    <a href="generar_recibo_cita.php?id=<?php echo $id_cita; ?>" class="btn-recibo" target="_blank">🧾 Generar Recibo</a>
                 <?php else: ?>
                     <button onclick="abrirModalPago(<?php echo $id_cita; ?>, <?php echo $cita['total']; ?>)" class="btn-pago">
-                        💰 Registrar Pago
+                        💰 Pagar Cita
                     </button>
-                    <button onclick="abrirModalTienda(<?php echo $id_cita; ?>)" class="btn-pago" style="background: #ff9800;">
+                    <button onclick="abrirModalProductos(<?php echo $id_cita; ?>)" class="btn-producto">
                         🛒 Agregar Productos
                     </button>
-                    <span class="btn-recibo-disabled">🧾 Generar Recibo (Registre el pago primero)</span>
                 <?php endif; ?>
             </div>
         </div>
 
-        <!-- Botones de acción (Confirmar, Cancelar, Completar) -->
+        <!-- Botones de acción -->
         <div style="margin-top: 30px; display: flex; gap: 10px; flex-wrap: wrap;">
             <?php if (in_array($_SESSION['rol'], ['super_admin', 'admin', 'recepcionista'])): ?>
                 <?php if ($cita['estado'] == 'pendiente'): ?>
@@ -486,7 +476,7 @@ $productos = $conn->query($sql_productos);
                 <span class="close-modal" onclick="cerrarModal('modalPago')">&times;</span>
             </div>
             <div class="modal-body">
-                <form action="registrar_pago_cita.php" method="POST">
+                <form action="actualizar_pago_cita.php" method="POST">
                     <input type="hidden" name="id_cita" id="pago_cita_id">
                     <div class="form-group">
                         <label>Monto total de la cita:</label>
@@ -515,12 +505,12 @@ $productos = $conn->query($sql_productos);
         </div>
     </div>
 
-    <!-- Modal para Agregar Productos de la Tienda -->
-    <div id="modalTienda" class="modal">
+    <!-- Modal para Agregar Productos -->
+    <div id="modalProductos" class="modal">
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header" style="background: #ff9800;">
                 <h2>🛒 Agregar Productos a la Venta</h2>
-                <span class="close-modal" onclick="cerrarModal('modalTienda')">&times;</span>
+                <span class="close-modal" onclick="cerrarModal('modalProductos')">&times;</span>
             </div>
             <div class="modal-body">
                 <div id="productosLista">
@@ -565,12 +555,12 @@ $productos = $conn->query($sql_productos);
             document.getElementById('modalPago').style.display = 'block';
         }
         
-        function abrirModalTienda(citaId) {
+        function abrirModalProductos(citaId) {
             citaIdActual = citaId;
             document.getElementById('venta_cita_id').value = citaId;
             carritoProductos = [];
             actualizarListaProductos();
-            document.getElementById('modalTienda').style.display = 'block';
+            document.getElementById('modalProductos').style.display = 'block';
         }
         
         function agregarProductoCarrito(id, nombre, precio) {
@@ -640,9 +630,9 @@ $productos = $conn->query($sql_productos);
         
         window.onclick = function(event) {
             const modalPago = document.getElementById('modalPago');
-            const modalTienda = document.getElementById('modalTienda');
+            const modalProductos = document.getElementById('modalProductos');
             if (event.target == modalPago) modalPago.style.display = 'none';
-            if (event.target == modalTienda) modalTienda.style.display = 'none';
+            if (event.target == modalProductos) modalProductos.style.display = 'none';
         }
     </script>
 </body>

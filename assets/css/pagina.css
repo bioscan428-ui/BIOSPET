@@ -1,7 +1,4 @@
 /*DEFINICION DE VARIABLES*/
-
-
-
 /* ===== BASE ===== */
 body {
     font-family: 'Poppins', sans-serif;
@@ -34,13 +31,22 @@ nav a:hover {
 /* ===== HERO ===== */
 .hero {
     background: var(--muted);
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    overflow: hidden; /* Evita que la imagen gigante cree scroll horizontal */
 }
 
 .hero-flex {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 60px;
+    gap: 20px;
+}
+
+.hero-texto {
+    flex: 1;
+    z-index: 10; /* Mantiene el texto por encima de la imagen si se rozan */
 }
 
 .hero-texto h1 {
@@ -57,19 +63,46 @@ nav a:hover {
     font-size: 1.2rem;
     color: #666;
     margin: 25px 0;
-    max-width: 500px;
+}
+
+/* Contenedor de la imagen alineado a la derecha */
+.hero-img {
+    flex: 1.5; 
+    display: flex;
+    justify-content: flex-end; /* Alinea al borde derecho */
 }
 
 .hero-img img {
-    width: 100%;
-    max-width: 420px;
+    width: 110% !important; /* Crece un poco más que su contenedor */
+    max-width: 700px !important; /* Tamaño grande pero seguro */
+    height: auto;
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    object-fit: contain;
+    display: block;
 }
 
-.hero-logo{
-    width: 120px;
-    margin-bottom: 20px;
-}
+/* RESPONSIVE HERO */
+@media (max-width: 768px) {
+    .hero-flex {
+        flex-direction: column-reverse; /* Imagen abajo, texto arriba en móvil */
+        text-align: center;
+    }
+    
+    .hero-img {
+        justify-content: center;
+        margin-top: 30px;
+    }
 
+    .hero-img img {
+        width: 100% !important;
+        max-width: 400px !important;
+    }
+
+    .hero-texto h1 {
+        font-size: 2.2rem;
+    }
+}
 /* ===== BOTONES ===== */
 .btn {
     padding: 12px 22px;
