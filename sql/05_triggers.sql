@@ -82,34 +82,45 @@ DELIMITER ;
 
 -----VALIDA STOCK, ACTUALIZA Y REGISTRA MOVIMIENTO-----
 DELIMITER $$
+
+DROP TRIGGER IF EXISTS after_insert_detalle_venta$$
+
 CREATE TRIGGER after_insert_detalle_venta
 AFTER INSERT ON DETALLE_VENTA
 FOR EACH ROW
 BEGIN
-    DECLARE stock_actual INT;
-    DECLARE id_empleado_venta INT;
+    DECLARE v_stock_actual INT;
+    DECLARE v_id_empleado_venta INT;
     
-    SELECT stock_actual INTO stock_actual FROM PRODUCTO WHERE id = NEW.id_producto;
+    -- Obtener stock actual
+    SELECT stock_actual INTO v_stock_actual 
+    FROM PRODUCTO WHERE id = NEW.id_producto;
     
-    IF stock_actual < NEW.cantidad THEN
+    -- Validar stock suficiente
+    IF v_stock_actual < NEW.cantidad THEN
         SIGNAL SQLSTATE '45000' 
         SET MESSAGE_TEXT = 'Stock insuficiente para realizar la venta';
     END IF;
     
+    -- ACTUALIZAR STOCK CORRECTAMENTE
     UPDATE PRODUCTO 
     SET stock_actual = stock_actual - NEW.cantidad
     WHERE id = NEW.id_producto;
     
-    SELECT id_empleado INTO id_empleado_venta FROM VENTA WHERE id = NEW.id_venta;
+    -- Obtener empleado de la venta
+    SELECT id_empleado INTO v_id_empleado_venta 
+    FROM VENTA WHERE id = NEW.id_venta;
     
+    -- Registrar movimiento
     INSERT INTO MOVIMIENTO_INVENTARIO 
         (id_producto, tipo, cantidad, motivo, referencia, id_empleado)
     VALUES 
         (NEW.id_producto, 'salida', NEW.cantidad, 
          CONCAT('Venta #', NEW.id_venta), 
          CONCAT('VENTA-', NEW.id_venta), 
-         id_empleado_venta);
+         v_id_empleado_venta);
 END$$
+
 DELIMITER ;
 
 -----RESTAURA STOCK AL CANCELAR VENTA-----

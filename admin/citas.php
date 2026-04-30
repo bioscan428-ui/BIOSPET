@@ -17,6 +17,7 @@ if (!$conn) {
     <title>Agendar Cita - BIOSPET</title>
     <link rel="stylesheet" href="assets/css/global.css">
     <link rel="stylesheet" href="assets/css/estilo.css">
+    <script src="../assets/js/citas.js"></script>
     <style>
         .form-cita {
             max-width: 700px;
@@ -115,7 +116,6 @@ if (!$conn) {
                         <input type="email" name="email">
                     </div>
 
-                    <!-- NUEVO CAMPO: Dirección -->
                     <div class="form-group full-width">
                         <label>Dirección</label>
                         <input type="text" name="direccion" placeholder="Calle, número, colonia, ciudad, código postal">
@@ -143,10 +143,11 @@ if (!$conn) {
                         <input type="text" name="raza">
                     </div>
 
-                    <div class="form-group">
+                    <!-- ELIMINADO: Campo Fecha de Nacimiento -->
+                    <!-- <div class="form-group">
                         <label>Fecha de Nacimiento</label>
                         <input type="date" name="fecha_nacimiento" max="<?php echo date('Y-m-d'); ?>">
-                    </div>
+                    </div> -->
 
                     <div class="form-group">
                         <label>Género</label>
@@ -180,6 +181,37 @@ if (!$conn) {
                         <label>Motivo de consulta / Síntomas</label>
                         <textarea name="notas" rows="4" placeholder="Describe los síntomas que presenta tu mascota, desde cuándo, y cualquier detalle importante para el veterinario."></textarea>
                     </div>
+
+                    <!-- Selección de servicios con checkboxes -->
+                    <div class="form-group full-width">
+                        <label>🩺 Servicios que deseas</label>
+                        <div class="servicios-grid">
+                            <?php
+                            $sql_servicios = "SELECT id, nombre_servicio, precio FROM SERVICIO WHERE activo = 1 ORDER BY nombre_servicio";
+                            $result_servicios = $conn->query($sql_servicios);
+                            while($servicio = $result_servicios->fetch_assoc()):
+                                ?>
+                                <label class="servicio-checkbox">
+                                    <input type="checkbox" name="servicios[]" value="<?php echo $servicio['id']; ?>"
+                                        class="chk-servicio" data-precio="<?php echo $servicio['precio']; ?>">
+                                    <span><?php echo htmlspecialchars($servicio['nombre_servicio']); ?></span>
+                                    <strong>$<?php echo number_format($servicio['precio'], 2); ?></strong>
+                                </label>
+                            <?php endwhile; ?>
+                        </div>
+                        <div id="precio-info" class="precio-info">
+                            Seleccione uno o más servicios
+                        </div>
+                    </div>
+                </div>
+
+                <!--------DIFERENCIA DE CLIENTES: EN LINEA Y ORESENCIAL----->
+                <div class="form-group full-width">
+                    <label>¿Cómo te gustaría agendar?</label>
+                    <select name="origen" required>
+                        <option value="Whatsapp">📱 Por Whatssap</option>
+                        <option value="Presencial">🏥 Directamente en la clínica</option>
+                    </select>
                 </div>
                 
                 <button type="submit" class="btn" style="width: 100%; margin-top: 20px;">Solicitar Cita</button>

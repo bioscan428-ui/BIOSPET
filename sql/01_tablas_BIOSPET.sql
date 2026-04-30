@@ -354,4 +354,15 @@ CREATE TABLE CANJE_PUNTOS (
     INDEX idx_fecha (fecha_canje)
 );
 
+-- 25. VENTA_CITA (Saber que productos se vendieron en cada cita y genera reportes)
+CREATE TABLE VENTA_CITA (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id_cita INT NOT NULL,
+    id_venta INT NOT NULL,
+    fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_venta_cita_cita FOREIGN KEY (id_cita) REFERENCES CITA(id) ON DELETE CASCADE,
+    CONSTRAINT fk_venta_cita_venta FOREIGN KEY (id_venta) REFERENCES VENTA(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_cita_venta (id_cita, id_venta)
+);
+
 

@@ -38,7 +38,7 @@ $sql = "SELECT
             cl.telefono,
             cl.email,
             GROUP_CONCAT(s.nombre_servicio SEPARATOR ', ') AS servicios,
-            IFNULL(SUM(dc.precio_fijado), 0) AS total
+            IFNULL(SUM(dc.precio_fijado), 0) AS total_servicios
         FROM CITA c
         JOIN MASCOTA m ON c.id_mascota = m.id
         JOIN CLIENTE cl ON m.id_cliente = cl.id
@@ -57,8 +57,22 @@ if (!$cita) {
     die("Cita no encontrada");
 }
 
+// Obtener productos ya agregados a esta cita
+$sql_productos_cita = "SELECT SUM(dv.subtotal) as total_productos 
+                       FROM DETALLE_VENTA dv
+                       JOIN VENTA_CITA vc ON vc.id_venta = dv.id_venta
+                       JOIN VENTA v ON v.id = dv.id_venta
+                       WHERE vc.id_cita = ? AND v.estado = 'completada'";
+$stmt_prod = $conn->prepare($sql_productos_cita);
+$stmt_prod->bind_param("i", $id_cita);
+$stmt_prod->execute();
+$total_productos = $stmt_prod->get_result()->fetch_assoc()['total_productos'] ?? 0;
+
 // Verificar si la cita ya tiene pago
 $pago_existente = $cita['pagada'] ? true : false;
+
+// Calcular total general
+$total_general = ($cita['total_servicios'] ?? 0) + $total_productos;
 
 // Calcular edad de la mascota
 $edad_mascota = null;
@@ -153,7 +167,6 @@ $productos = $conn->query($sql_productos);
     <link rel="stylesheet" href="../assets/css/global.css">
     <link rel="stylesheet" href="../assets/css/detalle_cita.css">
     <style>
-        /* Estilos para modales */
         .modal {
             display: none;
             position: fixed;
@@ -197,7 +210,6 @@ $productos = $conn->query($sql_productos);
         .btn-pago { background: #4caf50; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 12px; }
         .btn-producto { background: #ff9800; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 12px; }
         
-        /* Productos en el modal */
         .producto-item {
             display: flex;
             justify-content: space-between;
@@ -223,6 +235,7 @@ $productos = $conn->query($sql_productos);
         }
         .btn-eliminar-producto { background: #f44336; color: white; border: none; padding: 3px 8px; border-radius: 3px; cursor: pointer; font-size: 10px; }
         .total-recibo { text-align: right; font-size: 1.2rem; font-weight: bold; margin-top: 15px; padding-top: 10px; border-top: 2px solid #eee; }
+        .total-row { margin-top: 15px; padding-top: 10px; border-top: 2px solid var(--primary); }
     </style>
 </head>
 <body>
@@ -237,7 +250,6 @@ $productos = $conn->query($sql_productos);
     </div>
 
     <div class="container">
-        <!-- Mostrar mensajes -->
         <?php if (isset($_SESSION['mensaje'])): ?>
             <div class="alert-success" style="background: #d4edda; color: #155724; padding: 12px; border-radius: 8px; margin-bottom: 20px;"><?php echo $_SESSION['mensaje']; unset($_SESSION['mensaje']); ?></div>
         <?php endif; ?>
@@ -271,7 +283,7 @@ $productos = $conn->query($sql_productos);
         <!-- Dueño -->
         <div class="section">
             <h3>👤 Dueño</h3>
-            <div class="info-row">
+            <div class="info-row">  
                 <div class="info-label">Nombre:</div>
                 <div class="info-value"><?php echo htmlspecialchars($cita['nombre_dueno'] . ' ' . $cita['ape_pat'] . ' ' . $cita['ape_mat']); ?></div>
             </div>
@@ -404,9 +416,46 @@ $productos = $conn->query($sql_productos);
                 <div class="info-value"><?php echo !empty($cita['servicios']) ? $cita['servicios'] : '<span class="sin-servicios">(Sin servicios asignados)</span>'; ?></div>
             </div>
             <div class="info-row">
-                <div class="info-label">Total:</div>
-                <div class="info-value"><strong>$<?php echo number_format($cita['total'], 2); ?></strong></div>
+                <div class="info-label">Total Servicios:</div>
+                <div class="info-value"><strong>$<?php echo number_format($cita['total_servicios'], 2); ?></strong></div>
             </div>
+        </div>
+
+        <!-- Productos Agregados a la Cita -->
+        <div class="section">
+            <h3>🛒 Productos de la Cita</h3>
+            <?php
+            $sql_productos_lista = "SELECT dv.*, p.nombre, p.precio_venta 
+                                   FROM DETALLE_VENTA dv
+                                   JOIN PRODUCTO p ON dv.id_producto = p.id
+                                   JOIN VENTA_CITA vc ON vc.id_venta = dv.id_venta
+                                   JOIN VENTA v ON v.id = dv.id_venta
+                                   WHERE vc.id_cita = ? AND v.estado = 'completada'";
+            $stmt_lista = $conn->prepare($sql_productos_lista);
+            $stmt_lista->bind_param("i", $id_cita);
+            $stmt_lista->execute();
+            $productos_cita = $stmt_lista->get_result();
+            
+            if ($productos_cita->num_rows > 0):
+            ?>
+            <table class="productos-cita-table">
+                <thead>
+                    <tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th></tr>
+                </thead>
+                <tbody>
+                    <?php while($prod = $productos_cita->fetch_assoc()): ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($prod['nombre']); ?></td>
+                        <td><?php echo $prod['cantidad']; ?></td>
+                        <td>$<?php echo number_format($prod['precio_unitario'], 2); ?></td>
+                        <td>$<?php echo number_format($prod['subtotal'], 2); ?></td>
+                    </tr>
+                    <?php endwhile; ?>
+                </tbody>
+            </table>
+            <?php else: ?>
+            <p class="sin-productos">No hay productos agregados a esta cita.</p>
+            <?php endif; ?>
         </div>
 
         <!-- Agregar Servicio -->
@@ -435,18 +484,33 @@ $productos = $conn->query($sql_productos);
         </script>
         <?php endif; ?>
 
-        <!-- NUEVA SECCIÓN: Botones de Pago y Productos -->
+        <!-- SECCIÓN DE PAGO (unificada) -->
         <div class="section">
-            <h3>💰 Pago y Productos</h3>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <h3>💰 Pago Total</h3>
+            <div class="info-row">
+                <div class="info-label">Servicios:</div>
+                <div class="info-value">$<?php echo number_format($cita['total_servicios'], 2); ?></div>
+            </div>
+            <?php if ($total_productos > 0): ?>
+            <div class="info-row">
+                <div class="info-label">Productos:</div>
+                <div class="info-value">$<?php echo number_format($total_productos, 2); ?></div>
+            </div>
+            <?php endif; ?>
+            <div class="info-row total-row">
+                <div class="info-label"><strong>TOTAL A PAGAR:</strong></div>
+                <div class="info-value"><strong>$<?php echo number_format($total_general, 2); ?></strong></div>
+            </div>
+            
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px;">
                 <?php if ($pago_existente): ?>
-                    <span style="background: #4caf50; color: white; padding: 10px 15px; border-radius: 5px;">✅ Cita pagada - Total: $<?php echo number_format($cita['total'], 2); ?></span>
+                    <span style="background: #4caf50; color: white; padding: 10px 15px; border-radius: 5px;">✅ Cita pagada</span>
                 <?php else: ?>
-                    <button onclick="abrirModalPago(<?php echo $id_cita; ?>, <?php echo $cita['total']; ?>)" class="btn-pago">
-                        💰 Pagar Cita
-                    </button>
                     <button onclick="abrirModalProductos(<?php echo $id_cita; ?>)" class="btn-producto">
                         🛒 Agregar Productos
+                    </button>
+                    <button onclick="abrirModalPago(<?php echo $id_cita; ?>, <?php echo $total_general; ?>)" class="btn-pago">
+                        💰 Pagar Todo
                     </button>
                 <?php endif; ?>
             </div>
@@ -468,23 +532,27 @@ $productos = $conn->query($sql_productos);
         </div>
     </div>
 
-    <!-- Modal para Registrar Pago -->
+    <!-- Modal para Registrar Pago (unificado) -->
     <div id="modalPago" class="modal">
         <div class="modal-content">
             <div class="modal-header" style="background: #4caf50;">
-                <h2>💰 Registrar Pago</h2>
+                <h2>💰 Pagar Cita</h2>
                 <span class="close-modal" onclick="cerrarModal('modalPago')">&times;</span>
             </div>
             <div class="modal-body">
                 <form action="actualizar_pago_cita.php" method="POST">
                     <input type="hidden" name="id_cita" id="pago_cita_id">
                     <div class="form-group">
-                        <label>Monto total de la cita:</label>
-                        <input type="text" id="monto_total" readonly style="background:#f5f5f5;">
+                        <label>Servicios:</label>
+                        <input type="text" id="monto_servicios" readonly style="background:#f5f5f5;">
+                    </div>
+                    <div class="form-group" id="productos_pago_group" style="display: none;">
+                        <label>Productos:</label>
+                        <input type="text" id="monto_productos" readonly style="background:#f5f5f5;">
                     </div>
                     <div class="form-group">
-                        <label>Monto a pagar *</label>
-                        <input type="number" step="0.01" name="monto" id="monto_pago" required>
+                        <label>Total a pagar *</label>
+                        <input type="text" id="monto_total_pago" readonly style="background:#f5f5f5;">
                     </div>
                     <div class="form-group">
                         <label>Método de pago *</label>
@@ -505,11 +573,11 @@ $productos = $conn->query($sql_productos);
         </div>
     </div>
 
-    <!-- Modal para Agregar Productos -->
+    <!-- Modal para Agregar Productos al Carrito -->
     <div id="modalProductos" class="modal">
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header" style="background: #ff9800;">
-                <h2>🛒 Agregar Productos a la Venta</h2>
+                <h2>🛒 Agregar Productos</h2>
                 <span class="close-modal" onclick="cerrarModal('modalProductos')">&times;</span>
             </div>
             <div class="modal-body">
@@ -535,105 +603,11 @@ $productos = $conn->query($sql_productos);
                     <div class="total-recibo" id="totalProductos">Total: $0.00</div>
                 </div>
                 
-                <form action="registrar_venta_cita.php" method="POST" id="formVentaCita" style="margin-top: 15px;">
-                    <input type="hidden" name="id_cita" id="venta_cita_id">
-                    <input type="hidden" name="productos_json" id="productos_json">
-                    <button type="submit" class="btn-guardar" style="background: #ff9800;">Registrar Venta</button>
-                </form>
+                <button onclick="confirmarAgregarProductos()" class="btn-guardar" style="background: #ff9800; margin-top: 15px;">✅ Agregar a la cita</button>
             </div>
         </div>
     </div>
-
-    <script>
-        let carritoProductos = [];
-        let citaIdActual = 0;
-        
-        function abrirModalPago(citaId, total) {
-            document.getElementById('pago_cita_id').value = citaId;
-            document.getElementById('monto_total').value = '$' + total.toFixed(2);
-            document.getElementById('monto_pago').value = total;
-            document.getElementById('modalPago').style.display = 'block';
-        }
-        
-        function abrirModalProductos(citaId) {
-            citaIdActual = citaId;
-            document.getElementById('venta_cita_id').value = citaId;
-            carritoProductos = [];
-            actualizarListaProductos();
-            document.getElementById('modalProductos').style.display = 'block';
-        }
-        
-        function agregarProductoCarrito(id, nombre, precio) {
-            const cantidadInput = document.getElementById('cantidad_' + id);
-            const cantidad = parseInt(cantidadInput.value);
-            
-            if (cantidad < 1) {
-                alert('La cantidad debe ser al menos 1');
-                return;
-            }
-            
-            const existe = carritoProductos.find(p => p.id === id);
-            if (existe) {
-                existe.cantidad += cantidad;
-            } else {
-                carritoProductos.push({ id: id, nombre: nombre, precio: precio, cantidad: cantidad });
-            }
-            actualizarListaProductos();
-        }
-        
-        function eliminarProductoCarrito(index) {
-            carritoProductos.splice(index, 1);
-            actualizarListaProductos();
-        }
-        
-        function actualizarListaProductos() {
-            const listaDiv = document.getElementById('listaProductos');
-            const totalSpan = document.getElementById('totalProductos');
-            let total = 0;
-            
-            if (carritoProductos.length === 0) {
-                listaDiv.innerHTML = '<p style="color: #999;">No hay productos seleccionados</p>';
-                totalSpan.innerHTML = 'Total: $0.00';
-                document.getElementById('productos_json').value = '';
-                return;
-            }
-            
-            let html = '';
-            carritoProductos.forEach((item, index) => {
-                const subtotal = item.precio * item.cantidad;
-                total += subtotal;
-                html += `
-                    <div class="producto-seleccionado">
-                        <div>
-                            <strong>${item.nombre}</strong><br>
-                            ${item.cantidad} x $${item.precio.toFixed(2)} = <strong>$${subtotal.toFixed(2)}</strong>
-                        </div>
-                        <button onclick="eliminarProductoCarrito(${index})" class="btn-eliminar-producto">🗑️</button>
-                    </div>
-                `;
-            });
-            
-            listaDiv.innerHTML = html;
-            totalSpan.innerHTML = `Total: $${total.toFixed(2)}`;
-            
-            const productosJSON = carritoProductos.map(item => ({
-                id_producto: item.id,
-                cantidad: item.cantidad,
-                descuento: 0
-            }));
-            document.getElementById('productos_json').value = JSON.stringify(productosJSON);
-        }
-        
-        function cerrarModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-        
-        window.onclick = function(event) {
-            const modalPago = document.getElementById('modalPago');
-            const modalProductos = document.getElementById('modalProductos');
-            if (event.target == modalPago) modalPago.style.display = 'none';
-            if (event.target == modalProductos) modalProductos.style.display = 'none';
-        }
-    </script>
+    
+    <script src="../assets/js/detalle_cita.js"></script>
 </body>
 </html>

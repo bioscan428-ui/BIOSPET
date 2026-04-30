@@ -222,14 +222,14 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
             <div class="origen-card">
                 <div class="icono">💬</div>
                 <div class="info">
-                    <div class="numero"><?php echo $origen_data['whatsapp'] ?? 0; ?></div>
+                    <div class="numero"><?php echo $origen_data['Whatsapp'] ?? 0; ?></div>
                     <div class="label">Citas por WhatsApp</div>
                 </div>
             </div>
             <div class="origen-card">
                 <div class="icono">🏥</div>
                 <div class="info">
-                    <div class="numero"><?php echo $origen_data['presencial'] ?? 0; ?></div>
+                    <div class="numero"><?php echo $origen_data['Presencial'] ?? 0; ?></div>
                     <div class="label">Citas Presenciales</div>
                 </div>
             </div>
@@ -284,9 +284,16 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
             </thead>
             <tbody>
                 <?php while($row = $result->fetch_assoc()): 
-                    $origen_class = ($row['origen'] ?? 'presencial') == 'whatsapp' ? 'origen-whatsapp' : 'origen-presencial';
-                    $origen_icono = ($row['origen'] ?? 'presencial') == 'whatsapp' ? '💬' : '🏥';
-                    $origen_texto = ($row['origen'] ?? 'presencial') == 'whatsapp' ? 'WhatsApp' : 'Presencial';
+                    $origen = $row['origen'] ?? 'Presencial';
+                    if ($origen == 'Whatsapp') {
+                        $origen_class = 'origen-whatsapp';
+                        $origen_icono = '💬';
+                        $origen_texto = 'WhatsApp';
+                    } else {
+                        $origen_class = 'origen-presencial';
+                        $origen_icono = '🏥';
+                        $origen_texto = 'Presencial';
+                    }
                 ?>
                 <tr>
                     <td><?php echo $row['cita_id']; ?></td>

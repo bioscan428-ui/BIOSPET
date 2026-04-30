@@ -3,13 +3,13 @@
 -- ============================================
 
 -- 1. VISTAS DE CITAS Y SERVICIOS
--- 1. Modificar la vista (recomendado)
 CREATE OR REPLACE VIEW vista_citas_completas AS
 SELECT 
     c.id AS cita_id,
     c.fecha_cita,
     c.hora_cita,
     c.estado,
+    c.origen,              -- ← CAMPO FALTANTE
     c.pagada,
     c.metodo_pago,
     c.notas,
@@ -33,7 +33,6 @@ LEFT JOIN DETALLE_CITA dc ON c.id = dc.id_cita
 LEFT JOIN SERVICIO s ON dc.id_servicio = s.id
 GROUP BY c.id
 ORDER BY c.fecha_cita DESC, c.hora_cita DESC;
-
 -------------------------------------------------------------
 CREATE OR REPLACE VIEW vista_ingresos_diarios AS
 SELECT 
