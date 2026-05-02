@@ -45,6 +45,9 @@ CREATE TABLE CITA (
     estado ENUM('pendiente', 'confirmada', 'cancelada', 'completada') DEFAULT 'pendiente',
     pagada TINYINT(1),
     metodo_pago VARCHAR(20),
+    pago_registrado_por INT,
+    pago_fecha_registro DATETIME,
+    pago_ip_usuario VARCHAR(45),
     referencia_pago VARCHAR(100)
     notas TEXT,
     origen ENUM('Whatsapp', 'Presencial'),

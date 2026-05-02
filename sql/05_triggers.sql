@@ -280,3 +280,21 @@ BEGIN
 END$$
 DELIMITER ;
 
+DELIMITER $$
+CREATE TRIGGER before_insert_detalle_venta_precio
+BEFORE INSERT ON DETALLE_VENTA
+FOR EACH ROW
+BEGIN
+    DECLARE precio_actual DECIMAL(10,2);
+    
+    -- Obtener precio actual del producto
+    SELECT precio_venta INTO precio_actual FROM PRODUCTO WHERE id = NEW.id_producto;
+    
+    -- Si el precio fijado es menor al 50% del precio actual, alertar
+    IF NEW.precio_unitario < (precio_actual * 0.5) THEN
+        SIGNAL SQLSTATE '45000' 
+        SET MESSAGE_TEXT = 'El precio ingresado es menor al 50% del precio de venta actual';
+    END IF;
+END$$
+DELIMITER ;
+
