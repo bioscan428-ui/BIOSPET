@@ -509,3 +509,152 @@ body {
 .btn-ver-compras:hover {
     background: #7b1fa2;
 }
+
+
+ /* Estilos para el badge de origen */
+        .origen-whatsapp {
+            background: #25d366;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            display: inline-block;
+        }
+        .origen-presencial {
+            background: #ff9800;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            display: inline-block;
+        }
+        
+        /* Tarjeta de estadísticas de origen */
+        .origen-stats {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .origen-card {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: var(--shadow-soft);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+            min-width: 150px;
+        }
+        .origen-card .icono {
+            font-size: 2rem;
+        }
+        .origen-card .info {
+            text-align: center;
+            flex: 1;
+        }
+        .origen-card .numero {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        .origen-card .label {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        /* Botón para nueva cita */
+        .btn-nueva-cita {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .btn-nueva-cita:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+        .tabla-scroll-container {
+            max-height: 500px; /* Altura máxima antes de mostrar scroll */
+            overflow-y: auto;
+            overflow-x: auto;
+            border-radius: 12px;
+            box-shadow: var(--shadow-soft);
+            margin-top: 20px;
+            position: relative;
+        }
+        .citas-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            min-width: 1200px; /* Ancho mínimo para evitar que se rompa */
+        }
+        .citas-table thead {
+            position: sticky;
+            top: 0;
+            background: var(--primary);
+            z-index: 10;
+        }
+        .citas-table th {
+            background: var(--primary);
+            color: white;
+            padding: 12px 8px;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            white-space: nowrap;
+        }
+        .citas-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #eee;
+            white-space: nowrap;
+        }
+        /* Permitir que algunas columnas tengan wrap si es necesario */
+        .citas-table td.sintomas-tooltip,
+        .citas-table td:first-child {
+            white-space: normal;
+            min-width: 60px;
+        }
+        .tabla-scroll-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .tabla-scroll-container::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 10px;
+        }
+        .tabla-scroll-container::-webkit-scrollbar-thumb {
+            background:  #c0c0c0;
+            border-radius: 10px;
+        }
+        .tabla-scroll-container::-webkit-scrollbar-thumb:hover {
+            background: #a0a0a0;
+        }
+        /* Indicador de cantidad de registros */
+        .total-citas {
+            background: #f5f5f5;
+            padding: 10px 15px;
+            border-radius: 8px;
+            display: inline-block;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        /* Para pantallas pequeñas */
+        @media (max-width: 768px) {
+            .tabla-scroll-container {
+                max-height: 400px;
+            }
+            .citas-table{
+                font-size: 12px;
+            }
+            .citas-table th,
+            .citas-table td {
+                padding: 8px 5px;
+            }
+        }

@@ -48,77 +48,6 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
     <title>Panel Admin - BIOSPET</title>
     <link rel="stylesheet" href="../assets/css/global.css">
     <link rel="stylesheet" href="../assets/css/dashboard.css">
-    <style>
-        /* Estilos para el badge de origen */
-        .origen-whatsapp {
-            background: #25d366;
-            color: white;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            display: inline-block;
-        }
-        .origen-presencial {
-            background: #ff9800;
-            color: white;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            display: inline-block;
-        }
-        
-        /* Tarjeta de estadísticas de origen */
-        .origen-stats {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        .origen-card {
-            background: white;
-            padding: 15px 20px;
-            border-radius: 10px;
-            box-shadow: var(--shadow-soft);
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            flex: 1;
-            min-width: 150px;
-        }
-        .origen-card .icono {
-            font-size: 2rem;
-        }
-        .origen-card .info {
-            text-align: center;
-            flex: 1;
-        }
-        .origen-card .numero {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--primary);
-        }
-        .origen-card .label {
-            font-size: 0.8rem;
-            color: #666;
-        }
-        
-        /* Botón para nueva cita */
-        .btn-nueva-cita {
-            background: #4caf50;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            transition: all 0.3s ease;
-        }
-        .btn-nueva-cita:hover {
-            background: #45a049;
-            transform: translateY(-2px);
-        }
-    </style>
 </head>
 <body>
     <div class="admin-header">
@@ -262,9 +191,13 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
                 <button onclick="abrirModalMascotas()" class="btn-mascotas">
                     🐾 Ver Historial de Mascotas
                 </button>
+                <a href="cita_cliente_registrado.php" class="btn-nueva-cita" target="_blank">
+                    📝 Cita Para Clientes Registrados
+                </a>
             </div>
         </div>
 
+    <div class="tabla-scroll-container">
         <table class="citas-table">
             <thead>
                 <tr>
@@ -356,6 +289,7 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
                 <?php endwhile; ?>
             </tbody>
         </table>
+    </div>
     </div>
 
     <!-- Modal de Historial de Mascotas -->

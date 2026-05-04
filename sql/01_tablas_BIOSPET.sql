@@ -368,4 +368,20 @@ CREATE TABLE VENTA_CITA (
     UNIQUE KEY uk_cita_venta (id_cita, id_venta)
 );
 
+--26 AUDITORIA_PAGOS (Fortalece la integridad referencial, sirve de auditoria)
+CREATE TABLE AUDITORIA_PAGOS (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id_cita INT NOT NULL,
+    monto DECIMAL(10,2) NOT NULL,
+    metodo_pago VARCHAR(20) NOT NULL,
+    referencia VARCHAR(100),
+    id_empleado INT NULL,
+    ip_usuario VARCHAR(45),
+    fecha_pago DATETIME DEFAULT CURRENT_TIMESTAMP,
+    accion ENUM('pago', 'cancelacion', 'reembolso') DEFAULT 'pago',
+    CONSTRAINT fk_auditoria_cita FOREIGN KEY (id_cita) REFERENCES CITA(id) ON DELETE CASCADE,
+    CONSTRAINT fk_auditoria_empleado FOREIGN KEY (id_empleado) REFERENCES EMPLEADO(id) ON DELETE SET NULL,
+    INDEX idx_cita (id_cita),
+    INDEX idx_fecha (fecha_pago)
+    )
 

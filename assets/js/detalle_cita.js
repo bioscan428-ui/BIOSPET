@@ -3,7 +3,7 @@ let citaIdActual = 0;
 
 function abrirModalPago(citaId, totalGeneral) {
     document.getElementById('pago_cita_id').value = citaId;
-    document.getElementById('monto_total_pago').value = '$' + totalGeneral.toFixed(2);
+    document.getElementById('monto_total_pago').value = '$' + parseFloat(totalGeneral).toFixed(2);
     document.getElementById('modalPago').style.display = 'block';
 }
 

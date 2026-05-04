@@ -58,11 +58,11 @@ if (!$cita) {
 }
 
 // Obtener productos ya agregados a esta cita
-$sql_productos_cita = "SELECT SUM(dv.subtotal) as total_productos 
+$sql_productos_cita = "SELECT COALESCE(SUM(dv.subtotal), 0) as total_productos 
                        FROM DETALLE_VENTA dv
                        JOIN VENTA_CITA vc ON vc.id_venta = dv.id_venta
-                       JOIN VENTA v ON v.id = dv.id_venta
-                       WHERE vc.id_cita = ? AND v.estado = 'completada'";
+                       WHERE vc.id_cita = ?";
+                       
 $stmt_prod = $conn->prepare($sql_productos_cita);
 $stmt_prod->bind_param("i", $id_cita);
 $stmt_prod->execute();
@@ -426,11 +426,10 @@ $productos = $conn->query($sql_productos);
             <h3>🛒 Productos de la Cita</h3>
             <?php
             $sql_productos_lista = "SELECT dv.*, p.nombre, p.precio_venta 
-                                   FROM DETALLE_VENTA dv
-                                   JOIN PRODUCTO p ON dv.id_producto = p.id
-                                   JOIN VENTA_CITA vc ON vc.id_venta = dv.id_venta
-                                   JOIN VENTA v ON v.id = dv.id_venta
-                                   WHERE vc.id_cita = ? AND v.estado = 'completada'";
+                       FROM DETALLE_VENTA dv
+                       JOIN PRODUCTO p ON dv.id_producto = p.id
+                       JOIN VENTA_CITA vc ON vc.id_venta = dv.id_venta
+                       WHERE vc.id_cita = ?";
             $stmt_lista = $conn->prepare($sql_productos_lista);
             $stmt_lista->bind_param("i", $id_cita);
             $stmt_lista->execute();
@@ -509,7 +508,7 @@ $productos = $conn->query($sql_productos);
                     <button onclick="abrirModalProductos(<?php echo $id_cita; ?>)" class="btn-producto">
                         🛒 Agregar Productos
                     </button>
-                    <button onclick="abrirModalPago(<?php echo $id_cita; ?>, <?php echo $total_general; ?>)" class="btn-pago">
+                    <button onclick="abrirModalPago(<?php echo $id_cita; ?>, <?php echo $total_general; ?>, <?php echo $cita['total_servicios']; ?>, <?php echo $total_productos; ?>)" class="btn-pago">
                         💰 Pagar Todo
                     </button>
                 <?php endif; ?>
@@ -533,45 +532,134 @@ $productos = $conn->query($sql_productos);
     </div>
 
     <!-- Modal para Registrar Pago (unificado) -->
-    <div id="modalPago" class="modal">
-        <div class="modal-content">
-            <div class="modal-header" style="background: #4caf50;">
-                <h2>💰 Pagar Cita</h2>
-                <span class="close-modal" onclick="cerrarModal('modalPago')">&times;</span>
-            </div>
-            <div class="modal-body">
-                <form action="actualizar_pago_cita.php" method="POST">
-                    <input type="hidden" name="id_cita" id="pago_cita_id">
-                    <div class="form-group">
-                        <label>Servicios:</label>
-                        <input type="text" id="monto_servicios" readonly style="background:#f5f5f5;">
+<div id="modalPago" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div class="modal-header" style="background: #4caf50;">
+            <h2>💰 Pagar Cita</h2>
+            <span class="close-modal" onclick="cerrarModal('modalPago')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form action="actualizar_pago_cita.php" method="POST">
+                <input type="hidden" name="id_cita" id="pago_cita_id">
+                
+                <!-- Servicios Solicitados -->
+                <div class="form-group">
+                    <label>📋 Servicios Solicitados:</label>
+                    <div id="lista_servicios_pago" style="background: #f5f5f5; padding: 10px; border-radius: 5px; margin-top: 5px;">
+                        <?php
+                        // Obtener servicios de la cita
+                        $sql_servicios_pago = "SELECT s.nombre_servicio, dc.precio_fijado 
+                                               FROM DETALLE_CITA dc
+                                               JOIN SERVICIO s ON dc.id_servicio = s.id
+                                               WHERE dc.id_cita = ?";
+                        $stmt_serv = $conn->prepare($sql_servicios_pago);
+                        $stmt_serv->bind_param("i", $id_cita);
+                        $stmt_serv->execute();
+                        $servicios_pago = $stmt_serv->get_result();
+                        
+                        if ($servicios_pago->num_rows > 0):
+                        ?>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr><th>Servicio</th><th style="text-align: right;">Precio</th></tr>
+                            </thead>
+                            <tbody>
+                                <?php while($serv = $servicios_pago->fetch_assoc()): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($serv['nombre_servicio']); ?></td>
+                                    <td style="text-align: right;">$<?php echo number_format($serv['precio_fijado'], 2); ?></td>
+                                </tr>
+                                <?php endwhile; ?>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td><strong>Total Servicios:</strong></td>
+                                    <td style="text-align: right;"><strong>$<?php echo number_format($cita['total_servicios'], 2); ?></strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                        <?php else: ?>
+                        <p>No hay servicios solicitados</p>
+                        <?php endif; ?>
                     </div>
-                    <div class="form-group" id="productos_pago_group" style="display: none;">
-                        <label>Productos:</label>
-                        <input type="text" id="monto_productos" readonly style="background:#f5f5f5;">
+                </div>
+                
+                <!-- Productos Agregados -->
+                <div class="form-group" id="productos_pago_group">
+                    <label>🛒 Productos Agregados:</label>
+                    <div id="lista_productos_pago" style="background: #f5f5f5; padding: 10px; border-radius: 5px; margin-top: 5px;">
+                        <?php
+                        // Obtener productos de la cita
+                        $sql_productos_pago = "SELECT p.nombre, dv.cantidad, dv.precio_unitario, dv.subtotal 
+                                               FROM DETALLE_VENTA dv
+                                               JOIN PRODUCTO p ON dv.id_producto = p.id
+                                               JOIN VENTA_CITA vc ON vc.id_venta = dv.id_venta
+                                               WHERE vc.id_cita = ?";
+                        $stmt_prod_pago = $conn->prepare($sql_productos_pago);
+                        $stmt_prod_pago->bind_param("i", $id_cita);
+                        $stmt_prod_pago->execute();
+                        $productos_pago = $stmt_prod_pago->get_result();
+                        
+                        if ($productos_pago->num_rows > 0):
+                        ?>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th style="text-align: center;">Cantidad</th>
+                                    <th style="text-align: right;">Precio</th>
+                                    <th style="text-align: right;">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php while($prod = $productos_pago->fetch_assoc()): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars($prod['nombre']); ?></td>
+                                    <td style="text-align: center;"><?php echo $prod['cantidad']; ?></td>
+                                    <td style="text-align: right;">$<?php echo number_format($prod['precio_unitario'], 2); ?></td>
+                                    <td style="text-align: right;">$<?php echo number_format($prod['subtotal'], 2); ?></td>
+                                </tr>
+                                <?php endwhile; ?>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3"><strong>Total Productos:</strong></td>
+                                    <td style="text-align: right;"><strong>$<?php echo number_format($total_productos, 2); ?></strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                        <?php else: ?>
+                        <p>No hay productos agregados</p>
+                        <?php endif; ?>
                     </div>
-                    <div class="form-group">
-                        <label>Total a pagar *</label>
-                        <input type="text" id="monto_total_pago" readonly style="background:#f5f5f5;">
-                    </div>
-                    <div class="form-group">
-                        <label>Método de pago *</label>
-                        <select name="metodo_pago" required>
-                            <option value="">Seleccionar...</option>
-                            <option value="efectivo">💵 Efectivo</option>
-                            <option value="tarjeta">💳 Tarjeta</option>
-                            <option value="transferencia">🏦 Transferencia</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Referencia (opcional)</label>
-                        <input type="text" name="referencia" placeholder="Número de transferencia, último 4 dígitos de tarjeta">
-                    </div>
-                    <button type="submit" class="btn-guardar">Registrar Pago</button>
-                </form>
-            </div>
+                </div>
+                
+                <!-- Total General -->
+                <div class="form-group total-row">
+                    <label><strong>💰 TOTAL A PAGAR:</strong></label>
+                    <input type="text" id="monto_total_pago" readonly style="background:#f5f5f5; font-size: 1.2rem; font-weight: bold; color: var(--primary);">
+                </div>
+                
+                <div class="form-group">
+                    <label>Método de pago *</label>
+                    <select name="metodo_pago" required>
+                        <option value="">Seleccionar...</option>
+                        <option value="efectivo">💵 Efectivo</option>
+                        <option value="tarjeta">💳 Tarjeta</option>
+                        <option value="transferencia">🏦 Transferencia</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Referencia (opcional)</label>
+                    <input type="text" name="referencia" placeholder="Número de transferencia, último 4 dígitos de tarjeta">
+                </div>
+                
+                <button type="submit" class="btn-guardar">Registrar Pago</button>
+            </form>
         </div>
     </div>
+</div>
 
     <!-- Modal para Agregar Productos al Carrito -->
     <div id="modalProductos" class="modal">
