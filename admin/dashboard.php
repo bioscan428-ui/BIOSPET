@@ -197,6 +197,7 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
             </div>
         </div>
         
+        
 
     <div class="tabla-scroll-container">
         <table class="citas-table">
