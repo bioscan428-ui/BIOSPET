@@ -54,6 +54,7 @@ $citas_recientes = $conn->query($sql_citas);
             <a href="calendario.php">📅 Calendario</a>
             <a href="reportes.php">📊 Reportes</a>
             <a href="productos.php">🛒 Productos</a>
+            <a href="punto_venta.php" style="background: #4caf50; padding: 5px 12px; border-radius: 5px;">💰 Punto de Venta</a>
             <a href="../index.php" target="_blank">🌐 Ver Sitio</a>
             <a href="logout.php">🚪 Cerrar Sesión</a>
         </div>

@@ -57,6 +57,7 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
             <a href="calendario.php">📅 Calendario</a>
             <a href="reportes.php">📊 Reportes</a>
             <a href="productos.php">🛒 Productos</a>
+            <a href="punto_venta.php" style="background: #4caf50; padding: 5px 12px; border-radius: 5px;">💰 Punto de Venta</a>
             <!-- Dropdown Clientes -->
             <div class="dropdown">
                 <a href="javascript:void(0)">👥 Clientes ▼</a>

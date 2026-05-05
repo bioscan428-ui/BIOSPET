@@ -335,18 +335,34 @@ DELIMITER ;
 
 -- Función: Obtener total de ventas del día
 DELIMITER $$
+
+DROP FUNCTION IF EXISTS ventas_dia$$
+
 CREATE FUNCTION ventas_dia(p_fecha DATE)
 RETURNS DECIMAL(10,2)
 DETERMINISTIC
 BEGIN
-    DECLARE total DECIMAL(10,2);
+    DECLARE total_ventas_productos DECIMAL(10,2);
+    DECLARE total_pagos_citas DECIMAL(10,2);
     
-    SELECT SUM(total) INTO total
+    -- 1. VENTAS DE PRODUCTOS (punto de venta)
+    -- Usamos VENTA.total, NO PAGO
+    SELECT COALESCE(SUM(total), 0) INTO total_ventas_productos
     FROM VENTA
-    WHERE DATE(fecha_venta) = p_fecha AND estado = 'completada';
+    WHERE DATE(fecha_venta) = p_fecha 
+    AND estado = 'completada';
     
-    RETURN IFNULL(total, 0);
+    -- 2. PAGOS DE CITAS (servicios veterinarios)
+    -- Usamos AUDITORIA_PAGOS.monto
+    SELECT COALESCE(SUM(monto), 0) INTO total_pagos_citas
+    FROM AUDITORIA_PAGOS
+    WHERE DATE(fecha_pago) = p_fecha 
+    AND accion = 'pago';
+    
+    -- Total del día = productos + servicios
+    RETURN total_ventas_productos + total_pagos_citas;
 END$$
+
 DELIMITER ;
 
 -- Función: Obtener promedio de venta por cliente

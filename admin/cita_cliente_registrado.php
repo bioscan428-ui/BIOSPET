@@ -174,8 +174,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <option value="">Seleccione...</option>
                             <option value="Canino">🐕 Perro (Canino)</option>
                             <option value="Felino">🐈 Gato (Felino)</option>
-                            <option value="Ave">🐦 Ave</option>
-                            <option value="Reptil">🦎 Reptil</option>
                             <option value="Otro">🐾 Otro</option>
                         </select>
                     </div>
