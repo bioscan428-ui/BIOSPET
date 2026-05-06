@@ -37,54 +37,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($productos_compra)) {
             $error = "No hay productos válidos en la compra";
         } else {
-            $total = 0;
-            foreach ($productos_compra as $item) {
-                $total += $item['subtotal'];
-            }
-            
-            $conn->begin_transaction();
-            
             try {
-                // 1. Insertar cabecera de compra
-                $sql_compra = "INSERT INTO COMPRA (id_proveedor, fecha_compra, folio_factura, total, id_empleado) 
-                               VALUES (?, CURDATE(), ?, ?, ?)";
-                $stmt_compra = $conn->prepare($sql_compra);
-                $stmt_compra->bind_param("isdi", $id_proveedor, $folio_factura, $total, $_SESSION['empleado_id']);
-                $stmt_compra->execute();
-                $id_compra = $conn->insert_id;
-                
-                // 2. Insertar detalles de compra y actualizar stock
+                // Preparar los productos en el formato que espera el procedimiento
+                // El procedimiento espera: [{"id_producto": 7, "cantidad": 10, "precio_unitario": 20}]
+                $productos_procedimiento = [];
                 foreach ($productos_compra as $item) {
-                    // Si el producto es nuevo (id = 0), crearlo primero
-                    $id_producto = $item['id_producto'];
-                    
-                    if ($id_producto == 0 && !empty($item['nombre_nuevo'])) {
-                        // Crear nuevo producto
-                        $sql_new_product = "INSERT INTO PRODUCTO (nombre, id_categoria, precio_compra, precio_venta, stock_actual, activo) 
-                                           VALUES (?, ?, ?, ?, 0, 1)";
-                        $stmt_new = $conn->prepare($sql_new_product);
-                        $precio_venta_sugerido = $item['precio_unitario'] * 1.3; // 30% de margen
-                        $stmt_new->bind_param("sidd", $item['nombre_nuevo'], $item['id_categoria'], $item['precio_unitario'], $precio_venta_sugerido);
-                        $stmt_new->execute();
-                        $id_producto = $conn->insert_id;
-                    }
-                    
-                    // Insertar detalle de compra
-                    $sql_detalle = "INSERT INTO DETALLE_COMPRA (id_compra, id_producto, cantidad, precio_unitario, subtotal) 
-                                    VALUES (?, ?, ?, ?, ?)";
-                    $stmt_detalle = $conn->prepare($sql_detalle);
-                    $stmt_detalle->bind_param("iiidd", $id_compra, $id_producto, $item['cantidad'], $item['precio_unitario'], $item['subtotal']);
-                    $stmt_detalle->execute();
-                    
-                    // Actualizar stock del producto
-                    $sql_update_stock = "UPDATE PRODUCTO SET stock_actual = stock_actual + ? WHERE id = ?";
-                    $stmt_update = $conn->prepare($sql_update_stock);
-                    $stmt_update->bind_param("ii", $item['cantidad'], $id_producto);
-                    $stmt_update->execute();
+                    $productos_procedimiento[] = [
+                        'id_producto' => (int)$item['id_producto'],
+                        'cantidad' => (int)$item['cantidad'],
+                        'precio_unitario' => (float)$item['precio_unitario']
+                    ];
                 }
                 
-                $conn->commit();
-                $_SESSION['mensaje'] = "Compra registrada correctamente";
+                $json_procedimiento = json_encode($productos_procedimiento);
+                $sql_test = "CALL test_json(?)";
+$stmt_test = $conn->prepare($sql_test);
+$stmt_test->bind_param("s", $json_procedimiento);
+$stmt_test->execute();
+$result_test = $stmt_test->get_result();
+
+echo "<pre>";
+echo "=== TEST JSON ===\n";
+while ($row = $result_test->fetch_assoc()) {
+    print_r($row);
+}
+echo "</pre>";
+
+$stmt_test->close();
+$conn->next_result();
+                
+                // Llamar al procedimiento almacenado registrar_compra
+
+                //depuracion
+
+                //fin depuracion
+                $sql = "CALL registrar_compra(?, ?, ?, ?)";
+                $stmt = $conn->prepare($sql);
+                $empleado_id = $_SESSION['empleado_id'] ?? 1;
+                $stmt->bind_param("isis", $id_proveedor, $folio_factura, $empleado_id, $json_procedimiento);
+                $stmt->execute();
+                
+                // Obtener el resultado (ID de compra y total)
+                $result = $stmt->get_result();
+                $compra = $result->fetch_assoc();
+                $stmt->close();
+                $conn->next_result(); // Limpiar resultados pendientes
+                
+                $_SESSION['mensaje'] = "✅ Compra registrada exitosamente. ID: {$compra['compra_id']}, Total: \${$compra['total_compra']}";
                 header('Location: compras.php');
                 exit;
                 
@@ -104,7 +103,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Nueva Compra - BIOSPET</title>
     <link rel="stylesheet" href="../assets/css/global.css">
     <link rel="stylesheet" href="../assets/css/compra_nueva.css">
-
 </head>
 <body>
     <div class="admin-header">
@@ -121,7 +119,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <h2>Registrar Compra</h2>
         
         <?php if (isset($error)): ?>
-            <div class="error"><?php echo $error; ?></div>
+            <div class="error" style="background: #f8d7da; color: #721c24; padding: 12px; border-radius: 8px; margin-bottom: 20px;">
+                ❌ <?php echo $error; ?>
+            </div>
         <?php endif; ?>
         
         <form method="POST" id="formCompra">
@@ -142,19 +142,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
             
-            <!-- Sección de productos - INPUT LIBRE -->
+            <!-- Sección de productos -->
             <div class="productos-section">
                 <h3>📦 Agregar Producto</h3>
                 
+                <!-- Selector de productos existentes -->
                 <div class="producto-card">
                     <div class="producto-row">
-                        <input type="text" id="productoNombre" placeholder="Nombre del producto *" style="flex:2;">
+                        <select id="productoExistente" style="flex:2; padding: 8px;">
+                            <option value="">-- Seleccionar producto existente --</option>
+                            <?php
+                            $productos_existentes = $conn->query("SELECT id, nombre, precio_compra FROM PRODUCTO WHERE activo = 1 ORDER BY nombre");
+                            while($prod = $productos_existentes->fetch_assoc()):
+                            ?>
+                                <option value="<?php echo $prod['id']; ?>" data-precio="<?php echo $prod['precio_compra']; ?>">
+                                    <?php echo htmlspecialchars($prod['nombre']); ?> ($<?php echo number_format($prod['precio_compra'], 2); ?>)
+                                </option>
+                            <?php endwhile; ?>
+                        </select>
                         <input type="number" id="productoCantidad" placeholder="Cantidad *" min="1" value="1" style="flex:1;">
                         <input type="number" id="productoPrecio" placeholder="Precio unitario *" step="0.01" style="flex:1;">
                         <button type="button" id="btnAgregarProducto" class="btn-agregar">+ Agregar</button>
                     </div>
                     
-                    <!-- Checkbox para producto nuevo (si no existe en inventario) -->
+                    <!-- Checkbox para producto nuevo -->
                     <div class="checkbox-group">
                         <input type="checkbox" id="esNuevoProducto">
                         <label for="esNuevoProducto">📦 Este es un producto NUEVO (no está en el inventario)</label>
@@ -164,10 +175,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div id="nuevoProductoFields" class="nuevo-producto-fields">
                         <div class="form-row">
                             <div class="form-group">
+                                <label>Nombre del nuevo producto *</label>
+                                <input type="text" id="nuevoProductoNombre" placeholder="Ej: Croquetas Premium">
+                            </div>
+                            <div class="form-group">
                                 <label>Categoría *</label>
                                 <select id="nuevaCategoria">
                                     <option value="">Seleccionar categoría...</option>
-                                    <?php while($cat = $categorias->fetch_assoc()): ?>
+                                    <?php 
+                                    $categorias2 = $conn->query("SELECT id, nombre FROM CATEGORIA_PRODUCTO WHERE activo = 1 ORDER BY nombre");
+                                    while($cat = $categorias2->fetch_assoc()): ?>
                                         <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['nombre']); ?></option>
                                     <?php endwhile; ?>
                                 </select>
@@ -181,9 +198,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </div>
                 
+                <!-- Tabla de productos agregados -->
                 <table class="productos-agregados" id="tablaProductos">
                     <thead>
                         <tr>
+                            <th>ID Producto</th>
                             <th>Producto</th>
                             <th>Cantidad</th>
                             <th>Precio Unitario</th>
@@ -193,7 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </thead>
                     <tbody id="tablaProductosBody">
                         <tr class="empty-row">
-                            <td colspan="5" style="text-align: center; color: #999;">No hay productos agregados</td>
+                            <td colspan="6" style="text-align: center; color: #999;">No hay productos agregados</td>
                         </tr>
                     </tbody>
                 </table>
@@ -212,7 +231,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
     </div>
     
-        <script src="../assets/js/compra_nueva.js"></script>
-
+    <script src="../assets/js/compra_nueva.js"></script>
 </body>
 </html>

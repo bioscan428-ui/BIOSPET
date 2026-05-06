@@ -56,7 +56,7 @@ $empleado_id = $_SESSION['empleado_id'] ?? null;
     </style>
 </head>
 <body>
-    <div class="admin-header">
+    <div class="admin-header" style="background: #E68A00 !important; color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center;">
         <h1>🛒 Punto de Venta - BIOSPET</h1>
         <div>
             <a href="dashboard.php">📋 Dashboard</a>
@@ -147,6 +147,13 @@ $empleado_id = $_SESSION['empleado_id'] ?? null;
                 
                 <button class="btn-vaciar" id="btnVaciar" style="display: none;">🗑️ Vaciar carrito</button>
                 <button class="btn-finalizar" id="btnFinalizar" disabled>💰 Finalizar venta</button>
+
+                <div style="margin-top: 10px;">
+                    <button id="btnReimprimir" class="btn-reimprimir" style="display: none; background: #2196f3; color: white; border: none; padding: 8px; border-radius: 5px; 
+                    width: 100%; cursor: pointer;">
+                    🖨️ Reimprimir último ticke
+                    </button>
+                </div>
             </div>
         </div>
     </div>

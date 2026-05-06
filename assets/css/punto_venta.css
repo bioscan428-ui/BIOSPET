@@ -276,3 +276,14 @@
                 position: static;
             }
         }
+
+/* Agregar al final de punto_venta.css */
+.admin-header a {
+    color: white;
+    text-decoration: none;
+    margin-left: 20px;
+}
+
+.admin-header a:hover {
+    opacity: 0.8;
+}

@@ -129,11 +129,14 @@ DELIMITER ;
 
 -- Procedimiento: Registrar compra con múltiples productos
 DELIMITER $$
+
+DROP PROCEDURE IF EXISTS registrar_compra$$
+
 CREATE PROCEDURE registrar_compra(
     IN p_proveedor_id INT,
     IN p_folio_factura VARCHAR(50),
     IN p_empleado_id INT,
-    IN p_productos JSON -- JSON con [{id_producto, cantidad, precio_unitario}]
+    IN p_productos JSON
 )
 BEGIN
     DECLARE v_compra_id INT;
@@ -143,6 +146,12 @@ BEGIN
     DECLARE v_precio DECIMAL(10,2);
     DECLARE v_producto_id INT;
     DECLARE v_subtotal DECIMAL(10,2);
+    DECLARE v_es_nuevo INT;
+    DECLARE v_nombre_nuevo VARCHAR(100);
+    DECLARE v_id_categoria INT;
+    DECLARE v_precio_venta DECIMAL(10,2);
+    DECLARE v_total_items INT;
+    DECLARE v_nombre_limpio VARCHAR(100);
     
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
     BEGIN
@@ -152,11 +161,54 @@ BEGIN
     
     START TRANSACTION;
     
-    -- Calcular total temporal
-    WHILE v_idx < JSON_LENGTH(p_productos) DO
-        SET v_producto_id = JSON_EXTRACT(p_productos, CONCAT('$[', v_idx, '].id_producto'));
+    SET v_total_items = JSON_LENGTH(p_productos);
+    
+    -- Primera pasada: crear productos nuevos
+    SET v_idx = 0;
+    WHILE v_idx < v_total_items DO
+        -- Extraer valores JSON (usando "id")
+        SET v_producto_id = JSON_EXTRACT(p_productos, CONCAT('$[', v_idx, '].id'));
         SET v_cantidad = JSON_EXTRACT(p_productos, CONCAT('$[', v_idx, '].cantidad'));
         SET v_precio = JSON_EXTRACT(p_productos, CONCAT('$[', v_idx, '].precio_unitario'));
+        SET v_es_nuevo = JSON_EXTRACT(p_productos, CONCAT('$[', v_idx, '].es_nuevo'));
+        SET v_nombre_nuevo = JSON_EXTRACT(p_productos, CONCAT('$[', v_idx, '].nombre_nuevo'));
+        SET v_id_categoria = JSON_EXTRACT(p_productos, CONCAT('$[', v_idx, '].id_categoria'));
+        
+        -- Convertir a tipos correctos
+        SET v_producto_id = CAST(v_producto_id AS UNSIGNED);
+        SET v_cantidad = CAST(v_cantidad AS UNSIGNED);
+        SET v_precio = CAST(v_precio AS DECIMAL(10,2));
+        SET v_es_nuevo = CAST(v_es_nuevo AS UNSIGNED);
+        
+        -- Limpiar el nombre (quitar comillas)
+        IF v_nombre_nuevo IS NOT NULL THEN
+            SET v_nombre_limpio = REPLACE(REPLACE(REPLACE(v_nombre_nuevo, '"', ''), '\\', ''), '[', '');
+            SET v_nombre_limpio = TRIM(v_nombre_limpio);
+        ELSE
+            SET v_nombre_limpio = NULL;
+        END IF;
+        
+        -- Convertir categoría
+        SET v_id_categoria = CAST(v_id_categoria AS UNSIGNED);
+        
+        -- Valores por defecto
+        IF v_producto_id IS NULL THEN SET v_producto_id = 0; END IF;
+        IF v_cantidad IS NULL OR v_cantidad = 0 THEN SET v_cantidad = 1; END IF;
+        IF v_precio IS NULL THEN SET v_precio = 0; END IF;
+        IF v_es_nuevo IS NULL THEN SET v_es_nuevo = 0; END IF;
+        IF v_id_categoria IS NULL THEN SET v_id_categoria = 0; END IF;
+        
+        -- Si es producto nuevo
+        IF (v_producto_id = 0 OR v_es_nuevo = 1) AND v_nombre_limpio IS NOT NULL AND v_nombre_limpio != '' THEN
+            SET v_precio_venta = v_precio * 1.3;
+            
+            -- Insertar nuevo producto
+            INSERT INTO PRODUCTO (nombre, id_categoria, precio_compra, precio_venta, stock_actual, activo)
+            VALUES (v_nombre_limpio, v_id_categoria, v_precio, v_precio_venta, 0, 1);
+            
+            SET v_producto_id = LAST_INSERT_ID();
+        END IF;
+        
         SET v_subtotal = v_cantidad * v_precio;
         SET v_total = v_total + v_subtotal;
         SET v_idx = v_idx + 1;
@@ -167,12 +219,38 @@ BEGIN
     VALUES (p_proveedor_id, CURDATE(), p_folio_factura, v_total, p_empleado_id);
     SET v_compra_id = LAST_INSERT_ID();
     
-    -- Insertar detalles
+    -- Segunda pasada: insertar detalles
     SET v_idx = 0;
-    WHILE v_idx < JSON_LENGTH(p_productos) DO
-        SET v_producto_id = JSON_EXTRACT(p_productos, CONCAT('$[', v_idx, '].id_producto'));
+    WHILE v_idx < v_total_items DO
+        -- Extraer valores nuevamente
+        SET v_producto_id = JSON_EXTRACT(p_productos, CONCAT('$[', v_idx, '].id'));
         SET v_cantidad = JSON_EXTRACT(p_productos, CONCAT('$[', v_idx, '].cantidad'));
         SET v_precio = JSON_EXTRACT(p_productos, CONCAT('$[', v_idx, '].precio_unitario'));
+        SET v_es_nuevo = JSON_EXTRACT(p_productos, CONCAT('$[', v_idx, '].es_nuevo'));
+        SET v_nombre_nuevo = JSON_EXTRACT(p_productos, CONCAT('$[', v_idx, '].nombre_nuevo'));
+        
+        -- Convertir
+        SET v_producto_id = CAST(v_producto_id AS UNSIGNED);
+        SET v_cantidad = CAST(v_cantidad AS UNSIGNED);
+        SET v_precio = CAST(v_precio AS DECIMAL(10,2));
+        
+        -- Limpiar nombre
+        IF v_nombre_nuevo IS NOT NULL THEN
+            SET v_nombre_limpio = REPLACE(REPLACE(REPLACE(v_nombre_nuevo, '"', ''), '\\', ''), '[', '');
+            SET v_nombre_limpio = TRIM(v_nombre_limpio);
+        END IF;
+        
+        IF v_producto_id IS NULL THEN SET v_producto_id = 0; END IF;
+        IF v_cantidad IS NULL THEN SET v_cantidad = 1; END IF;
+        IF v_precio IS NULL THEN SET v_precio = 0; END IF;
+        
+        -- Si es producto nuevo, obtener el ID del producto que acabamos de crear
+        IF v_producto_id = 0 AND v_nombre_limpio IS NOT NULL AND v_nombre_limpio != '' THEN
+            SELECT id INTO v_producto_id FROM PRODUCTO 
+            WHERE nombre = v_nombre_limpio
+            ORDER BY id DESC LIMIT 1;
+        END IF;
+        
         SET v_subtotal = v_cantidad * v_precio;
         
         INSERT INTO DETALLE_COMPRA (id_compra, id_producto, cantidad, precio_unitario, subtotal)
@@ -185,6 +263,7 @@ BEGIN
     
     SELECT v_compra_id AS compra_id, v_total AS total_compra;
 END$$
+
 DELIMITER ;
 
 -- Procedimiento: Registrar venta con múltiples productos

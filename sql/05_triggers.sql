@@ -80,48 +80,7 @@ BEGIN
 END$$
 DELIMITER ;
 
------VALIDA STOCK, ACTUALIZA Y REGISTRA MOVIMIENTO-----
-DELIMITER $$
 
-DROP TRIGGER IF EXISTS after_insert_detalle_venta$$
-
-CREATE TRIGGER after_insert_detalle_venta
-AFTER INSERT ON DETALLE_VENTA
-FOR EACH ROW
-BEGIN
-    DECLARE v_stock_actual INT;
-    DECLARE v_id_empleado_venta INT;
-    
-    -- Obtener stock actual
-    SELECT stock_actual INTO v_stock_actual 
-    FROM PRODUCTO WHERE id = NEW.id_producto;
-    
-    -- Validar stock suficiente
-    IF v_stock_actual < NEW.cantidad THEN
-        SIGNAL SQLSTATE '45000' 
-        SET MESSAGE_TEXT = 'Stock insuficiente para realizar la venta';
-    END IF;
-    
-    -- ACTUALIZAR STOCK CORRECTAMENTE
-    UPDATE PRODUCTO 
-    SET stock_actual = stock_actual - NEW.cantidad
-    WHERE id = NEW.id_producto;
-    
-    -- Obtener empleado de la venta
-    SELECT id_empleado INTO v_id_empleado_venta 
-    FROM VENTA WHERE id = NEW.id_venta;
-    
-    -- Registrar movimiento
-    INSERT INTO MOVIMIENTO_INVENTARIO 
-        (id_producto, tipo, cantidad, motivo, referencia, id_empleado)
-    VALUES 
-        (NEW.id_producto, 'salida', NEW.cantidad, 
-         CONCAT('Venta #', NEW.id_venta), 
-         CONCAT('VENTA-', NEW.id_venta), 
-         v_id_empleado_venta);
-END$$
-
-DELIMITER ;
 
 -----RESTAURA STOCK AL CANCELAR VENTA-----
 DELIMITER $$
@@ -280,21 +239,4 @@ BEGIN
 END$$
 DELIMITER ;
 
-DELIMITER $$
-CREATE TRIGGER before_insert_detalle_venta_precio
-BEFORE INSERT ON DETALLE_VENTA
-FOR EACH ROW
-BEGIN
-    DECLARE precio_actual DECIMAL(10,2);
-    
-    -- Obtener precio actual del producto
-    SELECT precio_venta INTO precio_actual FROM PRODUCTO WHERE id = NEW.id_producto;
-    
-    -- Si el precio fijado es menor al 50% del precio actual, alertar
-    IF NEW.precio_unitario < (precio_actual * 0.5) THEN
-        SIGNAL SQLSTATE '45000' 
-        SET MESSAGE_TEXT = 'El precio ingresado es menor al 50% del precio de venta actual';
-    END IF;
-END$$
-DELIMITER ;
 

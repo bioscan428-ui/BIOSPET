@@ -322,4 +322,66 @@ LEFT JOIN CLIENTE_PUNTOS cp ON c.id = cp.id_cliente
 WHERE c.activo = 1;
 
 
------AUDITORIA DE PRECIOS EN VENTAS
+-----AUDITORIA DE PRECIOS EN VENTAS (pendiente)
+
+
+------VISTA DE TICKET PARA VENTA
+CREATE OR REPLACE VIEW vista_ticket_venta AS
+SELECT 
+    v.id AS venta_id,
+    v.folio,
+    v.fecha_venta,
+    v.subtotal,
+    v.iva,
+    v.total,
+    v.metodo_pago,
+    v.estado,
+    
+    -- Datos del cliente
+    c.id AS cliente_id,
+    CONCAT(c.nombre, ' ', IFNULL(c.ape_pat, ''), ' ', IFNULL(c.ape_mat, '')) AS cliente_nombre,
+    c.telefono AS cliente_telefono,
+    c.email AS cliente_email,
+    c.direccion AS cliente_direccion,
+    
+    -- Datos del empleado (vendedor)
+    e.id AS empleado_id,
+    CONCAT(e.nombre, ' ', IFNULL(e.ape_pat, ''), ' ', IFNULL(e.ape_mat, '')) AS empleado_nombre,
+    
+    -- Datos de la empresa (para el ticket)
+    'BIOSPET' AS empresa_nombre,
+    'Clínica Veterinaria' AS empresa_eslogan,
+    'Av. Principal #123, Colonia Centro' AS empresa_direccion,
+    'Tel: (123) 456-7890' AS empresa_telefono,
+    'RFC: XXXXXX' AS empresa_rfc,
+    
+    -- Totales por método de pago (si aplica)
+    CASE WHEN v.metodo_pago = 'efectivo' THEN v.total ELSE 0 END AS total_efectivo,
+    CASE WHEN v.metodo_pago = 'tarjeta' THEN v.total ELSE 0 END AS total_tarjeta,
+    CASE WHEN v.metodo_pago = 'transferencia' THEN v.total ELSE 0 END AS total_transferencia,
+    CASE WHEN v.metodo_pago = 'credito' THEN v.total ELSE 0 END AS total_credito
+    
+FROM VENTA v
+LEFT JOIN CLIENTE c ON v.id_cliente = c.id
+LEFT JOIN EMPLEADO e ON v.id_empleado = e.id
+WHERE v.estado = 'completada';
+
+-------Vista para DETALLE del TICKET (productos)
+CREATE OR REPLACE VIEW vista_ticket_detalle AS
+SELECT 
+    dv.id_venta,
+    dv.id_producto,
+    p.nombre AS producto_nombre,
+    dv.cantidad,
+    dv.precio_unitario,
+    dv.descuento,
+    dv.subtotal,
+    -- Calcular subtotal sin descuento
+    (dv.cantidad * dv.precio_unitario) AS subtotal_sin_descuento,
+    -- Si tiene descuento, mostrar porcentaje
+    CASE 
+        WHEN dv.descuento > 0 THEN CONCAT(ROUND((dv.descuento / (dv.cantidad * dv.precio_unitario)) * 100, 0), '%')
+        ELSE NULL
+    END AS porcentaje_descuento
+FROM DETALLE_VENTA dv
+JOIN PRODUCTO p ON dv.id_producto = p.id;
