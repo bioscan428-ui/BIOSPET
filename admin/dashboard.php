@@ -1,5 +1,7 @@
 <?php
 session_start();
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 // ========== NOTIFICACIONES PARA EL ADMIN ==========
 $notificacion_admin = $_SESSION['notificacion_admin'] ?? null;
 unset($_SESSION['notificacion_admin']);
@@ -37,9 +39,70 @@ while ($row = $stats_origen->fetch_assoc()) {
 
 // ========== ADICIONAL: Productos con stock crítico ==========
 $stock_critico = $conn->query("SELECT * FROM vista_stock_critico LIMIT 5");
+// Si la vista no existe, usar consulta alternativa
+if (!$stock_critico) {
+    $stock_critico = $conn->query("SELECT p.id, p.nombre, c.nombre as categoria, p.stock_actual, p.stock_minimo 
+                                   FROM PRODUCTO p
+                                   LEFT JOIN CATEGORIA_PRODUCTO c ON p.id_categoria = c.id
+                                   WHERE p.stock_actual <= p.stock_minimo AND p.activo = 1 
+                                   LIMIT 5");
+}
+
+// ========== USANDO EL PROCEDIMIENTO dashboard_ejecutivo ==========
+$proximas_citas_data = [];
+$stock_bajo_data = [];
+$ingresos_30dias_data = [];
+
+$call_result = $conn->query("CALL dashboard_ejecutivo()");
+
+if ($call_result) {
+    // Primer resultado: Resumen del día (ya lo tenemos arriba, lo omitimos)
+    $call_result->free();
+    $conn->next_result();
+    
+    // Segundo resultado: Próximas citas (7 días)
+    if ($conn->more_results()) {
+        $proximas_result = $conn->store_result();
+        while ($row = $proximas_result->fetch_assoc()) {
+            $proximas_citas_data[] = $row;
+        }
+        $proximas_result->free();
+        $conn->next_result();
+    }
+    
+    // Tercer resultado: Productos con stock bajo
+    if ($conn->more_results()) {
+        $stock_result = $conn->store_result();
+        while ($row = $stock_result->fetch_assoc()) {
+            $stock_bajo_data[] = $row;
+        }
+        $stock_result->free();
+        $conn->next_result();
+    }
+    
+    // Cuarto resultado: Ingresos últimos 30 días
+    if ($conn->more_results()) {
+        $ingresos_result = $conn->store_result();
+        while ($row = $ingresos_result->fetch_assoc()) {
+            $ingresos_30dias_data[] = $row;
+        }
+        $ingresos_result->free();
+        $conn->next_result();
+    }
+}
 
 // ========== ADICIONAL: Resumen ejecutivo ==========
-$resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
+$resumen_sql = $conn->query("SELECT * FROM vista_resumen_negocio");
+if ($resumen_sql) {
+    $resumen = $resumen_sql->fetch_assoc();
+} else {
+    $resumen = [
+        'clientes_activos' => 0,
+        'mascotas_activas' => 0,
+        'empleados_activos' => 0,
+        'citas_pendientes' => 0
+    ];
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -58,6 +121,7 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
             <a href="reportes.php">📊 Reportes</a>
             <a href="productos.php">🛒 Productos</a>
             <a href="punto_venta.php" style="background: #4caf50; padding: 5px 12px; border-radius: 5px;">💰 Punto de Venta</a>
+            <a href="corte_caja.php" style="background: #9c27b0; padding: 5px 12px; border-radius: 5px;">💰 Corte de Caja</a>
             <!-- Dropdown Clientes -->
             <div class="dropdown">
                 <a href="javascript:void(0)">👥 Clientes ▼</a>
@@ -165,8 +229,10 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
             </div>
         </div>
 
-        <!-- Alerta de stock crítico -->
-        <?php if ($stock_critico->num_rows > 0): ?>
+        <!-- Alerta de stock crítico (desde vista_stock_critico) -->
+        <?php 
+        if (isset($stock_critico) && $stock_critico && $stock_critico->num_rows > 0): 
+        ?>
         <div class="alert-card">
             <h3 style="color: #f44336; margin-bottom: 15px;">⚠️ Productos con Stock Crítico</h3>
             <?php while($producto = $stock_critico->fetch_assoc()): ?>
@@ -178,8 +244,73 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
         </div>
         <?php endif; ?>
 
+        <!-- ========== NUEVA SECCIÓN: Próximas citas (del procedimiento) ========== -->
+        <?php if (!empty($proximas_citas_data)): ?>
+        <div class="proximas-citas">
+            <h3>📅 Próximas Citas (7 días)</h3>
+            <div class="tabla-scroll-container" style="max-height: 300px; overflow-y: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Mascota</th>
+                            <th>Dueño</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach($proximas_citas_data as $cita): ?>
+                        <tr>
+                            <td><?php echo $cita['id']; ?></td>
+                            <td><?php echo date('d/m/Y', strtotime($cita['fecha_cita'])); ?></td>
+                            <td><?php echo $cita['hora_cita']; ?></td>
+                            <td><?php echo htmlspecialchars($cita['nombre_mascota']); ?></td>
+                            <td><?php echo htmlspecialchars($cita['dueno']); ?></td>
+                            <td>
+                                <span class="estado-<?php echo $cita['estado']; ?>">
+                                    <?php echo ucfirst($cita['estado']); ?>
+                                </span>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- ========== NUEVA SECCIÓN: Ingresos últimos 30 días (del procedimiento) ========== -->
+        <?php if (!empty($ingresos_30dias_data)): ?>
+        <div class="chart-container">
+            <h3>📊 Tendencia de Ingresos (últimos 30 días)</h3>
+            <div style="max-height: 300px; overflow-y: auto;">
+                <?php 
+                $max_ingreso = max(array_column($ingresos_30dias_data, 'total'));
+                $max_ingreso = $max_ingreso > 0 ? $max_ingreso : 1;
+                foreach(array_reverse($ingresos_30dias_data) as $ingreso): 
+                    $porcentaje = ($ingreso['total'] / $max_ingreso) * 100;
+                ?>
+                <div class="barra-ingreso">
+                    <div class="barra-fecha"><?php echo date('d/m', strtotime($ingreso['fecha'])); ?></div>
+                    <div class="barra-linea">
+                        <div class="barra-fill" style="width: <?php echo $porcentaje; ?>%; min-width: 30px;">
+                            <?php if($ingreso['total'] > 0): ?>$<?php echo number_format($ingreso['total'], 0); ?><?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="barra-monto">$<?php echo number_format($ingreso['total'], 2); ?></div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <div style="margin-top: 15px; text-align: center; font-size: 12px; color: #666;">
+                <span class="barra-fill" style="display: inline-block; width: 20px; background: var(--primary);"></span> = Monto de ingresos por día
+            </div>
+        </div>
+        <?php endif; ?>
+
         <div class="total-citas">
-            <strong>Total de citas:</strong> <?php echo $result->num_rows; ?>
+            <strong>Total de citas registradas:</strong> <?php echo $result->num_rows; ?>
         </div>
         
         <!-- Botones de acción -->
@@ -197,102 +328,100 @@ $resumen = $conn->query("SELECT * FROM vista_resumen_negocio")->fetch_assoc();
                 </a>
             </div>
         </div>
-        
-        
 
-    <div class="tabla-scroll-container">
-        <table class="citas-table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Foto</th>
-                    <th>Fecha</th>
-                    <th>Hora</th>
-                    <th>Dueño</th>
-                    <th>Mascota</th>
-                    <th>Motivo</th>
-                    <th>Servicios</th>
-                    <th>Total</th>
-                    <th>Origen</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php while($row = $result->fetch_assoc()): 
-                    $origen = $row['origen'] ?? 'Presencial';
-                    if ($origen == 'Whatsapp') {
-                        $origen_class = 'origen-whatsapp';
-                        $origen_icono = '💬';
-                        $origen_texto = 'WhatsApp';
-                    } else {
-                        $origen_class = 'origen-presencial';
-                        $origen_icono = '🏥';
-                        $origen_texto = 'Presencial';
-                    }
-                ?>
-                <tr>
-                    <td><?php echo $row['cita_id']; ?></td>
-                    <td>
-                        <?php if (!empty($row['foto']) && file_exists('../' . $row['foto'])): ?>
-                            <img src="../<?php echo $row['foto']; ?>" alt="Foto de <?php echo $row['nombre_mascota']; ?>" class="foto-miniatura">
-                        <?php else: ?>
-                            <span style="color:#999; font-size:20px;">🐾</span>
-                        <?php endif; ?>
-                    </td>
-                    <td><?php echo date('d/m/Y', strtotime($row['fecha_cita'])); ?></td>
-                    <td><?php echo $row['hora_cita']; ?></td>
-                    <td>
-                        <?php echo htmlspecialchars($row['nombre_dueno']); ?><br>
-                        <small><?php echo $row['telefono']; ?></small>
-                    </td>
-                    <td>
-                        <?php echo htmlspecialchars($row['nombre_mascota']); ?><br>
-                        <small><?php echo $row['especie']; ?></small>
-                    </td>
-                    <td class="sintomas-tooltip">
-                        <?php if (!empty($row['notas'])): ?>
-                            <span class="sintomas-icono">📋</span>
-                            <span class="tooltip-texto">
-                                <strong>Motivo:</strong><br>
-                                <?php echo nl2br(htmlspecialchars(substr($row['notas'], 0, 100))); ?>
+        <div class="tabla-scroll-container">
+            <table class="citas-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Foto</th>
+                        <th>Fecha</th>
+                        <th>Hora</th>
+                        <th>Dueño</th>
+                        <th>Mascota</th>
+                        <th>Motivo</th>
+                        <th>Servicios</th>
+                        <th>Total</th>
+                        <th>Origen</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php while($row = $result->fetch_assoc()): 
+                        $origen = $row['origen'] ?? 'Presencial';
+                        if ($origen == 'Whatsapp') {
+                            $origen_class = 'origen-whatsapp';
+                            $origen_icono = '💬';
+                            $origen_texto = 'WhatsApp';
+                        } else {
+                            $origen_class = 'origen-presencial';
+                            $origen_icono = '🏥';
+                            $origen_texto = 'Presencial';
+                        }
+                    ?>
+                    <tr>
+                        <td><?php echo $row['cita_id']; ?></td>
+                        <td>
+                            <?php if (!empty($row['foto']) && file_exists('../' . $row['foto'])): ?>
+                                <img src="../<?php echo $row['foto']; ?>" alt="Foto de <?php echo $row['nombre_mascota']; ?>" class="foto-miniatura">
+                            <?php else: ?>
+                                <span style="color:#999; font-size:20px;">🐾</span>
+                            <?php endif; ?>
+                        </td>
+                        <td><?php echo date('d/m/Y', strtotime($row['fecha_cita'])); ?></td>
+                        <td><?php echo $row['hora_cita']; ?></td>
+                        <td>
+                            <?php echo htmlspecialchars($row['nombre_dueno']); ?><br>
+                            <small><?php echo $row['telefono']; ?></small>
+                        </td>
+                        <td>
+                            <?php echo htmlspecialchars($row['nombre_mascota']); ?><br>
+                            <small><?php echo $row['especie']; ?></small>
+                        </td>
+                        <td class="sintomas-tooltip">
+                            <?php if (!empty($row['notas'])): ?>
+                                <span class="sintomas-icono">📋</span>
+                                <span class="tooltip-texto">
+                                    <strong>Motivo:</strong><br>
+                                    <?php echo nl2br(htmlspecialchars(substr($row['notas'], 0, 100))); ?>
+                                </span>
+                            <?php else: ?>
+                                <span style="color:#ccc;">—</span>
+                            <?php endif; ?>
+                        </span>
+                        <td>
+                            <?php if (!empty($row['servicios'])): ?>
+                                <?php echo substr($row['servicios'], 0, 50); ?>
+                            <?php else: ?>
+                                <span class="sin-servicios">—</span>
+                            <?php endif; ?>
+                        </span>
+                        <td>$<?php echo number_format($row['total_cobrado'], 2); ?></span>
+                        <td>
+                            <span class="<?php echo $origen_class; ?>">
+                                <?php echo $origen_icono; ?> <?php echo $origen_texto; ?>
                             </span>
-                        <?php else: ?>
-                            <span style="color:#ccc;">—</span>
-                        <?php endif; ?>
-                    </td>
-                    <td>
-                        <?php if (!empty($row['servicios'])): ?>
-                            <?php echo substr($row['servicios'], 0, 50); ?>
-                        <?php else: ?>
-                            <span class="sin-servicios">—</span>
-                        <?php endif; ?>
-                    </td>
-                    <td>$<?php echo number_format($row['total_cobrado'], 2); ?></td>
-                    <td>
-                        <span class="<?php echo $origen_class; ?>">
-                            <?php echo $origen_icono; ?> <?php echo $origen_texto; ?>
                         </span>
-                    </td>
-                    <td>
-                        <span class="estado-<?php echo $row['estado']; ?>">
-                            <?php echo ucfirst($row['estado']); ?>
+                        <td>
+                            <span class="estado-<?php echo $row['estado']; ?>">
+                                <?php echo ucfirst($row['estado']); ?>
+                            </span>
                         </span>
-                    </td>
-                    <td class="acciones">
-                        <a href="detalle_cita.php?id=<?php echo $row['cita_id']; ?>" class="btn-small">Ver</a>
-                        <?php if ($row['estado'] == 'pendiente'): ?>
-                            <a href="actualizar_estado.php?id=<?php echo $row['cita_id']; ?>&estado=confirmada" class="btn-small">Confirmar</a>
-                        <?php endif; ?>
-                        <?php if ($row['estado'] != 'cancelada' && $row['estado'] != 'completada'): ?>
-                            <a href="actualizar_estado.php?id=<?php echo $row['cita_id']; ?>&estado=cancelada" class="btn-small" style="background:#f44336;">Cancelar</a>
-                        <?php endif; ?>
-                    </span>
-                </tr>
-                <?php endwhile; ?>
-            </tbody>
-        </table>
-    </div>
+                        <td class="acciones">
+                            <a href="detalle_cita.php?id=<?php echo $row['cita_id']; ?>" class="btn-small">Ver</a>
+                            <?php if ($row['estado'] == 'pendiente'): ?>
+                                <a href="actualizar_estado.php?id=<?php echo $row['cita_id']; ?>&estado=confirmada" class="btn-small">Confirmar</a>
+                            <?php endif; ?>
+                            <?php if ($row['estado'] != 'cancelada' && $row['estado'] != 'completada'): ?>
+                                <a href="actualizar_estado.php?id=<?php echo $row['cita_id']; ?>&estado=cancelada" class="btn-small" style="background:#f44336;">Cancelar</a>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <?php endwhile; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <!-- Modal de Historial de Mascotas -->

@@ -49,6 +49,68 @@
             </div>
         </div>
 
+        <!-- ========== NUEVA SECCIÓN: FILTRO DE CITAS POR FECHA ========== -->
+        <div class="card" style="margin-bottom: 20px;">
+            <h3>📅 Reporte de Citas por Rango de Fechas</h3>
+            <form method="GET" action="reportes.php" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 20px;">
+                <input type="hidden" name="filtrar_citas" value="1">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Fecha Inicio:</label>
+                    <input type="date" name="fecha_inicio" value="<?php echo $fecha_inicio; ?>" style="padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Fecha Fin:</label>
+                    <input type="date" name="fecha_fin" value="<?php echo $fecha_fin; ?>" style="padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
+                    </div>
+                    <button type="submit" class="btn-primary" style="background: var(--primary); color: white; border: none; padding: 8px 20px; border-radius: 5px; cursor: pointer;">🔍 Buscar</button>
+            </form>
+            <?php if (!empty($citas_por_rango)): ?>
+                <div style="overflow-x: auto;">
+                    <table class="productos-top-table full-width">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Hora</th>
+                                <th>Estado</th>
+                                <th>Mascota</th>
+                                <th>Dueño</th>
+                                <th>Teléfono</th>
+                                <th>Servicios</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach($citas_por_rango as $cita): ?>
+                            <tr>
+                                <td><?php echo date('d/m/Y', strtotime($cita['fecha_cita'])); ?></td>
+                                <td><?php echo $cita['hora_cita']; ?></td>
+                                <td>
+                                    <span class="estado-<?php echo $cita['estado']; ?>">
+                                        <?php echo ucfirst($cita['estado']); ?>
+                                    </span>
+                                </td>
+                                <td><?php echo htmlspecialchars($cita['nombre_mascota']); ?></td>
+                                <td><?php echo htmlspecialchars($cita['dueno']); ?></td>
+                                <td><?php echo $cita['telefono']; ?></td>
+                                <td><?php echo $cita['servicios']; ?></td>
+                                <td class="ingreso">$<?php echo number_format($cita['total'], 2); ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                        <tfoot>
+                            <tr style="background: #f5f5f5; font-weight: bold;">
+                                <td colspan="7" style="text-align: right;">Total:</td>
+                                <td class="ingreso">$<?php echo number_format(array_sum(array_column($citas_por_rango, 'total')), 2); ?></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            <?php elseif (isset($_GET['filtrar_citas'])): ?>
+                <p style="color: #999; text-align: center; padding: 20px;">No hay citas en el rango de fechas seleccionado.</p>
+            <?php endif; ?>
+        </div>
+        <!-- ========== FIN DE SECCIÓN: FILTRO DE CITAS POR FECHA ========== -->
+
         <!-- ========== SECCIÓN 1: SERVICIOS ========== -->
         <h2 style="margin: 40px 0 10px;">🏥 Servicios Médicos</h2>
         
@@ -277,6 +339,94 @@
             💰 Ingreso Total Acumulado: 
             $<?php echo number_format(($totales_servicios['total_ingresos'] ?? 0) + ($totales_ventas['total_ingresos'] ?? 0), 2); ?>
         </div>
+
+        <!-- ========== NUEVA SECCIÓN: REPORTE FINANCIERO CONSOLIDADO ========== -->
+        <div class="card" style="margin-bottom: 20px; margin-top: 20px;">
+            <h3>💰 Reporte Financiero Consolidado</h3>
+            <form method="GET" action="reportes.php" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 20px;">
+                <input type="hidden" name="filtrar_financiero" value="1">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Fecha Inicio:</label>
+                    <input type="date" name="fecha_inicio_financiero" value="<?php echo $fecha_inicio_financiero ?? date('Y-m-01'); ?>" style="padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Fecha Fin:</label>
+                    <input type="date" name="fecha_fin_financiero" value="<?php echo $fecha_fin_financiero ?? date('Y-m-t'); ?>" style="padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
+                </div>
+                <button type="submit" class="btn-primary" style="background: var(--primary); color: white; border: none; padding: 8px 20px; border-radius: 5px; cursor: pointer;">💰 Consultar</button>
+            </form>
+            <?php if (isset($_GET['filtrar_financiero']) && !empty($ventas_periodo ?? [])): ?>
+                <div class="dashboard-grid" style="margin-bottom: 20px;">
+                    <div class="card">
+                        <h4>🛒 Ventas de Productos</h4>
+                        <div class="resumen-cifras">
+                            <div class="cifra">
+                                <div class="valor"><?php echo $ventas_periodo['total_transacciones'] ?? 0; ?></div>
+                                <div class="label">Transacciones</div>
+                            </div>
+                            <div class="cifra">
+                                <div class="valor">$<?php echo number_format($ventas_periodo['monto_total'] ?? 0, 2); ?></div>
+                                <div class="label">Monto Total</div>
+                            </div>
+                            <div class="cifra">
+                                <div class="valor">$<?php echo number_format($ventas_periodo['promedio'] ?? 0, 2); ?></div>
+                                <div class="label">Ticket Promedio</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h4>🏥 Servicios Médicos</h4>
+                        <div class="resumen-cifras">
+                            <div class="cifra">
+                                <div class="valor"><?php echo $servicios_periodo['total_transacciones'] ?? 0; ?></div>
+                                <div class="label">Citas Completadas</div>
+                            </div>
+                            <div class="cifra">
+                                <div class="valor">$<?php echo number_format($servicios_periodo['monto_total'] ?? 0, 2); ?></div>
+                                <div class="label">Ingresos por Servicios</div>
+                            </div>
+                            <div class="cifra">
+                                <div class="valor">$<?php echo number_format($servicios_periodo['promedio'] ?? 0, 2); ?></div>
+                                <div class="label">Promedio por Servicio</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <h4>🏆 Top 10 Productos más vendidos</h4>
+                <div style="overflow-x: auto;">
+                    <table class="productos-top-table full-width">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Producto</th>
+                                <th>Unidades</th>
+                                <th>Ingresos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php $i = 1; foreach($productos_top_periodo ?? [] as $p): ?>
+                            <tr>
+                                <td><?php echo $i++; ?></td>
+                                <td><strong><?php echo htmlspecialchars($p['producto']); ?></strong></td>
+                                <td><?php echo $p['unidades_vendidas']; ?> uni.</td>
+                                <td class="ingreso">$<?php echo number_format($p['ingresos'], 2); ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="ingresos-totales" style="margin-top: 20px;">
+                    💰 Ingreso Total del Período:
+                    $<?php echo number_format(($ventas_periodo['monto_total'] ?? 0) + ($servicios_periodo['monto_total'] ?? 0), 2); ?>
+                </div>
+                <?php elseif (isset($_GET['filtrar_financiero'])): ?>
+                    <p style="color: #999; text-align: center; padding: 20px;">No hay datos en el período seleccionado.</p>
+                    <?php endif; ?>
+        </div>
+
+        <!-- ========== FIN DE NUEVA SECCION ========== -->
+
+
     </div>
 
     <!-- Datos ocultos para JavaScript -->

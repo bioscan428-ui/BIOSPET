@@ -1,18 +1,15 @@
 /* assets/css/global.css */
 :root {
-    /* Colores principales */
     --primary: #E68A00;
     --primary-dark: #CC7A00;
     --black: #1A1A1A;
     --white: #FFFFFF;
-    --muted: #F5E6CC;  /* Este es el color amarillo/mostaza */
+    --muted: #F5E6CC;
     --accent: #F2A33B;
     --gray-light: #f8f9fa;
     
-    /* Tipografía */
     --font-main: 'Segoe UI', Arial, sans-serif;
     
-    /* Sombras y Bordes */
     --shadow-soft: 0 2px 10px rgba(0,0,0,0.1);
     --shadow-hard: 0 5px 20px rgba(0,0,0,0.2);
     --radius-sm: 5px;
@@ -28,7 +25,7 @@
 body {
     font-family: var(--font-main);
     color: var(--black);
-    background: var(--muted);  /* ← AGREGAR ESTA LÍNEA */
+    background: var(--muted);
     line-height: 1.6;
     overflow-x: hidden;
 }
@@ -37,4 +34,27 @@ body {
     max-width: 1400px;
     margin: 0 auto;
     padding: 0 20px;
+}
+
+/* ===== ESTILOS DEL HEADER ADMIN ===== */
+/* ===== (ESTO AFECTO LOS BOTONES A LA IZQUIERDA) ===== */
+.admin-header { 
+    background: var(--primary); 
+    color: white; 
+    padding: 20px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    flex-wrap: wrap;
+}
+
+.admin-header a { 
+    color: white; 
+    text-decoration: none; 
+    margin-left: 20px; 
+    
+}
+
+.admin-header a:hover {
+    opacity: 0.8;
 }

@@ -132,6 +132,56 @@ $datos_js = [
     'ingresosCombinados' => $ingresos_combinados
 ];
 
+// ========== 13. REPORTE DE CITAS POR RANGO DE FECHAS (usando procedimiento) ==========
+$fecha_inicio = $_GET['fecha_inicio'] ?? date('Y-m-01'); // Primer día del mes actual
+$fecha_fin = $_GET['fecha_fin'] ?? date('Y-m-t'); // Último día del mes actual
+
+$citas_por_rango = [];
+if (isset($_GET['filtrar_citas'])) {
+    $stmt = $conn->prepare("CALL reporte_citas(?, ?)");
+    $stmt->bind_param("ss", $fecha_inicio, $fecha_fin);
+    $stmt->execute();
+    $result_citas = $stmt->get_result();
+    while ($row = $result_citas->fetch_assoc()) {
+        $citas_por_rango[] = $row;
+    }
+    $stmt->close();
+    $conn->next_result();
+}
+
+// ========== 14. REPORTE FINANCIERO CONSOLIDADO ==========
+$fecha_inicio_financiero = $_GET['fecha_inicio_financiero'] ?? date('Y-m-01');
+$fecha_fin_financiero = $_GET['fecha_fin_financiero'] ?? date('Y-m-t');
+
+$ventas_periodo = [];
+$servicios_periodo = [];
+$productos_top_periodo = [];
+if (isset($_GET['filtrar_financiero'])) {
+    $stmt = $conn->prepare("CALL reporte_financiero(?, ?)");
+    $stmt->bind_param("ss", $fecha_inicio_financiero, $fecha_fin_financiero);
+    $stmt->execute();
+
+    // Primer resultado: Ventas
+    $result = $stmt->get_result();
+    $ventas_periodo = $result->fetch_assoc();
+    $result->free();
+    $stmt->next_result();
+
+    // Segundo resultado: Servicios
+    $result = $stmt->get_result();
+    $servicios_periodo = $result->fetch_assoc();
+    $result->free();
+    $stmt->next_result();
+
+    // Tercer resultado: Productos top
+    $result = $stmt->get_result();
+    while ($row = $result->fetch_assoc()) {
+        $productos_top_periodo[] = $row;
+    }
+    $result->free();
+    $stmt->close();
+    $conn->next_result();
+}
 // Incluir la vista
 include 'reportes_vista.php';
 ?>

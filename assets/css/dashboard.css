@@ -658,3 +658,82 @@ body {
                 padding: 8px 5px;
             }
         }
+
+  /* Estilos adicionales para nuevas secciones */
+        .proximas-citas {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: var(--shadow-soft);
+        }
+        .proximas-citas h3 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            border-left: 4px solid var(--primary);
+            padding-left: 15px;
+        }
+        .proximas-citas table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .proximas-citas th, .proximas-citas td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        .proximas-citas th {
+            background: var(--primary);
+            color: white;
+        }
+        .chart-container {
+            margin-top: 20px;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow-soft);
+        }
+        .chart-container h3 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            border-left: 4px solid var(--primary);
+            padding-left: 15px;
+        }
+        .barra-ingreso {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+        .barra-fecha {
+            width: 100px;
+            font-size: 12px;
+        }
+        .barra-linea {
+            flex: 1;
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .barra-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 10px;
+            font-size: 10px;
+            line-height: 20px;
+            padding-left: 5px;
+            color: white;
+        }
+        .barra-monto {
+            width: 80px;
+            text-align: right;
+            font-size: 12px;
+        }
+        @media (max-width: 768px) {
+            .proximas-citas table {
+                font-size: 12px;
+            }
+            .barra-fecha {
+                width: 80px;
+            }
+        }
