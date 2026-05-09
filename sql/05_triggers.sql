@@ -240,3 +240,120 @@ END$$
 DELIMITER ;
 
 
+-----TRIGGER PARA SUMAR PUNTOS CUANDO SE PAGA UNA CITA
+DELIMITER $$
+
+DROP TRIGGER IF EXISTS after_update_cita_pagada$$
+
+CREATE TRIGGER after_update_cita_pagada
+AFTER UPDATE ON CITA
+FOR EACH ROW
+BEGIN
+    DECLARE v_puntos INT;
+    DECLARE v_puntos_por_gasto DECIMAL(10,2);
+    DECLARE v_saldo_actual INT;
+    DECLARE v_total_cita DECIMAL(10,2);
+    DECLARE v_id_cliente INT;
+    
+    -- Solo cuando cambia de no pagada a pagada
+    IF NEW.pagada = 1 AND OLD.pagada = 0 THEN
+        
+        -- Obtener el ID del cliente desde la mascota
+        SELECT id_cliente INTO v_id_cliente FROM MASCOTA WHERE id = NEW.id_mascota;
+        
+        -- Calcular total de la cita desde DETALLE_CITA
+        SELECT IFNULL(SUM(precio_fijado), 0) INTO v_total_cita 
+        FROM DETALLE_CITA 
+        WHERE id_cita = NEW.id;
+        
+        -- Obtener puntos por gasto de la configuración actual
+        SELECT puntos_por_gasto INTO v_puntos_por_gasto 
+        FROM PROGRAMA_FIDELIDAD 
+        WHERE activo = 1 
+        ORDER BY id DESC LIMIT 1;
+        
+        -- Calcular puntos (cada $10 = puntos_por_gasto)
+        IF v_puntos_por_gasto > 0 AND v_total_cita > 0 THEN
+            SET v_puntos = FLOOR(v_total_cita / v_puntos_por_gasto);
+        ELSE
+            SET v_puntos = 0;
+        END IF;
+        
+        IF v_puntos > 0 THEN
+            -- Obtener saldo actual del cliente
+            SELECT puntos_actuales INTO v_saldo_actual 
+            FROM CLIENTE_PUNTOS 
+            WHERE id_cliente = v_id_cliente;
+            
+            -- Si no hay registro, crear uno
+            IF v_saldo_actual IS NULL THEN
+                INSERT INTO CLIENTE_PUNTOS (id_cliente, puntos_actuales, puntos_acumulados_historial)
+                VALUES (v_id_cliente, v_puntos, v_puntos);
+                SET v_saldo_actual = 0;
+            ELSE
+                UPDATE CLIENTE_PUNTOS 
+                SET puntos_actuales = puntos_actuales + v_puntos,
+                    puntos_acumulados_historial = puntos_acumulados_historial + v_puntos,
+                    ultima_actualizacion = NOW()
+                WHERE id_cliente = v_id_cliente;
+            END IF;
+            
+            -- Registrar movimiento de puntos
+            INSERT INTO MOVIMIENTO_PUNTOS (id_cliente, id_venta, tipo, puntos, saldo_antes, saldo_despues, concepto, fecha_vencimiento)
+            VALUES (v_id_cliente, NULL, 'ganados', v_puntos, 
+                    IFNULL(v_saldo_actual, 0), IFNULL(v_saldo_actual, 0) + v_puntos,
+                    CONCAT('Pago de cita #', NEW.id),
+                    DATE_ADD(NOW(), INTERVAL 1 YEAR));
+        END IF;
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- Trigger para sumar puntos cuando se completa una venta de productos
+DELIMITER $$
+CREATE TRIGGER after_insert_venta_puntos
+AFTER INSERT ON VENTA
+FOR EACH ROW
+BEGIN
+    DECLARE v_puntos INT;
+    DECLARE v_puntos_por_gasto DECIMAL(10,2);
+    DECLARE v_saldo_actual INT;
+    
+    -- Solo si la venta está completada
+    IF NEW.estado = 'completada' THEN
+        -- Obtener puntos por gasto
+        SELECT puntos_por_gasto INTO v_puntos_por_gasto 
+        FROM PROGRAMA_FIDELIDAD 
+        WHERE activo = 1 
+        ORDER BY id DESC LIMIT 1;
+        
+        -- Calcular puntos
+        SET v_puntos = FLOOR(NEW.total / v_puntos_por_gasto);
+        
+        -- Obtener saldo actual
+        SELECT puntos_actuales INTO v_saldo_actual 
+        FROM CLIENTE_PUNTOS 
+        WHERE id_cliente = NEW.id_cliente;
+        
+        IF v_puntos > 0 THEN
+            IF v_saldo_actual IS NULL THEN
+                INSERT INTO CLIENTE_PUNTOS (id_cliente, puntos_actuales, puntos_acumulados_historial)
+                VALUES (NEW.id_cliente, v_puntos, v_puntos);
+            ELSE
+                UPDATE CLIENTE_PUNTOS 
+                SET puntos_actuales = puntos_actuales + v_puntos,
+                    puntos_acumulados_historial = puntos_acumulados_historial + v_puntos
+                WHERE id_cliente = NEW.id_cliente;
+            END IF;
+            
+            -- Registrar movimiento
+            INSERT INTO MOVIMIENTO_PUNTOS (id_cliente, id_venta, tipo, puntos, saldo_antes, saldo_despues, concepto, fecha_vencimiento)
+            VALUES (NEW.id_cliente, NEW.id, 'ganados', v_puntos, 
+                    IFNULL(v_saldo_actual, 0), IFNULL(v_saldo_actual, 0) + v_puntos,
+                    CONCAT('Compra #', NEW.id),
+                    DATE_ADD(NOW(), INTERVAL 1 YEAR));
+        END IF;
+    END IF;
+END$$
+DELIMITER ;
