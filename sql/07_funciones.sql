@@ -2,7 +2,7 @@
 -- FUNCIONES PARA CLIENTES Y MASCOTAS
 -- ============================================
 
--- Función: Calcular edad de mascota en años (YA LA TIENES)
+-- Función: Calcular edad de mascota en años (YA LA TIENES) ✅ YA SE ESTA USANDO (detalle_cita.php)
 DELIMITER $$
 CREATE FUNCTION edad_mascota(p_fecha_nacimiento DATE)
 RETURNS INT
@@ -15,24 +15,8 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Función: Obtener total de citas de un cliente (YA LA TIENES)
-DELIMITER $$
-CREATE FUNCTION total_citas_cliente(p_cliente_id INT)
-RETURNS INT
-DETERMINISTIC
-BEGIN
-    DECLARE total INT;
-    
-    SELECT COUNT(DISTINCT c.id) INTO total
-    FROM CITA c
-    JOIN MASCOTA m ON c.id_mascota = m.id
-    WHERE m.id_cliente = p_cliente_id;
-    
-    RETURN IFNULL(total, 0);
-END$$
-DELIMITER ;
 
--- Función: Obtener total de mascotas de un cliente
+-- Función: Obtener total de mascotas de un cliente ✅ YA SE ESTA USANDO (clientes.php)
 DELIMITER $$
 CREATE FUNCTION total_mascotas_cliente(p_cliente_id INT)
 RETURNS INT
@@ -48,7 +32,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Función: Obtener última cita de una mascota
+-- Función: Obtener última cita de una mascota  ✅ YA SE ESTA USANDO (carnet_mascota.php)
 DELIMITER $$
 CREATE FUNCTION ultima_cita_mascota(p_mascota_id INT)
 RETURNS DATE
@@ -97,7 +81,7 @@ DELIMITER ;
 -- FUNCIONES PARA CITAS Y SERVICIOS
 -- ============================================
 
--- Función: Obtener total de citas en un día
+-- Función: Obtener total de citas en un día ✅ YA SE ESTA USANDO (dashboard.php)
 DELIMITER $$
 CREATE FUNCTION total_citas_dia(p_fecha DATE)
 RETURNS INT
@@ -113,7 +97,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Función: Obtener total de citas completadas de una mascota
+-- Función: Obtener total de citas completadas de una mascota ✅ YA SE ESTA USANDO (historial_mascota.php)
 DELIMITER $$
 CREATE FUNCTION citas_completadas_mascota(p_mascota_id INT)
 RETURNS INT

@@ -24,6 +24,10 @@ if (!$mascota) {
     die('Mascota no encontrada');
 }
 
+// Agregar funciones para datos específicos
+$citas_completadas = $conn->query("SELECT citas_completadas_mascota($id_mascota) as total")->fetch_assoc()['total'];
+$ultima_cita = $conn->query("SELECT ultima_cita_mascota($id_mascota) as fecha")->fetch_assoc()['fecha'];
+
 // ========== USANDO vista_historial_mascota (DETALLE DE SERVICIOS) ==========
 // Esta vista muestra CADA SERVICIO por separado, no solo el resumen de la cita
 $sql_historial = "SELECT * FROM vista_historial_mascota WHERE mascota_id = ? ORDER BY fecha_cita DESC";
@@ -83,6 +87,10 @@ $citas = $stmt_citas->get_result();
                 <div class="info-card">
                     <div class="label">Total Visitas</div>
                     <div class="value">📋 <?php echo $mascota['total_citas']; ?></div>
+                </div>
+                <div class="info-card">
+                    <div class="label">Citas Completadas</div>
+                    <div class="value">✅ <?php echo $citas_completadas; ?></div>
                 </div>
                 <div class="info-card">
                     <div class="label">Última Visita</div>

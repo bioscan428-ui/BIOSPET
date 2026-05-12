@@ -152,8 +152,7 @@ $total_clientes = $conn->query("SELECT COUNT(*) as total FROM CLIENTE WHERE acti
                         $activo = $cliente['activo'] ?? 1;
                         
                         // Contar mascotas
-                        $sql_mascotas = "SELECT COUNT(*) as total FROM MASCOTA WHERE id_cliente = $id_cliente AND activo = 1";
-                        $total_mascotas = $conn->query($sql_mascotas)->fetch_assoc()['total'];
+                        $total_mascotas = $conn->query("SELECT total_mascotas_cliente($id_cliente) as total")->fetch_assoc()['total'];
                     ?>
                     <tr class="nivel-<?php echo $nivel; ?>">
                         <td><?php echo $id_cliente; ?></td>
