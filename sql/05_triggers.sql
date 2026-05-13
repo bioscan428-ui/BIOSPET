@@ -357,3 +357,30 @@ BEGIN
     END IF;
 END$$
 DELIMITER ;
+
+
+------TABLA DETALLE_VENTA
+DELIMITER $$
+
+DROP TRIGGER IF EXISTS after_insert_detalle_venta$$
+
+CREATE TRIGGER after_insert_detalle_venta
+AFTER INSERT ON DETALLE_VENTA
+FOR EACH ROW
+BEGIN
+    -- Actualizar stock restando la cantidad vendida
+    UPDATE PRODUCTO 
+    SET stock_actual = stock_actual - NEW.cantidad
+    WHERE id = NEW.id_producto;
+    
+    -- Registrar movimiento de inventario (opcional)
+    INSERT INTO MOVIMIENTO_INVENTARIO 
+        (id_producto, tipo, cantidad, motivo, referencia, id_empleado)
+    VALUES 
+        (NEW.id_producto, 'salida', NEW.cantidad, 
+        CONCAT('Venta #', NEW.id_venta), 
+        CONCAT('VENTA-', NEW.id_venta), 
+        (SELECT id_empleado FROM VENTA WHERE id = NEW.id_venta));
+END$$
+
+DELIMITER ;

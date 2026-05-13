@@ -105,6 +105,41 @@ ini_set('display_errors', 1);
                 }
                 ?>
             </div>
+            <!-- ===== NUEVOOOOOOOOOOOOOOOOO SLIDER DE IMÁGENES ===== -->
+            <div class="servicios-slider">
+                <div class="slider-container">
+                    <div class="slider-track">
+                        <div class="slider-slide">
+                            <img src="assets/images/tomografia.png" alt="Tomografía">
+                            <p>Tomografía</p>
+                        </div>
+                        <div class="slider-slide">
+                            <img src="assets/images/rayosx.png" alt="Rayos X">
+                            <p>Rayos X</p>
+                        </div>
+                        <div class="slider-slide">
+                            <img src="assets/images/ultrasonido.png" alt="Ultrasonido">
+                            <p>Ultrasonido</p>
+                        </div>
+                        <div class="slider-slide">
+                            <img src="assets/images/electrocardiograma.png" alt="Electrocardiograma">
+                            <p>Electrocardiograma</p>
+                        </div>
+                        <div class="slider-slide">
+                            <img src="assets/images/consulta.png" alt="Consulta">
+                            <p>Consulta General</p>
+                        </div>
+                        <div class="slider-slide">
+                            <img src="assets/images/bano.png" alt="Baño">
+                            <p>Baño</p>
+                        </div>
+                    </div>
+                </div>
+                <button class="slider-btn prev" id="sliderPrev">❮</button>
+                <button class="slider-btn next" id="sliderNext">❯</button>
+                <div class="slider-dots" id="sliderDots"></div>
+            </div>
+            <!-- ===== FIN DE NUEVO SLIDER DE IMÁGENES ===== -->
 
         </div>
     </section>
@@ -227,8 +262,44 @@ ini_set('display_errors', 1);
                     loading="lazy" 
                     referrerpolicy="no-referrer-when-downgrade">
                 </iframe>
+            </div>
         </div>
+        <!-- ===== NUEVA SECCIÓN: REDES SOCIALES DEBAJO DEL MAPA ===== -->
+        <div class="redes-sociales">
+            <h3>Síguenos en redes sociales</h3>
+            <div class="social-icons">
+                <a href="https://www.facebook.com/tu-clinica" target="_blank" class="social-icon facebook" aria-label="Facebook">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c5.05-.5 9-4.76 9-9.95z"/>
+                    </svg>
+                </a>
+                <a href="https://www.instagram.com/tu-clinica" target="_blank" class="social-icon instagram" aria-label="Instagram">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 
+                        4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 
+                        0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 
+                        2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 
+                        4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 
+                        15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 
+                        0 000-2.881z"/>
+                    </svg>
+                </a>
+                <a href="https://wa.me/521234567890" target="_blank" class="social-icon whatsapp" aria-label="WhatsApp">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.74.44 3.44 1.23 4.93L2 22l
+                        5.35-1.35c1.43.77 3.05 1.19 4.69 1.19 5.46 0 9.91-4.45 9.91-9.91 0-5.45-4.45-9.9-9.91-9.9zm-.01 15.2
+                        4c-1.37 0-2.71-.37-3.88-1.07l-.28-.16-3.16.86.86-3.05-.18-.29c-.79-1.25-1.21-2.69-1.21-4.16 0-4.43
+                        3.61-8.04 8.04-8.04s8.04 3.61 8.04 8.04-3.61 8.04-8.04 8.04zM16.52 14.45c-.25-.13-1.48-.73-1.71-.81
+                        -.23-.08-.4-.13-.57.13-.17.26-.65.81-.8.98-.15.17-.3.19-.55.06-.25-.13-1.06-.39-2.02-1.25-.75-.67-1.
+                        25-1.5-1.4-1.75-.15-.25-.02-.38.11-.51.11-.11.25-.29.38-.44.13-.15.17-.26.25-.43.09-.17.04-.32-.02-.
+                        45-.06-.13-.57-1.37-.78-1.87-.21-.5-.4-.42-.57-.42-.15 0-.33-.01-.5-.01-.17 0-.45.07-.69.33-.24.26-.
+                        92.9-.92 2.2 0 1.3.95 2.55 1.08 2.73.13.18 1.86 2.85 4.51 3.98.63.27 1.12.43 1.5.55.63.2 1.2.17 1.6
+                        6.1.51-.07 1.57-.64 1.79-1.26.22-.62.22-1.15.15-1.26-.07-.11-.26-.18-.51-.31z"/>
+                    </svg>
+                </a>
+            </div>
         </div>
+        <!-- =====  FIN DE NUEVA SECCIÓN: REDES SOCIALES DEBAJO DEL MAPA ===== -->
     </section>
 
     <!-- Footer -->

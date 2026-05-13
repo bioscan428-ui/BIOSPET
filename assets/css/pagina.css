@@ -477,3 +477,137 @@ nav {
 .section-header h2 span {
     color: var(--primary);
 }
+
+
+/* ===== NUEVOOOOOOOOOOOOOOOOOOOOOOOOOOOO SLIDER DE SERVICIOS ===== */
+
+/* ===== SLIDER DE SERVICIOS ===== */
+.servicios-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: start;
+}
+
+/* Grid de servicios (lado izquierdo) */
+.servicios-grid {
+    max-width: 100%;
+}
+
+/* Slider de imágenes (lado derecho) */
+.servicios-slider {
+    position: relative;
+    background: linear-gradient(135deg, #fff9f0, #fff);
+    border-radius: 24px;
+    padding: 20px;
+    box-shadow: var(--shadow-soft);
+    overflow: hidden;
+}
+
+.slider-container {
+    overflow: hidden;
+    border-radius: 16px;
+}
+
+.slider-track {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+}
+
+.slider-slide {
+    min-width: 100%;
+    text-align: center;
+    padding: 20px;
+}
+
+.slider-slide img {
+    width: 100%;
+    max-width: 280px;
+    height: 200px;
+    object-fit: cover;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+}
+
+.slider-slide img:hover {
+    transform: scale(1.02);
+}
+
+.slider-slide p {
+    margin-top: 15px;
+    font-weight: 600;
+    color: var(--primary);
+    font-size: 1.1rem;
+}
+
+/* Botones de navegación */
+.slider-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--primary);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.3s;
+    z-index: 10;
+}
+
+.slider-btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-50%) scale(1.05);
+}
+
+.prev {
+    left: 10px;
+}
+
+.next {
+    right: 10px;
+}
+
+/* Dots (indicadores) */
+.slider-dots {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ddd;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.dot.active {
+    background: var(--primary);
+    width: 25px;
+    border-radius: 10px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .servicios-layout {
+        grid-template-columns: 1fr;
+    }
+    
+    .slider-slide img {
+        max-width: 220px;
+        height: 160px;
+    }
+    
+    .slider-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+    }
+}

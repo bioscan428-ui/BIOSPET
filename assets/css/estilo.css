@@ -85,3 +85,116 @@ nav a:hover {
     transform: scale(1.05);
     box-shadow: var(--shadow-soft);
 }
+
+/* ===== REDES SOCIALES DEBAJO DEL MAPA ===== */
+.redes-sociales {
+    text-align: center;
+    margin-top: 40px;
+    padding: 30px 20px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+
+.redes-sociales h3 {
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+    color: #333;
+    position: relative;
+    display: inline-block;
+    }
+
+.redes-sociales h3:after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50px;
+    height: 3px;
+    background: var(--primary);
+    border-radius: 3px;
+}
+
+.social-icons {
+    display: flex;
+    justify-content: center;
+    gap: 25px;
+    flex-wrap: wrap;
+}
+
+.social-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+.social-icon svg {
+    width: 28px;
+    height: 28px;
+    transition: all 0.3s ease;
+}
+
+/* Facebook */
+.social-icon.facebook {
+    background: #1877f2;
+    color: white;
+}
+
+.social-icon.facebook:hover {
+    background: #0d65d9;
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(24,119,242,0.3);
+}
+
+/* Instagram */
+.social-icon.instagram {
+    background: radial-gradient(circle at 30% 110%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%);
+    color: white;
+}
+
+.social-icon.instagram:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(214,36,159,0.3);
+}
+
+/* WhatsApp */
+.social-icon.whatsapp {
+    background: #25D366;
+    color: white;
+}
+
+.social-icon.whatsapp:hover {
+    background: #128C7E;
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(37,211,102,0.3);
+}
+
+/* Efecto hover general */
+.social-icon:hover svg {
+    transform: scale(1.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .social-icons {
+        gap: 15px;
+    }
+    .social-icon {
+        width: 45px;
+        height: 45px;
+    }
+    .social-icon svg {
+        width: 24px;
+        height: 24px;
+    }
+    .redes-sociales {
+        margin-top: 30px;
+        padding: 20px;
+    }
+}

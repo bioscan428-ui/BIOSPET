@@ -113,7 +113,7 @@ BEGIN
 END$$
 DELIMITER ;
 
--- Función: Obtener total de servicios solicitados en una cita
+-- Función: Obtener total de servicios solicitados en una cita ✅ YA SE ESTA USANDO (detalle_cita.php)
 DELIMITER $$
 CREATE FUNCTION total_servicios_cita(p_cita_id INT)
 RETURNS INT

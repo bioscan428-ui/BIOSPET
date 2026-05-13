@@ -57,6 +57,9 @@ if (!$cita) {
     die("Cita no encontrada");
 }
 
+// ========== USAR FUNCIÓN total_servicios_cita ==========
+$total_servicios_cita = $conn->query("SELECT total_servicios_cita($id_cita) as total")->fetch_assoc()['total'];
+
 // Obtener productos ya agregados a esta cita
 $sql_productos_cita = "SELECT COALESCE(SUM(dv.subtotal), 0) as total_productos 
                        FROM DETALLE_VENTA dv
@@ -166,77 +169,6 @@ $productos = $conn->query($sql_productos);
     <title>Detalle Cita #<?php echo $id_cita; ?> - BIOSPET</title>
     <link rel="stylesheet" href="../assets/css/global.css">
     <link rel="stylesheet" href="../assets/css/detalle_cita.css">
-    <style>
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            overflow-y: auto;
-        }
-        .modal-content {
-            background-color: white;
-            margin: 50px auto;
-            padding: 0;
-            width: 90%;
-            max-width: 500px;
-            border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-            animation: slideDown 0.3s ease;
-        }
-        @keyframes slideDown {
-            from { transform: translateY(-50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        .modal-header {
-            padding: 15px 20px;
-            border-radius: 10px 10px 0 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .modal-header h2 { margin: 0; color: white; font-size: 1.2rem; }
-        .modal-body { padding: 20px; }
-        .close-modal { color: white; font-size: 28px; font-weight: bold; cursor: pointer; }
-        .close-modal:hover { color: #ddd; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
-        .btn-guardar { background: var(--primary); color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
-        .btn-pago { background: #4caf50; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 12px; }
-        .btn-producto { background: #ff9800; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 12px; }
-        
-        .producto-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-        }
-        .producto-item:hover { background: #f9f9f9; }
-        .producto-info { flex: 2; }
-        .producto-nombre { font-weight: bold; }
-        .producto-precio { color: var(--primary); }
-        .producto-stock { font-size: 11px; color: #666; }
-        .btn-agregar-producto { background: #4caf50; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 11px; }
-        .productos-seleccionados { margin-top: 15px; }
-        .producto-seleccionado {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px;
-            background: #f5f5f5;
-            margin-bottom: 5px;
-            border-radius: 5px;
-        }
-        .btn-eliminar-producto { background: #f44336; color: white; border: none; padding: 3px 8px; border-radius: 3px; cursor: pointer; font-size: 10px; }
-        .total-recibo { text-align: right; font-size: 1.2rem; font-weight: bold; margin-top: 15px; padding-top: 10px; border-top: 2px solid #eee; }
-        .total-row { margin-top: 15px; padding-top: 10px; border-top: 2px solid var(--primary); }
-    </style>
 </head>
 <body>
     <div class="admin-header">
@@ -413,7 +345,12 @@ $productos = $conn->query($sql_productos);
             <h3>💊 Servicios Solicitados</h3>
             <div class="info-row">
                 <div class="info-label">Servicios:</div>
-                <div class="info-value"><?php echo !empty($cita['servicios']) ? $cita['servicios'] : '<span class="sin-servicios">(Sin servicios asignados)</span>'; ?></div>
+                <div class="info-value">
+                    <?php echo !empty($cita['servicios']) ? $cita['servicios'] : '<span class="sin-servicios">(Sin servicios asignados)</span>'; ?>
+                    <?php if ($total_servicios_cita > 0): ?>
+                        <span class="badge-servicios">📋 <?php echo $total_servicios_cita; ?> servicio(s)</span>
+                    <?php endif; ?>
+                </div>
             </div>
             <div class="info-row">
                 <div class="info-label">Total Servicios:</div>
@@ -559,25 +496,30 @@ $productos = $conn->query($sql_productos);
                         
                         if ($servicios_pago->num_rows > 0):
                         ?>
-                        <table style="width: 100%; border-collapse: collapse;">
-                            <thead>
-                                <tr><th>Servicio</th><th style="text-align: right;">Precio</th></tr>
-                            </thead>
-                            <tbody>
-                                <?php while($serv = $servicios_pago->fetch_assoc()): ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars($serv['nombre_servicio']); ?></td>
-                                    <td style="text-align: right;">$<?php echo number_format($serv['precio_fijado'], 2); ?></td>
-                                </tr>
-                                <?php endwhile; ?>
-                            </tbody>
-                            <tfoot>
-                                <tr>
-                                    <td><strong>Total Servicios:</strong></td>
-                                    <td style="text-align: right;"><strong>$<?php echo number_format($cita['total_servicios'], 2); ?></strong></td>
-                                </tr>
-                            </tfoot>
-                        </table>
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: var(--primary); color: white;">
+                                        <th style="padding: 8px; text-align: left;">Servicio</th>
+                                        <th style="padding: 8px; text-align: right;">Precio</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php while($serv = $servicios_pago->fetch_assoc()): ?>
+                                    <tr>
+                                        <td style="padding: 8px; border-bottom: 1px solid #eee;"><?php echo htmlspecialchars($serv['nombre_servicio']); ?></td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid #eee;">$<?php echo number_format($serv['precio_fijado'], 2); ?></td>
+                                    </tr>
+                                    <?php endwhile; ?>
+                                </tbody>
+                                <tfoot>
+                                    <tr style="background: #f9f9f9; font-weight: bold;">
+                                        <td style="padding: 8px;">Total Servicios:</td>
+                                        <td style="padding: 8px; text-align: right;">$<?php echo number_format($cita['total_servicios'], 2); ?></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
                         <?php else: ?>
                         <p>No hay servicios solicitados</p>
                         <?php endif; ?>
@@ -602,32 +544,34 @@ $productos = $conn->query($sql_productos);
                         
                         if ($productos_pago->num_rows > 0):
                         ?>
-                        <table style="width: 100%; border-collapse: collapse;">
-                            <thead>
-                                <tr>
-                                    <th>Producto</th>
-                                    <th style="text-align: center;">Cantidad</th>
-                                    <th style="text-align: right;">Precio</th>
-                                    <th style="text-align: right;">Subtotal</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php while($prod = $productos_pago->fetch_assoc()): ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars($prod['nombre']); ?></td>
-                                    <td style="text-align: center;"><?php echo $prod['cantidad']; ?></td>
-                                    <td style="text-align: right;">$<?php echo number_format($prod['precio_unitario'], 2); ?></td>
-                                    <td style="text-align: right;">$<?php echo number_format($prod['subtotal'], 2); ?></td>
-                                </tr>
-                                <?php endwhile; ?>
-                            </tbody>
-                            <tfoot>
-                                <tr>
-                                    <td colspan="3"><strong>Total Productos:</strong></td>
-                                    <td style="text-align: right;"><strong>$<?php echo number_format($total_productos, 2); ?></strong></td>
-                                </tr>
-                            </tfoot>
-                        </table>
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: var(--primary); color: white;">
+                                        <th style="padding: 8px; text-align: left;">Producto</th>
+                                        <th style="padding: 8px; text-align: center;">Cantidad</th>
+                                        <th style="padding: 8px; text-align: right;">Precio</th>
+                                        <th style="padding: 8px; text-align: right;">Subtotal</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php while($prod = $productos_pago->fetch_assoc()): ?>
+                                    <tr>
+                                        <td style="padding: 8px; border-bottom: 1px solid #eee;"><?php echo htmlspecialchars($prod['nombre']); ?></td>
+                                        <td style="padding: 8px; text-align: center; border-bottom: 1px solid #eee;"><?php echo $prod['cantidad']; ?></td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid #eee;">$<?php echo number_format($prod['precio_unitario'], 2); ?></td>
+                                        <td style="padding: 8px; text-align: right; border-bottom: 1px solid #eee;">$<?php echo number_format($prod['subtotal'], 2); ?></td>
+                                    </tr>
+                                    <?php endwhile; ?>
+                                </tbody>
+                                <tfoot>
+                                    <tr style="background: #f9f9f9; font-weight: bold;">
+                                        <td colspan="3" style="padding: 8px;">Total Productos:</td>
+                                        <td style="padding: 8px; text-align: right;">$<?php echo number_format($total_productos, 2); ?></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
                         <?php else: ?>
                         <p>No hay productos agregados</p>
                         <?php endif; ?>
