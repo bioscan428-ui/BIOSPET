@@ -133,13 +133,13 @@ try {
     
     escribirLog("Venta creada", ['id_venta' => $id_venta]);
     
-    // 3. Crear DETALLE_VENTA y ACTUALIZAR STOCK DIRECTAMENTE
-    escribirLog("=== CREANDO DETALLES Y ACTUALIZANDO STOCK ===");
+    // 3. Crear DETALLE_VENTA (el trigger se encarga del stock)
+    escribirLog("=== CREANDO DETALLES DE VENTA ===");
     $contador_detalles = 0;
     
     foreach ($productos as $prod) {
         // Obtener datos del producto
-        $sql_producto = "SELECT precio_venta, nombre, stock_actual FROM PRODUCTO WHERE id = ?";
+        $sql_producto = "SELECT precio_venta, nombre FROM PRODUCTO WHERE id = ?";
         $stmt_producto = $conn->prepare($sql_producto);
         $stmt_producto->bind_param("i", $prod['id']);
         $stmt_producto->execute();
@@ -152,14 +152,13 @@ try {
         $precio_unitario = $producto['precio_venta'];
         $subtotal_prod = $precio_unitario * $prod['cantidad'];
         
-        escribirLog("Procesando producto", [
+        escribirLog("Insertando detalle", [
             'id_producto' => $prod['id'],
             'nombre' => $producto['nombre'],
-            'stock_actual' => $producto['stock_actual'],
-            'cantidad_vender' => $prod['cantidad']
+            'cantidad' => $prod['cantidad']
         ]);
         
-        // Insertar detalle de venta
+        // Insertar detalle de venta (el trigger after_insert_detalle_venta actualizará el stock)
         $sql_detalle = "INSERT INTO DETALLE_VENTA (id_venta, id_producto, cantidad, precio_unitario, subtotal) 
                         VALUES (?, ?, ?, ?, ?)";
         $stmt_detalle = $conn->prepare($sql_detalle);
@@ -169,25 +168,12 @@ try {
             throw new Exception("Error al insertar detalle: " . $stmt_detalle->error);
         }
         
-        // ACTUALIZAR STOCK (la parte importante que faltaba)
-        $sql_update = "UPDATE PRODUCTO SET stock_actual = stock_actual - ? WHERE id = ?";
-        $stmt_update = $conn->prepare($sql_update);
-        $stmt_update->bind_param("ii", $prod['cantidad'], $prod['id']);
-        
-        if (!$stmt_update->execute()) {
-            throw new Exception("Error al actualizar stock: " . $stmt_update->error);
-        }
-        
-        escribirLog("Stock actualizado", [
-            'id_producto' => $prod['id'],
-            'cantidad_restada' => $prod['cantidad'],
-            'filas_afectadas' => $stmt_update->affected_rows
-        ]);
-        
         $contador_detalles++;
+        
+        // ⚠️ NO actualizamos stock aquí porque el trigger after_insert_detalle_venta ya lo hace
     }
     
-    escribirLog("Total detalles insertados y stock actualizado", ['cantidad' => $contador_detalles]);
+    escribirLog("Total detalles insertados", ['cantidad' => $contador_detalles]);
     
     // 4. Registrar PAGO
     escribirLog("=== REGISTRANDO PAGO ===");

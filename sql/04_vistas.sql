@@ -75,16 +75,23 @@ SELECT
     cl.ape_mat,
     cl.telefono,
     cl.email,
-    COUNT(DISTINCT m.id) AS total_mascotas,
-    COUNT(DISTINCT c.id) AS total_citas,
-    SUM(CASE WHEN c.estado = 'completada' THEN 1 ELSE 0 END) AS citas_completadas,
-    SUM(dc.precio_fijado) AS total_gastado
+    cl.fecha_registro,
+    cl.activo,
+    -- Mascotas (subconsulta)
+    (SELECT COUNT(*) FROM MASCOTA WHERE id_cliente = cl.id AND activo = 1) AS total_mascotas,
+    -- Total citas (subconsulta)
+    (SELECT COUNT(*) FROM CITA c JOIN MASCOTA m ON c.id_mascota = m.id WHERE m.id_cliente = cl.id) AS total_citas,
+    -- Citas completadas (subconsulta)
+    (SELECT COUNT(*) FROM CITA c JOIN MASCOTA m ON c.id_mascota = m.id WHERE m.id_cliente = cl.id AND c.estado = 'completada') AS citas_completadas,
+    -- Total gastado (subconsulta: ventas + servicios)
+    (SELECT COALESCE(SUM(total), 0) FROM VENTA WHERE id_cliente = cl.id AND estado = 'completada') +
+    (SELECT COALESCE(SUM(dc.precio_fijado), 0) 
+     FROM CITA c 
+     JOIN MASCOTA m ON c.id_mascota = m.id 
+     JOIN DETALLE_CITA dc ON c.id = dc.id_cita 
+     WHERE m.id_cliente = cl.id AND c.estado = 'completada') AS total_gastado
 FROM CLIENTE cl
-LEFT JOIN MASCOTA m ON cl.id = m.id_cliente AND m.activo = 1
-LEFT JOIN CITA c ON m.id = c.id_mascota
-LEFT JOIN DETALLE_CITA dc ON c.id = dc.id_cita
 WHERE cl.activo = 1
-GROUP BY cl.id
 ORDER BY total_gastado DESC;
 
 CREATE OR REPLACE VIEW vista_mascotas_completas AS

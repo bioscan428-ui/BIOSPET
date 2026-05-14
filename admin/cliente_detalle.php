@@ -21,47 +21,118 @@ if (!$id_cliente) {
     exit;
 }
 
-// ========== USANDO vista_clientes_activos (resumen de actividad) ==========
-$sql_cliente = "SELECT * FROM vista_clientes_activos WHERE id = ?";
-$stmt = $conn->prepare($sql_cliente);
-$stmt->bind_param("i", $id_cliente);
-$stmt->execute();
-$cliente = $stmt->get_result()->fetch_assoc();
+// ========== OBTENER DATOS DEL CLIENTE EN TIEMPO REAL ==========
+// Datos básicos del cliente
+$sql_cliente_base = "SELECT * FROM CLIENTE WHERE id = ?";
+$stmt_base = $conn->prepare($sql_cliente_base);
+$stmt_base->bind_param("i", $id_cliente);
+$stmt_base->execute();
+$cliente = $stmt_base->get_result()->fetch_assoc();
 
 if (!$cliente) {
-    // Si no está en la vista activos, buscar en CLIENTE directamente
-    $sql_cliente_base = "SELECT * FROM CLIENTE WHERE id = ?";
-    $stmt_base = $conn->prepare($sql_cliente_base);
-    $stmt_base->bind_param("i", $id_cliente);
-    $stmt_base->execute();
-    $cliente = $stmt_base->get_result()->fetch_assoc();
-    
-    if (!$cliente) {
-        die('Cliente no encontrado');
-    }
-    // Inicializar valores por defecto
-    $cliente['total_mascotas'] = 0;
-    $cliente['total_citas'] = 0;
-    $cliente['citas_completadas'] = 0;
-    $cliente['total_gastado'] = 0;
+    die('Cliente no encontrado');
 }
 
-// ========== USANDO vista_cliente_fidelidad (puntos y nivel) ==========
-$sql_fidelidad = "SELECT * FROM vista_cliente_fidelidad WHERE cliente_id = ?";
+// ========== CALCULAR ESTADÍSTICAS EN TIEMPO REAL ==========
+
+// Total de mascotas
+$sql_mascotas = "SELECT COUNT(*) as total FROM MASCOTA WHERE id_cliente = ? AND activo = 1";
+$stmt_masc = $conn->prepare($sql_mascotas);
+$stmt_masc->bind_param("i", $id_cliente);
+$stmt_masc->execute();
+$cliente['total_mascotas'] = $stmt_masc->get_result()->fetch_assoc()['total'];
+
+// Total de citas
+$sql_citas_total = "SELECT COUNT(*) as total 
+                    FROM CITA c
+                    JOIN MASCOTA m ON c.id_mascota = m.id
+                    WHERE m.id_cliente = ?";
+$stmt_citas_total = $conn->prepare($sql_citas_total);
+$stmt_citas_total->bind_param("i", $id_cliente);
+$stmt_citas_total->execute();
+$cliente['total_citas'] = $stmt_citas_total->get_result()->fetch_assoc()['total'];
+
+// Citas completadas
+$sql_completadas = "SELECT COUNT(*) as total 
+                    FROM CITA c
+                    JOIN MASCOTA m ON c.id_mascota = m.id
+                    WHERE m.id_cliente = ? AND c.estado = 'completada'";
+$stmt_completadas = $conn->prepare($sql_completadas);
+$stmt_completadas->bind_param("i", $id_cliente);
+$stmt_completadas->execute();
+$cliente['citas_completadas'] = $stmt_completadas->get_result()->fetch_assoc()['total'];
+
+// Total gastado en ventas de productos
+$sql_ventas = "SELECT COALESCE(SUM(total), 0) as total FROM VENTA WHERE id_cliente = ? AND estado = 'completada'";
+$stmt_ventas = $conn->prepare($sql_ventas);
+$stmt_ventas->bind_param("i", $id_cliente);
+$stmt_ventas->execute();
+$total_ventas = $stmt_ventas->get_result()->fetch_assoc()['total'];
+
+// Total gastado en servicios (citas completadas)
+$sql_servicios = "SELECT COALESCE(SUM(dc.precio_fijado), 0) as total 
+                  FROM CITA c
+                  JOIN MASCOTA m ON c.id_mascota = m.id
+                  JOIN DETALLE_CITA dc ON c.id = dc.id_cita
+                  WHERE m.id_cliente = ? AND c.estado = 'completada'";
+$stmt_servicios = $conn->prepare($sql_servicios);
+$stmt_servicios->bind_param("i", $id_cliente);
+$stmt_servicios->execute();
+$total_servicios = $stmt_servicios->get_result()->fetch_assoc()['total'];
+
+$cliente['total_gastado'] = $total_ventas + $total_servicios;
+
+// ========== OBTENER DATOS DE FIDELIDAD ==========
+$sql_fidelidad = "SELECT 
+                    COALESCE(cp.puntos_actuales, 0) as puntos_actuales,
+                    COALESCE(cp.puntos_acumulados_historial, 0) as puntos_acumulados,
+                    cp.ultima_actualizacion,
+                    CASE 
+                        WHEN COALESCE(cp.puntos_actuales, 0) >= 500 THEN 'platino'
+                        WHEN COALESCE(cp.puntos_actuales, 0) >= 300 THEN 'oro'
+                        WHEN COALESCE(cp.puntos_actuales, 0) >= 100 THEN 'plata'
+                        ELSE 'bronce'
+                    END as nivel
+                  FROM CLIENTE c
+                  LEFT JOIN CLIENTE_PUNTOS cp ON c.id = cp.id_cliente
+                  WHERE c.id = ?";
 $stmt_fid = $conn->prepare($sql_fidelidad);
 $stmt_fid->bind_param("i", $id_cliente);
 $stmt_fid->execute();
 $fidelidad = $stmt_fid->get_result()->fetch_assoc();
 
-// Obtener mascotas del cliente
-$sql_mascotas = "SELECT * FROM MASCOTA WHERE id_cliente = ? AND activo = 1 ORDER BY nombre_mascota";
-$stmt_masc = $conn->prepare($sql_mascotas);
-$stmt_masc->bind_param("i", $id_cliente);
-$stmt_masc->execute();
-$mascotas = $stmt_masc->get_result();
+if (!$fidelidad) {
+    $fidelidad = [
+        'puntos_actuales' => 0,
+        'puntos_acumulados' => 0,
+        'nivel' => 'bronce'
+    ];
+}
 
-// Obtener citas recientes del cliente (usando vista_citas_completas)
-$sql_citas = "SELECT * FROM vista_citas_completas WHERE cliente_id = ? ORDER BY fecha_cita DESC, hora_cita DESC LIMIT 10";
+// Obtener mascotas del cliente (para la tabla)
+$sql_mascotas_lista = "SELECT * FROM MASCOTA WHERE id_cliente = ? AND activo = 1 ORDER BY nombre_mascota";
+$stmt_masc_lista = $conn->prepare($sql_mascotas_lista);
+$stmt_masc_lista->bind_param("i", $id_cliente);
+$stmt_masc_lista->execute();
+$mascotas = $stmt_masc_lista->get_result();
+
+// Obtener citas recientes del cliente
+$sql_citas = "SELECT 
+                c.id,
+                c.fecha_cita,
+                c.hora_cita,
+                c.estado,
+                m.nombre_mascota,
+                GROUP_CONCAT(s.nombre_servicio SEPARATOR ', ') as servicios,
+                SUM(dc.precio_fijado) as total_cobrado
+              FROM CITA c
+              JOIN MASCOTA m ON c.id_mascota = m.id
+              JOIN DETALLE_CITA dc ON c.id = dc.id_cita
+              JOIN SERVICIO s ON dc.id_servicio = s.id
+              WHERE m.id_cliente = ?
+              GROUP BY c.id
+              ORDER BY c.fecha_cita DESC, c.hora_cita DESC
+              LIMIT 10";
 $stmt_citas = $conn->prepare($sql_citas);
 $stmt_citas->bind_param("i", $id_cliente);
 $stmt_citas->execute();
@@ -75,24 +146,21 @@ $citas_recientes = $stmt_citas->get_result();
     <title>Detalle de Cliente - BIOSPET</title>
     <link rel="stylesheet" href="../assets/css/global.css">
     <link rel="stylesheet" href="../assets/css/cliente_detalle.css">
-    
 </head>
 <body>
     <div class="container">
         <a href="clientes.php" class="btn-volver">← Volver a Clientes</a>
         
-        <!-- Información del Cliente (usando vista_clientes_activos) -->
+        <!-- Información del Cliente -->
         <div class="cliente-card">
             <div class="cliente-header">
-                <h1>🐾 <?php echo htmlspecialchars($cliente['nombre'] . ' ' . $cliente['ape_pat'] . ' ' . $cliente['ape_mat']); ?></h1>
-                <?php if ($fidelidad): ?>
-                <div class="nivel-badge">
+                <h1>🐾 <?php echo htmlspecialchars($cliente['nombre'] . ' ' . ($cliente['ape_pat'] ?? '') . ' ' . ($cliente['ape_mat'] ?? '')); ?></h1>
+                <div class="nivel-badge nivel-<?php echo $fidelidad['nivel']; ?>">
                     <?php 
                     $iconos = ['bronce' => '🥉', 'plata' => '🥈', 'oro' => '🥇', 'platino' => '💎'];
                     echo $iconos[$fidelidad['nivel']] . ' ' . ucfirst($fidelidad['nivel']);
                     ?>
                 </div>
-                <?php endif; ?>
             </div>
             <div class="info-grid">
                 <div class="info-item">
@@ -114,7 +182,7 @@ $citas_recientes = $stmt_citas->get_result();
             </div>
         </div>
         
-        <!-- Tarjetas de estadísticas (usando vista_clientes_activos) -->
+        <!-- Tarjetas de estadísticas -->
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-number"><?php echo $cliente['total_mascotas'] ?? 0; ?></div>
@@ -134,27 +202,17 @@ $citas_recientes = $stmt_citas->get_result();
             </div>
         </div>
         
-        <!-- Tarjetas de Fidelidad (usando vista_cliente_fidelidad) -->
-        <?php if ($fidelidad): ?>
+        <!-- Tarjetas de Fidelidad -->
         <div class="stats-grid">
-            <div class="stat-card puntos-card">
+            <div class="stat-card">
                 <div class="stat-number"><?php echo number_format($fidelidad['puntos_actuales']); ?></div>
-                <div class="stat-label">⭐ Puntos Acumulados</div>
+                <div class="stat-label">⭐ Puntos Disponibles</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number"><?php echo $fidelidad['puntos_acumulados'] ?? 0; ?></div>
+                <div class="stat-number"><?php echo number_format($fidelidad['puntos_acumulados']); ?></div>
                 <div class="stat-label">📊 Puntos Históricos</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-number"><?php echo $fidelidad['descuento_maximo']; ?>%</div>
-                <div class="stat-label">🎯 Descuento Máximo</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number"><?php echo $fidelidad['multiplicador_puntos']; ?>x</div>
-                <div class="stat-label">⚡ Multiplicador de Puntos</div>
-            </div>
         </div>
-        <?php endif; ?>
         
         <!-- Mascotas del Cliente -->
         <div class="seccion">
@@ -200,7 +258,7 @@ $citas_recientes = $stmt_citas->get_result();
             <?php endif; ?>
         </div>
         
-        <!-- Citas Recientes (usando vista_citas_completas) -->
+        <!-- Citas Recientes -->
         <div class="seccion">
             <h2>📋 Citas Recientes</h2>
             <?php if ($citas_recientes->num_rows > 0): ?>
@@ -225,7 +283,7 @@ $citas_recientes = $stmt_citas->get_result();
                             <td><?php echo substr($cita['servicios'], 0, 50) . (strlen($cita['servicios']) > 50 ? '...' : ''); ?></td>
                             <td>$<?php echo number_format($cita['total_cobrado'], 2); ?></td>
                             <td><span class="estado-<?php echo $cita['estado']; ?>"><?php echo ucfirst($cita['estado']); ?></span></td>
-                            <td><a href="detalle_cita.php?id=<?php echo $cita['cita_id']; ?>" class="btn-small">Ver</a></td>
+                            <td><a href="detalle_cita.php?id=<?php echo $cita['id']; ?>" class="btn-small">Ver</a></td>
                         </tr>
                         <?php endwhile; ?>
                     </tbody>

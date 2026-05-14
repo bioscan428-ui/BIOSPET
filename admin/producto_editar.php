@@ -42,6 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nombre = trim($_POST['nombre']);
     $descripcion = trim($_POST['descripcion']);
     $codigo_barras = trim($_POST['codigo_barras']);
+    if($codigo_barras === ''){
+        $codigo_barras = null;
+    }
     $id_categoria = (int)$_POST['id_categoria'];
     $precio_compra = (float)$_POST['precio_compra'];
     $precio_venta = (float)$_POST['precio_venta'];

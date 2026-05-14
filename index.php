@@ -325,9 +325,7 @@ ini_set('display_errors', 1);
                     <p>🕘 Otras sedes: 9:00 - 21:00</p>
                 </div>
                 <div class="footer-col">
-                    <h3 class="footer-title">Síguenos</h3>
-                    <a href="#" class="footer-link">📱 Facebook</a>
-                    <a href="#" class="footer-link">📷 Instagram</a>
+                    
                     <a href="admin/login.php" class="footer-link footer-admin">🔐 Administración</a>
                 </div>
             </div>
@@ -362,6 +360,97 @@ ini_set('display_errors', 1);
             menu.classList.toggle('active');
         });
     }
+
+     // ===== SLIDER DE SERVICIOS (AUTOMÁTICO) =====
+    const sliderTrack = document.querySelector('.slider-track');
+    const slides = document.querySelectorAll('.slider-slide');
+    const prevBtn = document.getElementById('sliderPrev');
+    const nextBtn = document.getElementById('sliderNext');
+    const dotsContainer = document.getElementById('sliderDots');
+
+    let currentIndex = 0;
+    const totalSlides = slides.length;
+    let autoSlideInterval;
+    const autoSlideDelay = 3000; // 3 segundos
+
+    //Crear dots
+    function createDots(){
+        if(!dotsContainer) return;
+        dotsContainer.innerHTML = '';
+        for (let i = 0; i <= totalSlides; i++){
+            const dot = document.createElement('div');
+            dot.classList.add('dot');
+            if(i === currentIndex) dot.classList.add('active');
+            dot.addEventListener('click', () => goToSlide(i));
+            dotsContainer.appendChild(dot);
+        }
+    }
+
+    // Ir a slide específico
+    function goToSlide(index) {
+        if (index < 0) index = 0;
+        if (index >= totalSlides) index = totalSlides - 1;
+        currentIndex = index;
+        sliderTrack.style.transform = `translateX(-${currentIndex * 100}%)`;
+        
+        // Actualizar dots
+        document.querySelectorAll('.dot').forEach((dot, i) => {
+            dot.classList.toggle('active', i === currentIndex);
+        });
+    }
+
+    // Siguiente slide
+    function nextSlide() {
+        if (currentIndex < totalSlides - 1) {
+            goToSlide(currentIndex + 1);
+        } else {
+            goToSlide(0); // Volver al inicio
+        }
+    }
+
+    // Anterior slide
+    function prevSlide() {
+        if (currentIndex > 0) {
+            goToSlide(currentIndex - 1);
+        } else {
+            goToSlide(totalSlides - 1); // Ir al final
+        }
+    }
+
+    // Iniciar auto-slide
+    function startAutoSlide() {
+        if (autoSlideInterval) clearInterval(autoSlideInterval);
+        autoSlideInterval = setInterval(nextSlide, autoSlideDelay);
+    }
+
+    // Detener auto-slide
+    function stopAutoSlide() {
+        if (autoSlideInterval) clearInterval(autoSlideInterval);
+    }
+
+    // Eventos
+    if (prevBtn) prevBtn.addEventListener('click', () => {
+        prevSlide();
+        stopAutoSlide();
+        startAutoSlide();
+    });
+
+    if (nextBtn) nextBtn.addEventListener('click', () => {
+        nextSlide();
+        stopAutoSlide();
+        startAutoSlide();
+    });
+
+    // Pausar auto-slide al hacer hover
+    const sliderContainer = document.querySelector('.servicios-slider');
+    if (sliderContainer) {
+        sliderContainer.addEventListener('mouseenter', stopAutoSlide);
+        sliderContainer.addEventListener('mouseleave', startAutoSlide);
+    }
+
+    createDots();
+    goToSlide(0);
+    startAutoSlide();
     </script>
 </body>
 </html>
