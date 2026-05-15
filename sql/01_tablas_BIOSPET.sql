@@ -48,7 +48,7 @@ CREATE TABLE CITA (
     pago_registrado_por INT,
     pago_fecha_registro DATETIME,
     pago_ip_usuario VARCHAR(45),
-    referencia_pago VARCHAR(100)
+    referencia_pago VARCHAR(100),
     notas TEXT,
     origen ENUM('Whatsapp', 'Presencial'),
     INDEX (fecha_cita),
@@ -309,7 +309,7 @@ CREATE TABLE CLIENTE_PUNTOS (
     puntos_acumulados_historial INT NOT NULL DEFAULT 0,
     fecha_ingreso_nivel DATE DEFAULT NULL, -- Cuándo alcanzó este nivel
     ultima_actualizacion DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_puntos_cliente FOREIGN KEY (id_cliente) REFERENCES CLIENTE(id) ON DELETE RESTRIC,
+    CONSTRAINT fk_puntos_cliente FOREIGN KEY (id_cliente) REFERENCES CLIENTE(id) ON DELETE RESTRICT,
     UNIQUE KEY uk_cliente_puntos (id_cliente)
 );
 
@@ -385,3 +385,18 @@ CREATE TABLE AUDITORIA_PAGOS (
     INDEX idx_fecha (fecha_pago)
     )
 
+--27 CORTE DE CAJA DIARIO
+CREATE TABLE IF NOT EXISTS REGISTRO_CORTE (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    fecha_corte DATE NOT NULL,
+    fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
+    id_empleado INT NOT NULL,
+    total_ventas DECIMAL(10,2) NOT NULL,
+    total_servicios DECIMAL(10,2) NOT NULL,
+    total_efectivo DECIMAL(10,2) NOT NULL,
+    total_electronico DECIMAL(10,2) NOT NULL,
+    total_general DECIMAL(10,2) NOT NULL,
+    observaciones TEXT,
+    CONSTRAINT fk_corte_empleado FOREIGN KEY (id_empleado) REFERENCES EMPLEADO(id) ON DELETE RESTRICT,
+    INDEX idx_fecha_corte (fecha_corte)
+);

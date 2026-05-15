@@ -404,20 +404,34 @@ DELIMITER ;
 
 -- Función: Obtener ingresos totales del mes actual
 DELIMITER $$
+
+DROP FUNCTION IF EXISTS ingresos_mes_actual$$
+
 CREATE FUNCTION ingresos_mes_actual()
 RETURNS DECIMAL(10,2)
 DETERMINISTIC
 BEGIN
-    DECLARE total DECIMAL(10,2);
+    DECLARE total_ventas DECIMAL(10,2);
+    DECLARE total_pagos_citas DECIMAL(10,2);
     
-    SELECT SUM(total) INTO total
+    -- 1. Ventas de productos del mes actual
+    SELECT COALESCE(SUM(total), 0) INTO total_ventas
     FROM VENTA
     WHERE MONTH(fecha_venta) = MONTH(CURDATE()) 
       AND YEAR(fecha_venta) = YEAR(CURDATE())
       AND estado = 'completada';
     
-    RETURN IFNULL(total, 0);
+    -- 2. Pagos de citas del mes actual (desde AUDITORIA_PAGOS)
+    SELECT COALESCE(SUM(monto), 0) INTO total_pagos_citas
+    FROM AUDITORIA_PAGOS
+    WHERE MONTH(fecha_pago) = MONTH(CURDATE()) 
+      AND YEAR(fecha_pago) = YEAR(CURDATE())
+      AND accion = 'pago';
+    
+    -- Total = ventas + pagos de citas
+    RETURN total_ventas + total_pagos_citas;
 END$$
+
 DELIMITER ;
 
 -- Función: Obtener ingresos del año actual

@@ -56,11 +56,12 @@ if (!empty($busqueda)) {
         $total_ventas = $conn->query($sql_ventas)->fetch_assoc()['total'];
         
         // Total servicios
-        $sql_servicios = "SELECT COALESCE(SUM(dc.precio_fijado), 0) as total 
-                          FROM CITA cita
-                          JOIN MASCOTA m ON cita.id_mascota = m.id
-                          JOIN DETALLE_CITA dc ON cita.id = dc.id_cita
-                          WHERE m.id_cliente = $id_cliente_temp AND cita.estado = 'completada'";
+        $sql_servicios = "SELECT COALESCE(SUM(ap.monto), 0) as total
+                        FROM AUDITORIA_PAGOS ap
+                        JOIN CITA cita ON ap.id_cita = cita.id
+                        JOIN MASCOTA m ON cita.id_mascota = m.id
+                        WHERE m.id_cliente = $id_cliente_temp AND ap.accion = 'pago'";
+                        
         $total_servicios = $conn->query($sql_servicios)->fetch_assoc()['total'];
         
         $row['total_gastado'] = $total_ventas + $total_servicios;
@@ -109,11 +110,12 @@ if (!empty($busqueda)) {
         $total_ventas = $conn->query($sql_ventas)->fetch_assoc()['total'];
         
         // Total servicios de citas completadas
-        $sql_servicios = "SELECT COALESCE(SUM(dc.precio_fijado), 0) as total 
-                          FROM CITA cita
-                          JOIN MASCOTA m ON cita.id_mascota = m.id
-                          JOIN DETALLE_CITA dc ON cita.id = dc.id_cita
-                          WHERE m.id_cliente = $id_cliente_temp AND cita.estado = 'completada'";
+        $sql_servicios = "SELECT COALESCE(SUM(ap.monto), 0) as total
+                        FROM AUDITORIA_PAGOS ap
+                        JOIN CITA cita ON ap.id_cita = cita.id
+                        JOIN MASCOTA m ON cita.id_mascota = m.id
+                        WHERE m.id_cliente = $id_cliente_temp AND ap.accion = 'pago'";
+                        
         $total_servicios = $conn->query($sql_servicios)->fetch_assoc()['total'];
         
         $row['total_gastado'] = $total_ventas + $total_servicios;

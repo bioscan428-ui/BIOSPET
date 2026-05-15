@@ -75,6 +75,7 @@ $sql_servicios = "SELECT COALESCE(SUM(dc.precio_fijado), 0) as total
                   JOIN MASCOTA m ON c.id_mascota = m.id
                   JOIN DETALLE_CITA dc ON c.id = dc.id_cita
                   WHERE m.id_cliente = ? AND c.estado = 'completada'";
+                  
 $stmt_servicios = $conn->prepare($sql_servicios);
 $stmt_servicios->bind_param("i", $id_cliente);
 $stmt_servicios->execute();

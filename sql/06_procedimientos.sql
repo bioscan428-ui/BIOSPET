@@ -354,21 +354,66 @@ DELIMITER ;
 
 -- Procedimiento: Resumen de caja diario
 DELIMITER $$
+
+DROP PROCEDURE IF EXISTS caja_diaria$$
+
 CREATE PROCEDURE caja_diaria(
     IN p_fecha DATE
 )
 BEGIN
     SELECT 
         p_fecha AS fecha,
-        -- Ventas
-        (SELECT IFNULL(SUM(total), 0) FROM VENTA WHERE DATE(fecha_venta) = p_fecha AND estado = 'completada') AS total_ventas,
-        -- Citas
-        (SELECT IFNULL(SUM(dc.precio_fijado), 0) FROM CITA c JOIN DETALLE_CITA dc ON c.id = dc.id_cita WHERE c.fecha_cita = p_fecha AND c.estado = 'completada') AS total_servicios,
-        -- Efectivo vs otros métodos
-        (SELECT IFNULL(SUM(total), 0) FROM VENTA WHERE DATE(fecha_venta) = p_fecha AND metodo_pago = 'efectivo' AND estado = 'completada') AS efectivo,
-        (SELECT IFNULL(SUM(total), 0) FROM VENTA WHERE DATE(fecha_venta) = p_fecha AND metodo_pago IN ('tarjeta', 'transferencia') AND estado = 'completada') AS electronico,
-        -- Detalle de ventas
-        (SELECT COUNT(*) FROM VENTA WHERE DATE(fecha_venta) = p_fecha AND estado = 'completada') AS numero_ventas,
-        (SELECT COUNT(*) FROM CITA WHERE fecha_cita = p_fecha AND estado = 'completada') AS numero_servicios;
+        
+        -- Ventas de productos (desde VENTA)
+        (SELECT COALESCE(SUM(total), 0) 
+         FROM VENTA 
+         WHERE DATE(fecha_venta) = p_fecha 
+         AND estado = 'completada') AS total_ventas,
+        
+        -- Servicios médicos (desde AUDITORIA_PAGOS)
+        (SELECT COALESCE(SUM(monto), 0) 
+         FROM AUDITORIA_PAGOS 
+         WHERE DATE(fecha_pago) = p_fecha 
+         AND accion = 'pago') AS total_servicios,
+        
+        -- Efectivo (ventas + citas pagadas en efectivo)
+        (SELECT COALESCE(SUM(total), 0) 
+         FROM VENTA 
+         WHERE DATE(fecha_venta) = p_fecha 
+         AND metodo_pago = 'efectivo' 
+         AND estado = 'completada') 
+         +
+         (SELECT COALESCE(SUM(monto), 0) 
+          FROM AUDITORIA_PAGOS 
+          WHERE DATE(fecha_pago) = p_fecha 
+          AND metodo_pago = 'efectivo' 
+          AND accion = 'pago') AS efectivo,
+        
+        -- Electrónico (tarjeta/transferencia de ventas + citas)
+        (SELECT COALESCE(SUM(total), 0) 
+         FROM VENTA 
+         WHERE DATE(fecha_venta) = p_fecha 
+         AND metodo_pago IN ('tarjeta', 'transferencia') 
+         AND estado = 'completada') 
+         +
+         (SELECT COALESCE(SUM(monto), 0) 
+          FROM AUDITORIA_PAGOS 
+          WHERE DATE(fecha_pago) = p_fecha 
+          AND metodo_pago IN ('tarjeta', 'transferencia') 
+          AND accion = 'pago') AS electronico,
+        
+        -- Número de ventas (productos)
+        (SELECT COUNT(*) 
+         FROM VENTA 
+         WHERE DATE(fecha_venta) = p_fecha 
+         AND estado = 'completada') AS numero_ventas,
+        
+        -- Número de servicios (citas pagadas)
+        (SELECT COUNT(*) 
+         FROM AUDITORIA_PAGOS 
+         WHERE DATE(fecha_pago) = p_fecha 
+         AND accion = 'pago') AS numero_servicios;
+
 END$$
+
 DELIMITER ;
