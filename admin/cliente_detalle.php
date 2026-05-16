@@ -70,12 +70,12 @@ $stmt_ventas->execute();
 $total_ventas = $stmt_ventas->get_result()->fetch_assoc()['total'];
 
 // Total gastado en servicios (citas completadas)
-$sql_servicios = "SELECT COALESCE(SUM(dc.precio_fijado), 0) as total 
-                  FROM CITA c
-                  JOIN MASCOTA m ON c.id_mascota = m.id
-                  JOIN DETALLE_CITA dc ON c.id = dc.id_cita
-                  WHERE m.id_cliente = ? AND c.estado = 'completada'";
-                  
+$sql_servicios = "SELECT COALESCE(SUM(ap.monto), 0) as total
+                FROM AUDITORIA_PAGOS ap
+                JOIN CITA c ON ap.id_cita = c.id
+                JOIN MASCOTA m ON c.id_mascota = m.id
+                WHERE m.id_cliente = ? AND ap.accion = 'pago'";
+                    
 $stmt_servicios = $conn->prepare($sql_servicios);
 $stmt_servicios->bind_param("i", $id_cliente);
 $stmt_servicios->execute();
