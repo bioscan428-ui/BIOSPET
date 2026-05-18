@@ -103,6 +103,7 @@ if (!$data) {
 
 escribirLog("Datos decodificados", $data);
 
+// MANEJO DE CLIENTE "VENTA AL PÚBLICO" (ID 0)
 $id_cliente = $data['id_cliente'] ?? 0;
 $metodo_pago = $data['metodo_pago'] ?? '';
 $productos = $data['productos'] ?? [];
@@ -110,12 +111,35 @@ $total = $data['total'] ?? 0;
 $recibido = $data['recibido'] ?? 0;
 $empleado_id = $_SESSION['empleado_id'] ?? null;
 
-// Validaciones
-if (!$id_cliente) {
+// ============================================
+// MANEJO DE CLIENTE "VENTA AL PÚBLICO" (ID 0)
+// ============================================
+if ($id_cliente == 0) {
+    // Buscar el cliente "VENTA AL PÚBLICO"
+    $sql_general = "SELECT id FROM CLIENTE WHERE nombre = 'VENTA AL PÚBLICO' AND activo = 1 LIMIT 1";
+    $result_general = $conn->query($sql_general);
+    
+    if ($result_general && $result_general->num_rows > 0) {
+        $id_cliente = $result_general->fetch_assoc()['id'];
+        escribirLog("Cliente VENTA AL PÚBLICO encontrado, ID: " . $id_cliente);
+    } else {
+        // Crear el cliente genérico si no existe
+        $sql_insert = "INSERT INTO CLIENTE (nombre, telefono, activo, fecha_registro) VALUES ('VENTA AL PÚBLICO', '0000000000', 1, NOW())";
+        if ($conn->query($sql_insert)) {
+            $id_cliente = $conn->insert_id;
+            escribirLog("Cliente VENTA AL PÚBLICO creado con ID: " . $id_cliente);
+        } else {
+            escribirLog("ERROR: No se pudo crear el cliente VENTA AL PÚBLICO");
+            // Fallback: usar ID 1 como último recurso
+            $id_cliente = 1;
+        }
+    }
+} elseif (!$id_cliente) {
     escribirLog("ERROR: Cliente no seleccionado");
-    echo json_encode(['success' => false, 'message' => 'Seleccione un cliente']);
+    echo json_encode(['success' => false, 'message' => 'Seleccione un cliente o elija "Venta al público"']);
     exit;
 }
+// FIN DEL MANEJO DE CLIENTE "VENTA AL PÚBLICO" (ID 0)
 
 if (!$metodo_pago) {
     escribirLog("ERROR: Método de pago no seleccionado");
