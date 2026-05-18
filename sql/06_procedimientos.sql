@@ -417,3 +417,47 @@ BEGIN
 END$$
 
 DELIMITER ;
+
+-----Procedimiento para buscar productos 
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS buscar_producto$$
+
+CREATE PROCEDURE buscar_producto(
+    IN p_criterio VARCHAR(100)
+)
+BEGIN
+    -- Si el criterio es numérico, buscar por ID
+    IF p_criterio REGEXP '^[0-9]+$' THEN
+        SELECT 
+            p.*,
+            c.nombre AS categoria_nombre,
+            CASE 
+                WHEN p.stock_actual <= 0 THEN 'AGOTADO'
+                WHEN p.stock_actual <= p.stock_minimo THEN 'STOCK BAJO'
+                ELSE 'NORMAL'
+            END AS estado_stock
+        FROM PRODUCTO p
+        JOIN CATEGORIA_PRODUCTO c ON p.id_categoria = c.id
+        WHERE p.id = CAST(p_criterio AS UNSIGNED)
+        AND p.activo = 1;
+    ELSE
+        -- Buscar por nombre o código de barras
+        SELECT 
+            p.*,
+            c.nombre AS categoria_nombre,
+            CASE 
+                WHEN p.stock_actual <= 0 THEN 'AGOTADO'
+                WHEN p.stock_actual <= p.stock_minimo THEN 'STOCK BAJO'
+                ELSE 'NORMAL'
+            END AS estado_stock
+        FROM PRODUCTO p
+        JOIN CATEGORIA_PRODUCTO c ON p.id_categoria = c.id
+        WHERE (p.nombre LIKE CONCAT('%', p_criterio, '%')
+               OR p.codigo_barras LIKE CONCAT('%', p_criterio, '%'))
+        AND p.activo = 1
+        ORDER BY p.nombre ASC;
+    END IF;
+END$$
+
+DELIMITER ;

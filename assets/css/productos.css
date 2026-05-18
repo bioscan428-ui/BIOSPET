@@ -467,3 +467,147 @@
         .acciones {
             white-space: nowrap;
         }
+
+/* Contenedor con scroll para la tabla */
+.tabla-scroll-container {
+    max-height: 550px;
+    overflow-y: auto;
+    overflow-x: auto;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-soft);
+    background: white;
+}
+
+/* Ajustes para la tabla dentro del contenedor */
+.tabla-scroll-container .productos-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1000px;
+}
+
+.tabla-scroll-container .productos-table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--black);
+    z-index: 10;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Scrollbar personalizada */
+.tabla-scroll-container::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.tabla-scroll-container::-webkit-scrollbar-track {
+    background: var(--gray-light);
+    border-radius: 10px;
+}
+
+.tabla-scroll-container::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 10px;
+}
+
+.tabla-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+}
+
+/* Para Firefox */
+.tabla-scroll-container {
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) var(--gray-light);
+}
+
+/* Ajuste responsive */
+@media (max-width: 768px) {
+    .tabla-scroll-container {
+        max-height: 400px;
+    }
+}
+
+/* ============================================
+   BUSCADOR DE PRODUCTOS
+   ============================================ */
+
+.buscador-form {
+    flex: 1;
+    min-width: 250px;
+}
+
+.buscador-wrapper {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.buscador-input {
+    flex: 1;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.buscador-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(230,138,0,0.1);
+}
+
+.btn-buscar {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-buscar:hover {
+    background: var(--primary-dark);
+}
+
+.btn-limpiar {
+    background: #666;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.2s ease;
+}
+
+.btn-limpiar:hover {
+    background: #555;
+}
+
+.alert-warning {
+    background: #fff3cd;
+    color: #856404;
+    padding: 15px 20px;
+    border-radius: var(--radius-md);
+    margin-bottom: 20px;
+    border-left: 4px solid #ffc107;
+    font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .buscador-wrapper {
+        flex-wrap: wrap;
+    }
+    
+    .buscador-input {
+        width: 100%;
+    }
+    
+    .btn-buscar, .btn-limpiar {
+        flex: 1;
+        text-align: center;
+    }
+}

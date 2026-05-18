@@ -156,6 +156,38 @@ class CitaController {
 
             $conn->commit();
 
+            // NUEVO: Generar URL para facturación con QR
+            $sql_cita_info = "SELECT
+                                c.id,
+                                c.fecha_cita,
+                                c.hora_cita,
+                                m.nombre_mascota,
+                                CONCAT(cl.nombre, ' ', IFNULL(cl.ape_pat, ''), ' ', IFNULL(cl.ape_mat, '')) as dueno
+                                FROM CITA c
+                                JOIN MASCOTA m ON c.id_mascota = m.id
+                                JOIN CLIENTE cl ON m.id_cliente = cl.id
+                                WHERE c.id = ?";
+            $stmt_info = $conn->prepare($sql_cita_info);
+            $stmt_info->bind_param("i", $id_cita);
+            $stmt_info->execute();
+            $cita_info = $stmt_info->get_result()->fetch_assoc();
+
+            // URL para facturación (página pública)
+            $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
+            $host = $_SERVER['HTTP_HOST'];
+            $url_factura = $protocol . $host . "/biospet.bioscan.services/facturar_cita.php?id=" . $id_cita;
+
+            // Guardar en sesión para mostrar en la página de éxito
+            $_SESSION['ultima_cita'] = [
+                'id' => $id_cita,
+                'fecha' => $fecha_cita,
+                'hora' => $hora_cita,
+                'mascota' => $nombre_mascota,
+                'dueno' => $nombre_dueno . ' ' . $ape_pat . ' ' . $ape_mat,
+                'qr_url' => $url_factura
+            ];
+            // FIN: Generar URL para facturación con QR
+
             // Notificación
             $_SESSION['notificacion'] = [
                 'tipo' => 'success',
