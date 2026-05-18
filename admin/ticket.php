@@ -5,6 +5,50 @@ ini_set('display_errors', 1);
 
 require_once __DIR__ . '/../includes/conexion.php';
 
+// ============================================
+// COMANDO PARA ABRIR CAJA (ESC/POS)
+// ============================================
+function enviarComandoAbrirCaja() {
+    // Comando estándar ESC/POS para abrir caja
+    $comando = chr(27) . chr(112) . chr(0) . chr(50) . chr(250);
+    
+    // Intentar diferentes métodos según el sistema operativo
+    
+    // Método 1: Windows - Impresora compartida
+    $impresora = "GTP 801 Printer"; // Nombre exacto de tu impresora
+    
+    if (($handle = @fopen($impresora, "w"))) {
+        fwrite($handle, $comando);
+        fclose($handle);
+        return true;
+    }
+    
+    // Método 2: Windows - Puerto USB
+    $usb_paths = ["\\\\.\\USB001", "\\\\.\\USB002", "\\\\.\\LPT1"];
+    foreach ($usb_paths as $path) {
+        if (($handle = @fopen($path, "w"))) {
+            fwrite($handle, $comando);
+            fclose($handle);
+            return true;
+        }
+    }
+    
+    // Método 3: Linux (si el servidor tuviera acceso local)
+    if (($handle = @fopen("/dev/usb/lp0", "w"))) {
+        fwrite($handle, $comando);
+        fclose($handle);
+        return true;
+    }
+    
+    return false;
+}
+
+// Enviar comando para abrir caja ANTES de mostrar el HTML
+$caja_abierta = enviarComandoAbrirCaja();
+// ============================================
+// FIN DE COMANDO PARA ABRIR CAJA (ESC/POS)
+// ============================================
+
 $id_venta = $_GET['id'] ?? 0;
 if (!$id_venta) {
     die("Venta no encontrada");
@@ -210,11 +254,50 @@ $vuelto = $_GET['vuelto'] ?? null;
     </div>
 
     <script>
-        // Imprimir automáticamente al cargar (opcional)
-        // window.onload = function() {
-        //     window.print();
-        //     setTimeout(() => { window.close(); }, 1000);
-        // }
+         // Imprimir automáticamente al cargar la página
+    // Intentar abrir caja desde el navegador (Web Serial API)
+        async function abrirCajaWebSerial() {
+            try {
+                // Verificar si el navegador soporta Web Serial API
+                if (!navigator.serial) {
+                    console.log('Web Serial API no soportada en este navegador');
+                    return;
+                }
+                
+                // Solicitar puerto USB al usuario
+                const port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 9600 });
+                
+                // Comando ESC/POS para abrir caja
+                const comando = new Uint8Array([27, 112, 0, 50, 250]);
+                const writer = port.writable.getWriter();
+                await writer.write(comando);
+                writer.releaseLock();
+                await port.close();
+                
+                console.log('✅ Caja abierta desde navegador');
+            } catch (error) {
+                console.log('No se pudo abrir caja:', error);
+            }
+        }
+
+        // Al cargar la página, intentar abrir caja
+        window.onload = function() {
+            // Intentar abrir caja vía Web Serial API
+            abrirCajaWebSerial();
+            
+            // Luego imprimir automáticamente
+            setTimeout(function() {
+                window.print();
+            }, 500);
+        };
+        
+        // Detectar cuando se cierra el diálogo de impresión
+        window.onafterprint = function() {
+            setTimeout(function() {
+                window.close();
+            }, 1000);
+        };
     </script>
 </body>
 </html>

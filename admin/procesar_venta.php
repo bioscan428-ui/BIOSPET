@@ -2,10 +2,14 @@
 session_start();
 header('Content-Type: application/json');
 
-// Mostrar errores para depuración
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// ============================================
+// DEPURACIÓN DE SESIÓN
+// ============================================
+error_log("=== PROCESAR VENTA - INICIO ===");
+error_log("SESSION user_id: " . ($_SESSION['user_id'] ?? 'NO DEFINIDO'));
+error_log("SESSION rol: " . ($_SESSION['rol'] ?? 'NO DEFINIDO'));
+error_log("SESSION empleado_id: " . ($_SESSION['empleado_id'] ?? 'NO DEFINIDO'));
+error_log("session_id(): " . session_id());
 
 $log_file = __DIR__ . '/debug_venta.log';
 
@@ -21,19 +25,66 @@ function escribirLog($mensaje, $datos = null) {
 }
 
 escribirLog("=== INICIO DE PROCESAMIENTO DE VENTA ===");
+escribirLog("SESSION DATA", [
+    'user_id' => $_SESSION['user_id'] ?? 'NO',
+    'rol' => $_SESSION['rol'] ?? 'NO',
+    'empleado_id' => $_SESSION['empleado_id'] ?? 'NO',
+    'session_id' => session_id()
+]);
 
-// Verificar sesión
+// ============================================
+// VERIFICAR SESIÓN
+// ============================================
 if (!isset($_SESSION['user_id'])) {
     escribirLog("ERROR: No autorizado - sin sesión");
-    echo json_encode(['success' => false, 'message' => 'No autorizado']);
+    echo json_encode([
+        'success' => false, 
+        'message' => 'No autorizado. Sesión no iniciada.',
+        'debug' => [
+            'session_id' => session_id(),
+            'cookie_exists' => isset($_COOKIE[session_name()])
+        ]
+    ]);
     exit;
 }
 
 // Verificar rol
-if (!in_array($_SESSION['rol'], ['super_admin', 'admin', 'recepcionista'])) {
+$roles_permitidos = ['super_admin', 'admin', 'recepcionista', 'veterinario', 'asistente'];
+if (!in_array($_SESSION['rol'], $roles_permitidos)) {
     escribirLog("ERROR: Permiso denegado - rol: " . $_SESSION['rol']);
-    echo json_encode(['success' => false, 'message' => 'No tienes permiso para realizar ventas']);
+    echo json_encode([
+        'success' => false, 
+        'message' => 'No tienes permiso para realizar ventas. Tu rol es: ' . $_SESSION['rol'],
+        'roles_permitidos' => $roles_permitidos
+    ]);
     exit;
+}
+
+// Verificar/Asignar empleado_id
+if (!isset($_SESSION['empleado_id'])) {
+    escribirLog("ADVERTENCIA: empleado_id no está en sesión, intentando obtener...");
+    
+    require_once __DIR__ . '/../includes/conexion.php';
+    
+    $sql_empleado = "SELECT e.id FROM EMPLEADO e 
+                     JOIN USUARIO u ON e.id = u.id_empleado 
+                     WHERE u.id = ?";
+    $stmt = $conn->prepare($sql_empleado);
+    $stmt->bind_param("i", $_SESSION['user_id']);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($row = $result->fetch_assoc()) {
+        $_SESSION['empleado_id'] = $row['id'];
+        escribirLog("empleado_id obtenido y guardado en sesión: " . $_SESSION['empleado_id']);
+    } else {
+        escribirLog("ERROR: No se encontró empleado para user_id: " . $_SESSION['user_id']);
+        echo json_encode([
+            'success' => false,
+            'message' => 'No se encontró un empleado asociado a tu usuario. Contacta al administrador.'
+        ]);
+        exit;
+    }
 }
 
 require_once __DIR__ . '/../includes/conexion.php';
@@ -82,7 +133,8 @@ escribirLog("Validaciones superadas", [
     'id_cliente' => $id_cliente,
     'metodo_pago' => $metodo_pago,
     'total_productos' => count($productos),
-    'total' => $total
+    'total' => $total,
+    'empleado_id' => $empleado_id
 ]);
 
 // Iniciar transacción
@@ -158,7 +210,7 @@ try {
             'cantidad' => $prod['cantidad']
         ]);
         
-        // Insertar detalle de venta (el trigger after_insert_detalle_venta actualizará el stock)
+        // Insertar detalle de venta
         $sql_detalle = "INSERT INTO DETALLE_VENTA (id_venta, id_producto, cantidad, precio_unitario, subtotal) 
                         VALUES (?, ?, ?, ?, ?)";
         $stmt_detalle = $conn->prepare($sql_detalle);
@@ -169,8 +221,6 @@ try {
         }
         
         $contador_detalles++;
-        
-        // ⚠️ NO actualizamos stock aquí porque el trigger after_insert_detalle_venta ya lo hace
     }
     
     escribirLog("Total detalles insertados", ['cantidad' => $contador_detalles]);
@@ -198,11 +248,82 @@ try {
         'productos_vendidos' => $contador_detalles
     ]);
     
+    // ============================================
+    // DIAGNÓSTICO DE PUERTO COM1 (UBICADO AQUÍ)
+    // ============================================
+    $diagnostico_com1 = [];
+    
+    // 1. Verificar si el archivo/puerto existe
+    $diagnostico_com1['file_exists'] = file_exists("COM1");
+    escribirLog("DIAGNÓSTICO - file_exists COM1: " . ($diagnostico_com1['file_exists'] ? 'SI' : 'NO'));
+    
+    // 2. Intentar abrir con diferentes métodos
+    $handle1 = @fopen("COM1", "w");
+    $diagnostico_com1['fopen_w'] = ($handle1 !== false);
+    if ($handle1) fclose($handle1);
+    escribirLog("DIAGNÓSTICO - fopen COM1: " . ($diagnostico_com1['fopen_w'] ? 'SI' : 'NO'));
+    
+    $handle2 = @fopen("\\\\.\\COM1", "w");
+    $diagnostico_com1['fopen_long'] = ($handle2 !== false);
+    if ($handle2) fclose($handle2);
+    escribirLog("DIAGNÓSTICO - fopen \\\\.\\COM1: " . ($diagnostico_com1['fopen_long'] ? 'SI' : 'NO'));
+    
+    // 3. Verificar permisos de escritura
+    $diagnostico_com1['is_writable'] = is_writable("COM1");
+    escribirLog("DIAGNÓSTICO - is_writable COM1: " . ($diagnostico_com1['is_writable'] ? 'SI' : 'NO'));
+    
+    // 4. Listar puertos COM disponibles
+    exec('mode 2>&1', $output, $return_var);
+    $diagnostico_com1['modes'] = $output;
+    escribirLog("DIAGNÓSTICO - Puertos disponibles", $output);
+    
+    escribirLog("DIAGNÓSTICO COMPLETO", $diagnostico_com1);
+    
+    // ============================================
+    // ABRIR CAJA REGISTRADORA
+    // ============================================
+    $caja_abierta = false;
+    $mensaje_caja = '';
+    
+    try {
+        // Comando ESC/POS para abrir caja (funciona con Gprinter)
+        $comando_caja = chr(27) . chr(112) . chr(0) . chr(50) . chr(250);
+        
+        // Puerto COM1 detectado en la prueba
+        $puerto_caja = "COM1";
+        
+        escribirLog("Intentando abrir caja en puerto: " . $puerto_caja);
+        
+        // Intentar abrir el puerto COM1
+        if (($handle = @fopen($puerto_caja, "w"))) {
+            $bytes_escritos = fwrite($handle, $comando_caja);
+            fclose($handle);
+            
+            if ($bytes_escritos > 0) {
+                $caja_abierta = true;
+                $mensaje_caja = " Caja abierta correctamente.";
+                escribirLog("✅ Caja registradora abierta en COM1");
+            } else {
+                $mensaje_caja = " No se pudo escribir en COM1.";
+                escribirLog("⚠️ No se pudo escribir en COM1");
+            }
+        } else {
+            $mensaje_caja = " No se pudo abrir el puerto COM1.";
+            escribirLog("⚠️ No se pudo abrir el puerto COM1");
+        }
+        
+    } catch (Exception $e) {
+        $mensaje_caja = " Error al abrir caja: " . $e->getMessage();
+        escribirLog("❌ Error al abrir caja: " . $e->getMessage());
+    }
+    
     echo json_encode([
         'success' => true,
-        'message' => 'Venta realizada exitosamente',
+        'message' => 'Venta realizada exitosamente' . $mensaje_caja,
         'id_venta' => $id_venta,
-        'total' => $total
+        'total' => $total,
+        'caja_abierta' => $caja_abierta,
+        'diagnostico' => $diagnostico_com1  // Para depuración
     ]);
     
 } catch (Exception $e) {
