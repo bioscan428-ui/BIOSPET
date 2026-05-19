@@ -140,8 +140,12 @@ $vuelto = $_GET['vuelto'] ?? null;
     <!-- Datos del cliente -->
     <div>
         <div class="info-row">
+            <!-----
             <span class="info-label">Cliente:</span>
-            <span><?php echo $venta['cliente_nombre']; ?></span>
+            ------->
+            <!-- Datos del cliente -->
+            <span><?php // echo $venta['cliente_nombre']; ?></span>
+
         </div>
         <?php if($venta['cliente_telefono']): ?>
         <div class="info-row">
@@ -235,6 +239,26 @@ $vuelto = $_GET['vuelto'] ?? null;
 
     <div class="line-doble"></div>
 
+    <!-- Código QR para facturación -->
+    <?php
+    // Generar URL para facturación (página pública)
+    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
+    $host = $_SERVER['HTTP_HOST'];
+    $url_factura = $protocol . $host . "/facturar.php?venta_id=" . $id_venta;
+    // Generar QR usando API de Google Charts
+    $qr_url = "https://quickchart.io/qr?size=100&text=" . urlencode($url_factura);
+    ?>
+
+    
+    <div class="center" style="margin: 15px 0;">
+        <div class="line"></div>
+        <p><strong>📄 ¿Necesitas factura?</strong></p>
+        <img src="<?php echo $qr_url; ?>" alt="Código QR para factura" style="width: 80px; height: 80px; margin: 5px auto;">
+        <p style="font-size: 9px;">Escanea el QR para solicitar tu factura</p>
+        <div class="line"></div>
+    </div>
+    <!-- FIN DE Código QR para facturación -->
+    
     <!-- Mensaje de agradecimiento -->
     <div class="gracias">
         <p>¡Gracias por su compra!<br>

@@ -454,9 +454,112 @@ BEGIN
         FROM PRODUCTO p
         JOIN CATEGORIA_PRODUCTO c ON p.id_categoria = c.id
         WHERE (p.nombre LIKE CONCAT('%', p_criterio, '%')
-               OR p.codigo_barras LIKE CONCAT('%', p_criterio, '%'))
+                OR p.codigo_barras LIKE CONCAT('%', p_criterio, '%'))
         AND p.activo = 1
         ORDER BY p.nombre ASC;
+    END IF;
+END$$
+
+DELIMITER ;
+
+---------PROCEDIMIENTO PARA GUARDAR EN FACTURA (VERIFICA QUE EL CLIENTE YA ESTE REGISTRADO)-------
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS registrar_factura$$
+
+CREATE PROCEDURE registrar_factura(
+    IN p_id_venta INT,
+    IN p_nombre_cliente VARCHAR(100),
+    IN p_rfc VARCHAR(13),
+    IN p_razon_social VARCHAR(100),
+    IN p_regimen_fiscal VARCHAR(50),
+    IN p_uso_cfdi VARCHAR(50),
+    OUT p_resultado INT,
+    OUT p_mensaje VARCHAR(200)
+)
+BEGIN
+    DECLARE v_id_cliente INT DEFAULT 0;
+    DECLARE v_id_cliente_venta INT DEFAULT 0;
+    DECLARE v_nombre_venta VARCHAR(100) DEFAULT '';
+    DECLARE v_factura_existente INT DEFAULT 0;
+    DECLARE v_partes_nombre TEXT;
+    DECLARE v_primer_nombre VARCHAR(100);
+    DECLARE v_apellido_paterno VARCHAR(100);
+    DECLARE v_apellido_materno VARCHAR(100);
+    
+    -- Verificar si la venta ya tiene factura
+    SELECT COUNT(*) INTO v_factura_existente FROM FACTURA WHERE id_venta = p_id_venta;
+    
+    IF v_factura_existente > 0 THEN
+        SET p_resultado = 0;
+        SET p_mensaje = 'Esta venta ya tiene una factura asociada';
+    ELSE
+        -- Obtener el cliente de la venta
+        SELECT id_cliente INTO v_id_cliente_venta FROM VENTA WHERE id = p_id_venta;
+        SELECT nombre INTO v_nombre_venta FROM CLIENTE WHERE id = v_id_cliente_venta;
+        
+        -- Si es "VENTA AL PÚBLICO", buscar o crear cliente
+        IF v_nombre_venta = 'VENTA AL PÚBLICO' THEN
+            
+            -- Extraer partes del nombre (primer nombre, apellido paterno, apellido materno)
+            SET v_partes_nombre = p_nombre_cliente;
+            
+            -- Buscar cliente por coincidencia en nombre y apellidos
+            SELECT id INTO v_id_cliente FROM CLIENTE 
+            WHERE (CONCAT(nombre, ' ', IFNULL(ape_pat, ''), ' ', IFNULL(ape_mat, '')) = p_nombre_cliente
+                OR nombre LIKE CONCAT('%', SUBSTRING_INDEX(p_nombre_cliente, ' ', 1), '%')
+                OR (ape_pat IS NOT NULL AND ape_pat LIKE CONCAT('%', SUBSTRING_INDEX(p_nombre_cliente, ' ', -2), '%')))
+            AND activo = 1
+            LIMIT 1;
+            
+            -- Si no se encontró, buscar solo por nombre (más flexible)
+            IF v_id_cliente = 0 THEN
+                SELECT id INTO v_id_cliente FROM CLIENTE 
+                WHERE nombre = SUBSTRING_INDEX(p_nombre_cliente, ' ', 1)
+                AND activo = 1
+                LIMIT 1;
+            END IF;
+            
+            -- Si no se encontró, buscar por nombre y apellido paterno
+            IF v_id_cliente = 0 AND LOCATE(' ', p_nombre_cliente) > 0 THEN
+                SET v_primer_nombre = SUBSTRING_INDEX(p_nombre_cliente, ' ', 1);
+                SET v_apellido_paterno = SUBSTRING_INDEX(SUBSTRING_INDEX(p_nombre_cliente, ' ', 2), ' ', -1);
+                
+                SELECT id INTO v_id_cliente FROM CLIENTE 
+                WHERE nombre LIKE CONCAT('%', v_primer_nombre, '%')
+                AND ape_pat LIKE CONCAT('%', v_apellido_paterno, '%')
+                AND activo = 1
+                LIMIT 1;
+            END IF;
+            
+            IF v_id_cliente = 0 THEN
+                -- No existe, crear nuevo cliente
+                INSERT INTO CLIENTE (nombre, telefono, activo) 
+                VALUES (p_nombre_cliente, '0000000000', 1);
+                SET v_id_cliente = LAST_INSERT_ID();
+            END IF;
+            
+            -- Actualizar la venta con el cliente real
+            UPDATE VENTA SET id_cliente = v_id_cliente WHERE id = p_id_venta;
+        ELSE
+            -- Cliente ya está registrado, usarlo
+            SET v_id_cliente = v_id_cliente_venta;
+        END IF;
+        
+        -- Verificar si ya existe factura para esta venta (por si acaso)
+        SELECT COUNT(*) INTO v_factura_existente FROM FACTURA WHERE id_venta = p_id_venta;
+        
+        IF v_factura_existente = 0 THEN
+            -- Insertar factura
+            INSERT INTO FACTURA (id_venta, id_cliente, rfc, razon_social, regimen_fiscal, uso_cfdi, fecha_creacion)
+            VALUES (p_id_venta, v_id_cliente, p_rfc, p_razon_social, p_regimen_fiscal, p_uso_cfdi, NOW());
+            
+            SET p_resultado = 1;
+            SET p_mensaje = 'Factura registrada exitosamente';
+        ELSE
+            SET p_resultado = 0;
+            SET p_mensaje = 'Error: Ya existe una factura para esta venta';
+        END IF;
     END IF;
 END$$
 

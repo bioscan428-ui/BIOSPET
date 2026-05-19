@@ -37,6 +37,17 @@ if (!empty($busqueda)) {
     $result = $conn->query($sql);
     $criticos_count = $conn->query("SELECT COUNT(*) as total FROM vista_stock_critico")->fetch_assoc()['total'];
 }
+
+// Mensaje de importación
+$mensaje_importacion = '';
+$tipo_mensaje = '';
+
+if (isset($_SESSION['importacion_mensaje'])) {
+    $mensaje_importacion = $_SESSION['importacion_mensaje'];
+    $tipo_mensaje = $_SESSION['importacion_tipo'];
+    unset($_SESSION['importacion_mensaje']);
+    unset($_SESSION['importacion_tipo']);
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -46,6 +57,110 @@ if (!empty($busqueda)) {
     <title>Gestión de Productos - BIOSPET</title>
     <link rel="stylesheet" href="../assets/css/global.css">
     <link rel="stylesheet" href="../assets/css/productos.css">
+    <style>
+        /* Estilos para el modal de importación */
+        .modal-import {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-import.active {
+            display: flex;
+        }
+        .modal-import-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 500px;
+            max-width: 90%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .modal-import-content h3 {
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+        .modal-import-content input[type="file"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            margin: 15px 0;
+            cursor: pointer;
+        }
+        .modal-import-content input[type="file"]:hover {
+            border-color: var(--primary);
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        .btn-importar {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .btn-cancelar-modal {
+            background: #ccc;
+            color: #333;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .btn-excel {
+            background: #1d7e3b;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-excel:hover {
+            background: #156b32;
+        }
+        .alert-exito {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #28a745;
+        }
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #dc3545;
+        }
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .acciones-botones {
+            display: flex;
+            gap: 10px;
+        }
+    </style>
 </head>
 <body>
     <div class="admin-header">
@@ -60,6 +175,13 @@ if (!empty($busqueda)) {
     </div>
 
     <div class="container">
+        <!-- Mensajes de importación -->
+        <?php if ($mensaje_importacion): ?>
+            <div class="alert-<?php echo $tipo_mensaje; ?>">
+                <?php echo htmlspecialchars($mensaje_importacion); ?>
+            </div>
+        <?php endif; ?>
+
         <div class="header-actions">
             <div class="tab-buttons">
                 <a href="?tab=todos" class="tab-btn <?php echo $tab === 'todos' ? 'active' : ''; ?>">
@@ -87,7 +209,13 @@ if (!empty($busqueda)) {
                 </div>
             </form>
             
-            <a href="producto_nuevo.php" class="btn-nuevo">+ Nuevo Producto</a>
+            <div class="acciones-botones">
+                <!-- Botón Importar Excel -->
+                <button type="button" class="btn-excel" id="btnAbrirModalImportar">
+                    📂 Importar Excel
+                </button>
+                <a href="producto_nuevo.php" class="btn-nuevo">+ Nuevo Producto</a>
+            </div>
         </div>
 
         <?php if (!empty($busqueda) && $result->num_rows === 0): ?>
@@ -131,7 +259,7 @@ if (!empty($busqueda)) {
                                 <?php else: ?>
                                     <span class="sin-imagen">📦</span>
                                 <?php endif; ?>
-                            </td>
+                             </span>
                             <td><strong><?php echo htmlspecialchars($producto['nombre']); ?></strong></td>
                             <td><?php echo $producto['categoria_nombre'] ?? $producto['categoria']; ?></td>
                             <td>$<?php echo number_format($producto['precio_venta'], 2); ?></td>
@@ -187,6 +315,37 @@ if (!empty($busqueda)) {
         </div>
     </div>
 
+    <!-- Modal de Importación de Excel -->
+    <div id="modalImportar" class="modal-import">
+        <div class="modal-import-content">
+            <h3>📂 Importar productos desde Excel</h3>
+            <p>Selecciona un archivo Excel (.xlsx, .xls) con los siguientes campos:</p>
+            <ul style="margin: 10px 0 15px 20px; color: #666;">
+                <li>nombre *</li>
+                <li>descripcion</li>
+                <li>codigo_barras</li>
+                <li>id_categoria *</li>
+                <li>precio_compra</li>
+                <li>precio_venta *</li>
+                <li>stock_actual</li>
+                <li>stock_minimo</li>
+                <li>unidad_medida</li>
+                <li>ubicacion</li>
+                <li>fecha_vencimiento (formato YYYY-MM-DD)</li>
+            </ul>
+            <form id="formImportar" action="productos_importar.php" method="POST" enctype="multipart/form-data">
+                <input type="file" name="archivo_excel" accept=".xlsx, .xls" required>
+                <div class="modal-buttons">
+                    <button type="button" class="btn-cancelar-modal" id="btnCerrarModal">Cancelar</button>
+                    <button type="submit" class="btn-importar">📤 Importar</button>
+                </div>
+            </form>
+            <div style="margin-top: 15px; text-align: center;">
+                <a href="plantilla_productos.xlsx" class="btn-descargar" style="color: var(--primary);">📎 Descargar plantilla ejemplo</a>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal de Movimientos de Inventario -->
     <div id="modalMovimientos" class="modal">
         <div class="modal-content modal-grande">
@@ -202,6 +361,31 @@ if (!empty($busqueda)) {
         </div>
     </div>
     
+    <script>
+        // Modal de importación
+        const modalImportar = document.getElementById('modalImportar');
+        const btnAbrirModal = document.getElementById('btnAbrirModalImportar');
+        const btnCerrarModal = document.getElementById('btnCerrarModal');
+        
+        if (btnAbrirModal) {
+            btnAbrirModal.addEventListener('click', () => {
+                modalImportar.classList.add('active');
+            });
+        }
+        
+        if (btnCerrarModal) {
+            btnCerrarModal.addEventListener('click', () => {
+                modalImportar.classList.remove('active');
+            });
+        }
+        
+        // Cerrar modal al hacer clic fuera
+        modalImportar.addEventListener('click', (e) => {
+            if (e.target === modalImportar) {
+                modalImportar.classList.remove('active');
+            }
+        });
+    </script>
     <script src="../assets/js/productos.js"></script>
 </body>
 </html>

@@ -272,6 +272,7 @@ CREATE TABLE PAGO (
 CREATE TABLE FACTURA (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     id_venta INT NOT NULL,
+    id_cliente INT NOT NULL,
     rfc VARCHAR(13) NOT NULL,
     razon_social VARCHAR(100) NOT NULL,
     regimen_fiscal VARCHAR(50),
@@ -282,6 +283,7 @@ CREATE TABLE FACTURA (
     fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_factura_venta FOREIGN KEY (id_venta) REFERENCES VENTA(id) ON DELETE CASCADE,
     CONSTRAINT uk_factura_venta UNIQUE (id_venta) -- Una venta solo puede tener una factura
+    CONSTRAINT FOREIGN KEY (id_cliente) REFERENCES CLIENTE(id) ON DELETE SET NULL;
     
 );
 

@@ -126,11 +126,11 @@ $empleado_id = $_SESSION['empleado_id'] ?? null;
                 <div class="cliente-selector">
                     <label>👤 Cliente *</label>
                     <select id="id_cliente">
-                        <option value="">-- Seleccionar cliente --</option>
+                        <option value="0">🚶 VENTA AL PÚBLICO (Sin registro)</option>
                         <?php while($cliente = $clientes->fetch_assoc()): ?>
-                            <option value="<?php echo $cliente['id']; ?>">
-                                <?php echo htmlspecialchars($cliente['nombre']); ?>
-                            </option>
+                        <option value="<?php echo $cliente['id']; ?>">
+                            <?php echo htmlspecialchars($cliente['nombre']); ?>
+                        </option>
                         <?php endwhile; ?>
                     </select>
                 </div>
