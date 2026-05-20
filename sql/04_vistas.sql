@@ -358,8 +358,8 @@ SELECT
     -- Datos de la empresa (para el ticket)
     'BIOSPET' AS empresa_nombre,
     'Clínica Veterinaria' AS empresa_eslogan,
-    'Av. Principal #123, Colonia Centro' AS empresa_direccion,
-    'Tel: (123) 456-7890' AS empresa_telefono,
+    'Paseo Opera 7 Local 210 Lomas de Angelópolis 72830' AS empresa_direccion,
+    'Tel: 221 820 3396' AS empresa_telefono,
     'RFC: XXXXXX' AS empresa_rfc,
     
     -- Totales por método de pago (si aplica)

@@ -133,18 +133,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php else: ?>
             <form method="POST">
                 <div class="form-group">
-                    <label>Nombre (para la factura) *</label>
-                    <input type="text" name="nombre_cliente" required placeholder="Nombre o razón social">
-                    <small style="color: #666;">Si ya estás registrado, escribe tu nombre exacto</small>
+                    <label>Razón Social *</label>
+                    <input type="text" name="razon_social" required>
                 </div>
+                
                 <div class="form-group">
                     <label>RFC *</label>
                     <input type="text" name="rfc" placeholder="XAXX010101000" maxlength="13" required>
                 </div>
-                <div class="form-group">
-                    <label>Razón Social *</label>
-                    <input type="text" name="razon_social" required>
-                </div>
+                
                 <div class="form-group">
                     <label>Régimen Fiscal</label>
                     <select name="regimen_fiscal">

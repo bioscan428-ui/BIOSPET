@@ -8,6 +8,7 @@ function abrirModalPago(citaId, totalGeneral) {
 }
 
 function abrirModalProductos(citaId) {
+    console.log('Abriendo modal para cita:', citaId);
     citaIdActual = citaId;
     carritoProductos = [];
     actualizarListaProductos();
@@ -15,14 +16,18 @@ function abrirModalProductos(citaId) {
 }
 
 function agregarProductoCarrito(id, nombre, precio) {
+    console.log('Agregando producto:', id, nombre, precio);
+    
     const cantidadInput = document.getElementById('cantidad_' + id);
     let cantidad = parseInt(cantidadInput.value);
     const stockMaximo = parseInt(cantidadInput.max) || 0;
     
+    console.log('Cantidad seleccionada:', cantidad, 'Stock maximo:', stockMaximo);
+    
     if (isNaN(cantidad) || cantidad < 1) cantidad = 1;
     
     if (cantidad > stockMaximo) {
-        alert(`Stock insuficiente. Solo hay ${stockMaximo} unidades disponibles.`);
+        alert('Stock insuficiente. Solo hay ' + stockMaximo + ' unidades disponibles.');
         return;
     }
     
@@ -30,16 +35,17 @@ function agregarProductoCarrito(id, nombre, precio) {
     if (existe) {
         const nuevaCantidad = existe.cantidad + cantidad;
         if (nuevaCantidad > stockMaximo) {
-            alert(`No puedes agregar más. Máximo ${stockMaximo} unidades.`);
+            alert('No puedes agregar mas. Maximo ' + stockMaximo + ' unidades.');
             return;
         }
         existe.cantidad = nuevaCantidad;
     } else {
-        carritoProductos.push({ id, nombre, precio, cantidad });
+        carritoProductos.push({ id: id, nombre: nombre, precio: precio, cantidad: cantidad });
     }
     
     cantidadInput.value = 1;
     actualizarListaProductos();
+    console.log('Carrito actual:', carritoProductos);
 }
 
 function eliminarProductoCarrito(index) {
@@ -62,46 +68,64 @@ function actualizarListaProductos() {
     carritoProductos.forEach((item, index) => {
         const subtotal = item.precio * item.cantidad;
         total += subtotal;
-        html += `
-            <div class="producto-seleccionado">
-                <div>
-                    <strong>${item.nombre}</strong><br>
-                    ${item.cantidad} x $${item.precio.toFixed(2)} = <strong>$${subtotal.toFixed(2)}</strong>
-                </div>
-                <button onclick="eliminarProductoCarrito(${index})">🗑️</button>
-            </div>
-        `;
+        html += '<div class="producto-seleccionado">';
+        html += '<div><strong>' + item.nombre + '</strong><br>';
+        html += item.cantidad + ' x $' + item.precio.toFixed(2) + ' = <strong>$' + subtotal.toFixed(2) + '</strong></div>';
+        html += '<button onclick="eliminarProductoCarrito(' + index + ')">Eliminar</button>';
+        html += '</div>';
     });
     
     listaDiv.innerHTML = html;
-    totalSpan.innerHTML = `Total: $${total.toFixed(2)}`;
+    totalSpan.innerHTML = 'Total: $' + total.toFixed(2);
 }
 
 function confirmarAgregarProductos() {
+    console.log('=== confirmarAgregarProductos EJECUTADA ===');
+    console.log('Cita ID:', citaIdActual);
+    console.log('Productos en carrito:', carritoProductos);
+    
     if (carritoProductos.length === 0) {
         alert('No hay productos para agregar');
         return;
     }
     
-    const productosJSON = carritoProductos.map(item => ({
-        id_producto: item.id,
-        cantidad: item.cantidad,
-        descuento: 0
-    }));
+    const productosJSON = carritoProductos.map(function(item) {
+        return {
+            id_producto: item.id,
+            cantidad: item.cantidad,
+            descuento: 0
+        };
+    });
+    
+    console.log('Enviando peticion a agregar_productos_cita.php');
+    console.log('Datos:', {
+        id_cita: citaIdActual,
+        productos_json: JSON.stringify(productosJSON)
+    });
     
     fetch('agregar_productos_cita.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `id_cita=${citaIdActual}&productos_json=${JSON.stringify(productosJSON)}`
+        headers: { 
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: 'id_cita=' + citaIdActual + '&productos_json=' + JSON.stringify(productosJSON)
     })
-    .then(response => response.json())
-    .then(data => {
+    .then(function(response) {
+        console.log('Respuesta recibida, status:', response.status);
+        return response.json();
+    })
+    .then(function(data) {
+        console.log('Respuesta del servidor:', data);
         if (data.success) {
             alert('Productos agregados correctamente');
             location.reload();
         } else {
             alert('Error: ' + data.error);
         }
+    })
+    .catch(function(error) {
+        console.error('Error en fetch:', error);
+        alert('Error al conectar con el servidor: ' + error);
     });
 }
 

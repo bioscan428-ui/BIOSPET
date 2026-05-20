@@ -333,7 +333,7 @@ if (isset($_SESSION['importacion_mensaje'])) {
                 <li>ubicacion</li>
                 <li>fecha_vencimiento (formato YYYY-MM-DD)</li>
             </ul>
-            <form id="formImportar" action="productos_importar.php" method="POST" enctype="multipart/form-data">
+            <form id="formImportar" action="productos_importar_csv.php" method="POST" enctype="multipart/form-data">
                 <input type="file" name="archivo_excel" accept=".xlsx, .xls" required>
                 <div class="modal-buttons">
                     <button type="button" class="btn-cancelar-modal" id="btnCerrarModal">Cancelar</button>

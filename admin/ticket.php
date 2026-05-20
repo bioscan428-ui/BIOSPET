@@ -127,7 +127,7 @@ $vuelto = $_GET['vuelto'] ?? null;
 <body>
     <!-- Encabezado -->
     <div class="center">
-        <h3><?php echo $venta['empresa_nombre']; ?></h3>
+        <img src="/assets/images/logo_biospet_inverso.png" alt="BIOSPET" style="max-width: 180px; margin-bottom: 10px;">
         <p><?php echo $venta['empresa_eslogan']; ?><br>
         <?php echo $venta['empresa_direccion']; ?><br>
         <?php echo $venta['empresa_telefono']; ?></p>
@@ -148,16 +148,11 @@ $vuelto = $_GET['vuelto'] ?? null;
 
         </div>
         <?php if($venta['cliente_telefono']): ?>
-        <div class="info-row">
-            <span class="info-label">Teléfono:</span>
-            <span><?php echo $venta['cliente_telefono']; ?></span>
-        </div>
+        
+        
         <?php endif; ?>
         <?php if($venta['cliente_email']): ?>
-        <div class="info-row">
-            <span class="info-label">Email:</span>
-            <span><?php echo $venta['cliente_email']; ?></span>
-        </div>
+        
         <?php endif; ?>
     </div>
 

@@ -2,5 +2,13 @@
     "require": {
         "phpmailer/phpmailer": "^7.0",
         "dompdf/dompdf": "^3.1"
+    },
+    "repositories": [{
+        "name": "packagist",
+        "type": "composer",
+        "url": "http://packagist.org"
+    }],
+    "config": {
+        "secure-http": true
     }
 }

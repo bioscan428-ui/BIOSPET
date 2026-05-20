@@ -2,7 +2,11 @@
 session_start();
 header('Content-Type: application/json');
 
+error_log("=== AGREGAR PRODUCTOS CITA ===");
+error_log("POST recibido: " . print_r($_POST, true));
+
 if (!isset($_SESSION['user_id'])) {
+    error_log("ERROR: Usuario no autorizado");
     echo json_encode(['success' => false, 'error' => 'No autorizado']);
     exit;
 }
@@ -12,7 +16,23 @@ require_once __DIR__ . '/../includes/conexion.php';
 $id_cita = (int)$_POST['id_cita'];
 $productos_json = $_POST['productos_json'];
 
+error_log("ID Cita: $id_cita");
+error_log("Productos JSON: $productos_json");
+
+if (!$id_cita) {
+    error_log("ERROR: ID de cita no recibido");
+    echo json_encode(['success' => false, 'error' => 'ID de cita no recibido']);
+    exit;
+}
+
+if (empty($productos_json)) {
+    error_log("ERROR: No se recibieron productos");
+    echo json_encode(['success' => false, 'error' => 'No se recibieron productos']);
+    exit;
+}
+
 $productos = json_decode($productos_json, true);
+error_log("Productos decodificados: " . print_r($productos, true));
 
 if (empty($productos)) {
     echo json_encode(['success' => false, 'error' => 'No hay productos']);
