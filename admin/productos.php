@@ -238,7 +238,8 @@ if (isset($_SESSION['importacion_mensaje'])) {
                         <th>Imagen</th>
                         <th>Nombre</th>
                         <th>Categoría</th>
-                        <th>Precio</th>
+                        <th>Precio de Venta</th>
+                        <th>Precio de Compra</th>
                         <th>Stock</th>
                         <?php if ($tab === 'criticos'): ?>
                             <th>Stock Mínimo</th>
@@ -263,6 +264,7 @@ if (isset($_SESSION['importacion_mensaje'])) {
                             <td><strong><?php echo htmlspecialchars($producto['nombre']); ?></strong></td>
                             <td><?php echo $producto['categoria_nombre'] ?? $producto['categoria']; ?></td>
                             <td>$<?php echo number_format($producto['precio_venta'], 2); ?></td>
+                            <td>$<?php echo number_format($producto['precio_compra'], 2); ?></td>
                             <td>
                                 <?php 
                                 $stock_minimo = $producto['stock_minimo'] ?? 5;
@@ -305,7 +307,7 @@ if (isset($_SESSION['importacion_mensaje'])) {
                         <?php endwhile; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="<?php echo ($tab === 'criticos') ? '9' : '8'; ?>" style="text-align: center; padding: 40px; color: #999;">
+                            <td colspan="<?php echo ($tab === 'criticos') ? '10' : '9'; ?>" style="text-align: center; padding: 40px; color: #999;">
                                 No hay productos para mostrar
                             </td>
                         </tr>

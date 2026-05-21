@@ -116,6 +116,41 @@ $asistentes = [];
 $asignado = null;
 $asignado_asistente = null;
 
+// ========== NUEVO: Grooming (Estética) ==========
+$groomers = [];
+$asignado_groomer = null;
+$tiene_servicios_estetica = false;
+
+// Verificar si la cita tiene servicios de estética
+$servicios_estetica = ['estética', 'baño', 'corte', 'cepillado', 'uñas', 'grooming'];
+$servicios_cita = strtolower($cita['servicios'] ?? '');
+foreach ($servicios_estetica as $keyword) {
+    if (strpos($servicios_cita, $keyword) !== false) {
+        $tiene_servicios_estetica = true;
+        break;
+    }
+}
+if (in_array($_SESSION['rol'], ['super_admin', 'admin']) && $tiene_servicios_estetica) {
+    // Groomer actualmente asignado
+    $sql_asignado_groomer = "SELECT e.id, e.nombre, e.ape_pat 
+                            FROM ASIGNACION_CITA ac
+                            JOIN EMPLEADO e ON ac.id_empleado = e.id
+                            WHERE ac.id_cita = ? AND ac.rol_asignado = 'grooming'";
+    $stmt_asig_groomer = $conn->prepare($sql_asignado_groomer);
+    $stmt_asig_groomer->bind_param("i", $id_cita);
+    $stmt_asig_groomer->execute();
+    $asignado_groomer = $stmt_asig_groomer->get_result()->fetch_assoc();
+
+    // Lista de groomers
+    $sql_groomers = "SELECT e.id, e.nombre, e.ape_pat
+                    FROM EMPLEADO e
+                    JOIN USUARIO u ON e.id = u.id_empleado
+                    WHERE e.puesto = 'grooming' AND e.activo = 1 AND u.activo = 1
+                    ORDER BY e.nombre";
+    $groomers = $conn->query($sql_groomers);
+    }
+// ========== FIN DE NUEVO: Grooming (Estética) ==========
+
 if (in_array($_SESSION['rol'], ['super_admin', 'admin'])) {
     // Veterinario actualmente asignado
     $sql_asignado = "SELECT e.id, e.nombre, e.ape_pat, e.especialidad 
@@ -339,7 +374,50 @@ $productos = $conn->query($sql_productos);
             </form>
         </div>
         <?php endif; ?>
-
+        <!-- Seccion de grooming -->
+        <!-- Asignar Groomer (Estética) - Solo si hay servicios de estética -->
+<?php if (in_array($_SESSION['rol'], ['super_admin', 'admin']) && $tiene_servicios_estetica): ?>
+<div class="section">
+    <h3>✂️ Asignar Groomer (Estética)</h3>
+    <?php if ($asignado_groomer): ?>
+        <div class="info-row" style="margin-bottom: 15px;">
+            <div class="info-label">Groomer asignado:</div>
+            <div class="info-value">✂️ <?php echo $asignado_groomer['nombre'] . ' ' . $asignado_groomer['ape_pat']; ?></div>
+        </div>
+    <?php endif; ?>
+    <form action="asignar_groomer.php" method="POST">
+        <input type="hidden" name="id_cita" value="<?php echo $id_cita; ?>">
+        <div class="form-row">
+            <select name="id_groomer" required style="flex:2; padding:8px;">
+                <option value="">Seleccionar...</option>
+                <?php while($groomer = $groomers->fetch_assoc()): ?>
+                    <option value="<?php echo $groomer['id']; ?>">✂️ <?php echo $groomer['nombre'] . ' ' . $groomer['ape_pat']; ?></option>
+                <?php endwhile; ?>
+            </select>
+            <button type="submit" class="btn-small" style="background: var(--primary);">Asignar</button>
+        </div>
+    </form>
+    <?php if (!$asignado_groomer && $cita['estado'] == 'confirmada' && $tiene_servicios_estetica): ?>
+        <p style="color: #ff9800; font-size: 12px; margin-top: 10px;">⚠️ Esta cita tiene servicios de estética pero no tiene groomer asignado.</p>
+    <?php endif; ?>
+</div>
+<?php elseif ($tiene_servicios_estetica && !in_array($_SESSION['rol'], ['super_admin', 'admin'])): ?>
+<div class="section">
+    <h3>✂️ Groomer (Estética)</h3>
+    <?php if ($asignado_groomer): ?>
+        <div class="info-row">
+            <div class="info-label">Groomer asignado:</div>
+            <div class="info-value">✂️ <?php echo $asignado_groomer['nombre'] . ' ' . $asignado_groomer['ape_pat']; ?></div>
+        </div>
+    <?php else: ?>
+        <div class="info-row">
+            <div class="info-label">Groomer:</div>
+            <div class="info-value"><span style="color: #ff9800;">⚠️ Sin asignar</span></div>
+        </div>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
+        <!-- FIN DE Seccion de grooming -->
         <!-- Servicios Solicitados -->
         <div class="section">
             <h3>💊 Servicios Solicitados</h3>
@@ -376,16 +454,36 @@ $productos = $conn->query($sql_productos);
             ?>
             <table class="productos-cita-table">
                 <thead>
-                    <tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th></tr>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Precio</th>
+                        <th>Subtotal</th>
+                        <th>Acción</th>
+                    </tr>
                 </thead>
                 <tbody>
                     <?php while($prod = $productos_cita->fetch_assoc()): ?>
-                    <tr>
-                        <td><?php echo htmlspecialchars($prod['nombre']); ?></td>
-                        <td><?php echo $prod['cantidad']; ?></td>
-                        <td>$<?php echo number_format($prod['precio_unitario'], 2); ?></td>
-                        <td>$<?php echo number_format($prod['subtotal'], 2); ?></td>
-                    </tr>
+                        <tr>
+                            <td><?php echo htmlspecialchars($prod['nombre']); ?></span>
+                            <td><?php echo $prod['cantidad']; ?></span>
+                            <td>$<?php echo number_format($prod['precio_unitario'], 2); ?></span>
+                            <td>$<?php echo number_format($prod['subtotal'], 2); ?></span>
+                            <td style="display: flex; gap: 5px; align-items: center;">
+                                <!-- Botón para quitar UNA unidad -->
+                                <button type="button" class="btn-quitar-uno"
+                                onclick="quitarUnidadProducto(<?php echo $prod['id_producto']; ?>, '<?php echo addslashes($prod['nombre']); ?>', <?php echo $prod['cantidad']; ?>)"
+                                style="background: #ff9800; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">
+                                ➖ Quitar 1
+                                </button>
+                                <!-- Botón para eliminar TODAS las unidades -->
+                                <button type="button" class="btn-eliminar-producto"
+                                onclick="eliminarProductoDeCita(<?php echo $prod['id_producto']; ?>, '<?php echo addslashes($prod['nombre']); ?>')"
+                                style="background: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">
+                                🗑️ Eliminar todo
+                                </button>
+                            </td>
+                        </tr>
                     <?php endwhile; ?>
                 </tbody>
             </table>
@@ -622,9 +720,9 @@ $productos = $conn->query($sql_productos);
                             <div class="producto-stock">Stock: <?php echo $prod['stock_actual']; ?> unidades</div>
                         </div>
                         <div>
-                            <input type="number" id="cantidad_<?php echo $prod['id']; ?>" value="1" min="1" max="<?php echo $prod['stock_actual']; ?>" style="width: 60px; padding: 5px;">
-                            <button onclick="agregarProductoCarrito(<?php echo $prod['id']; ?>, '<?php echo addslashes($prod['nombre']); ?>', <?php echo $prod['precio_venta']; ?>)" class="btn-agregar-producto">+ Agregar</button>
-                        </div>
+    <input type="number" id="cantidad_<?php echo $prod['id']; ?>" value="1" min="1" max="<?php echo $prod['stock_actual']; ?>" style="width: 60px; padding: 5px;">
+    <button type="button" class="btn-agregar-producto" data-id="<?php echo $prod['id']; ?>" data-nombre="<?php echo htmlspecialchars($prod['nombre']); ?>" data-precio="<?php echo $prod['precio_venta']; ?>">+ Agregar</button>
+</div>
                     </div>
                     <?php endwhile; ?>
                 </div>
@@ -635,7 +733,7 @@ $productos = $conn->query($sql_productos);
                     <div class="total-recibo" id="totalProductos">Total: $0.00</div>
                 </div>
                 
-                <button onclick="confirmarAgregarProductos()" class="btn-guardar" style="background: #ff9800; margin-top: 15px;">✅ Agregar a la cita</button>
+                <button type="button" id="btnAgregarCita" class="btn-guardar" style="background: #ff9800; margin-top: 15px;">✅ Agregar a la cita</button>
             </div>
         </div>
     </div>

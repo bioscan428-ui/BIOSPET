@@ -13,6 +13,8 @@ function abrirModalProductos(citaId) {
     carritoProductos = [];
     actualizarListaProductos();
     document.getElementById('modalProductos').style.display = 'block';
+    // Conectar botones al abrir el modal
+    conectarBotonesAgregar();
 }
 
 function agregarProductoCarrito(id, nombre, precio) {
@@ -133,9 +135,129 @@ function cerrarModal(modalId) {
     document.getElementById(modalId).style.display = 'none';
 }
 
+// ========== CONEXIÓN DE BOTONES ==========
+
+// Conectar botones "+ Agregar"
+function conectarBotonesAgregar() {
+    const botones = document.querySelectorAll('.btn-agregar-producto');
+    console.log('Conectando botones agregar, encontrados:', botones.length);
+    
+    botones.forEach(function(btn) {
+        if (btn.hasAttribute('data-conectado')) return;
+        
+        const id = btn.getAttribute('data-id');
+        const nombre = btn.getAttribute('data-nombre');
+        const precio = parseFloat(btn.getAttribute('data-precio'));
+        
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Botón + Agregar clickeado para producto:', id, nombre);
+            agregarProductoCarrito(parseInt(id), nombre, precio);
+        });
+        
+        btn.setAttribute('data-conectado', 'true');
+    });
+}
+
+// Conectar botón "Agregar a la cita"
+function conectarBotonConfirmar() {
+    const btnConfirmar = document.getElementById('btnAgregarCita');
+    if (btnConfirmar && !btnConfirmar.hasAttribute('data-conectado')) {
+        btnConfirmar.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('Botón Agregar a la cita clickeado');
+            confirmarAgregarProductos();
+        });
+        btnConfirmar.setAttribute('data-conectado', 'true');
+        console.log('✅ Botón confirmar conectado');
+    }
+}
+
+// Observar cuando el modal se abre
+const observerModal = new MutationObserver(function() {
+    const modal = document.getElementById('modalProductos');
+    if (modal && modal.style.display === 'block') {
+        conectarBotonesAgregar();
+        conectarBotonConfirmar();
+    }
+});
+observerModal.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['style'] });
+
+// Conectar al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    conectarBotonesAgregar();
+    conectarBotonConfirmar();
+});
+
 window.onclick = function(event) {
     const modalPago = document.getElementById('modalPago');
     const modalProductos = document.getElementById('modalProductos');
     if (event.target == modalPago) modalPago.style.display = 'none';
     if (event.target == modalProductos) modalProductos.style.display = 'none';
+}
+
+// Eliminar producto de la cita (desde la tabla de productos ya agregados)
+function eliminarProductoDeCita(productoId, productoNombre) {
+    if (confirm(`¿Eliminar "${productoNombre}" de esta cita?`)) {
+        fetch('eliminar_producto_cita.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: 'id_cita=' + citaIdActual + '&id_producto=' + productoId
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            if (data.success) {
+                alert('Producto eliminado correctamente');
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(function(error) {
+            console.error('Error:', error);
+            alert('Error al eliminar el producto');
+        });
+    }
+}
+
+//--------------------------------------
+// Quitar una unidad de un producto de la cita
+function quitarUnidadProducto(productoId, productoNombre, cantidadActual) {
+    if (cantidadActual <= 1) {
+        // Si solo hay 1, preguntar si quiere eliminar completamente
+        if (confirm(`¿Eliminar completamente "${productoNombre}" de la cita?`)) {
+            eliminarProductoDeCita(productoId, productoNombre);
+        }
+        return;
+    }
+    
+    if (confirm(`¿Quitar 1 unidad de "${productoNombre}"?`)) {
+        fetch('quitar_unidad_producto_cita.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: 'id_cita=' + citaIdActual + '&id_producto=' + productoId
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            if (data.success) {
+                alert('Unidad eliminada correctamente');
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(function(error) {
+            console.error('Error:', error);
+            alert('Error al quitar la unidad');
+        });
+    }
 }

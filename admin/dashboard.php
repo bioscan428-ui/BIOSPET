@@ -122,6 +122,7 @@ if ($resumen_sql) {
             <a href="productos.php">🛒 Productos</a>
             <a href="punto_venta.php" style="background: #4caf50; padding: 5px 12px; border-radius: 5px;">💰 Punto de Venta</a>
             <a href="corte_caja.php" style="background: #9c27b0; padding: 5px 12px; border-radius: 5px;">💰 Corte de Caja</a>
+            <a href="facturas_lista.php" style="background: #9c27b0; padding: 5px 12px; border-radius: 5px;">📄 Facturas</a>
             <!-- Dropdown Clientes -->
             <div class="dropdown">
                 <a href="javascript:void(0)">👥 Clientes ▼</a>

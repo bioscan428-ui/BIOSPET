@@ -77,7 +77,7 @@ CREATE TABLE EMPLEADO (
     ape_mat VARCHAR(50),
     email VARCHAR(100) UNIQUE NOT NULL,
     telefono VARCHAR(15),
-    puesto ENUM('super_admin', 'admin', 'veterinario', 'asistente', 'recepcionista') NOT NULL,
+    puesto ENUM('super_admin', 'admin', 'veterinario', 'asistente', 'recepcionista', 'grooming') NOT NULL,
     especialidad VARCHAR(100), -- para veterinarios: 'radiología', 'cirugía', etc.
     fecha_contratacion DATE NOT NULL,
     activo BOOLEAN DEFAULT TRUE,
@@ -91,7 +91,7 @@ CREATE TABLE USUARIO (
     id_empleado INT NOT NULL,
     nombre_usuario VARCHAR(50) UNIQUE NOT NULL,
     contrasena VARCHAR(255) NOT NULL, -- hash de contraseña
-    rol ENUM('admin', 'veterinario', 'asistente', 'recepcionista') NOT NULL DEFAULT 'recepcionista',
+    rol ENUM('admin', 'veterinario', 'asistente', 'recepcionista', 'grooming') NOT NULL DEFAULT 'recepcionista',
     ultimo_acceso DATETIME,
     activo BOOLEAN DEFAULT TRUE,
     reset_token VARCHAR(64),

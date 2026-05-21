@@ -36,13 +36,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $regimen_fiscal = trim($_POST['regimen_fiscal']);
     $uso_cfdi = trim($_POST['uso_cfdi']);
     
-    if (empty($nombre_cliente) || empty($rfc) || empty($razon_social)) {
-        $error = "Nombre, RFC y Razón Social son obligatorios";
+    if (empty($rfc) || empty($razon_social)) {
+        $error = "RFC y Razón Social son obligatorios";
     } else {
         // Llamar al procedimiento almacenado
         $sql_proc = "CALL registrar_factura(?, ?, ?, ?, ?, ?, @resultado, @mensaje)";
         $stmt_proc = $conn->prepare($sql_proc);
-        $stmt_proc->bind_param("isssss", $id_venta, $nombre_cliente, $rfc, $razon_social, $regimen_fiscal, $uso_cfdi);
+        $stmt_proc->bind_param("isssss", $id_venta, $razon_social, $rfc, $razon_social, $regimen_fiscal, $uso_cfdi);
         $stmt_proc->execute();
         
         // Obtener el resultado

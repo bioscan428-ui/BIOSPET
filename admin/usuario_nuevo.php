@@ -149,6 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <option value="veterinario">Veterinario</option>
                         <option value="asistente">Asistente</option>
                         <option value="recepcionista">Recepcionista</option>
+                        <option value="recepcionista">Grooming</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -195,6 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <option value="veterinario">Veterinario</option>
                         <option value="asistente">Asistente</option>
                         <option value="recepcionista">Recepcionista</option>
+                        <option value="recepcionista">Grooming</option>
                     </select>
                     <small>Super Admin solo puede ser asignado por el sistema</small>
                 </div>

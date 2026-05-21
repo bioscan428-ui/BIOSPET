@@ -97,8 +97,8 @@ $vuelto = $_GET['vuelto'] ?? null;
         }
         .center { text-align: center; }
         .bold { font-weight: bold; }
-        .line { border-top: 1px dashed #000; margin: 8px 0; }
-        .line-doble { border-top: 2px solid #000; margin: 8px 0; }
+        .line { border-top: none; margin: 4px 0; }
+        .line-doble { border-top: none; margin: 8px 0; }
         .total { font-size: 14px; font-weight: bold; }
         .producto { margin: 4px 0; display: flex; justify-content: space-between; }
         .producto-nombre { width: 55%; }
