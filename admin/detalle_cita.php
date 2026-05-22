@@ -1,201 +1,6 @@
 <?php
-session_start();
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
-// Verificar que el usuario haya iniciado sesión
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
-    exit;
-}
-
-// Verificar rol para acceso
-if (!in_array($_SESSION['rol'], ['super_admin', 'admin', 'veterinario', 'asistente', 'recepcionista'])) {
-    header('Location: login.php');
-    exit;
-}
-
-require_once __DIR__ . '/../includes/conexion.php';
-
-$id_cita = (int)($_GET['id'] ?? 0);
-if (!$id_cita) {
-    header('Location: dashboard.php');
-    exit;
-}
-
-// Obtener datos de la cita
-$sql = "SELECT 
-            c.*,
-            m.nombre_mascota,
-            m.especie,
-            m.raza,
-            m.fecha_nacimiento,
-            m.genero,
-            m.foto,
-            cl.nombre AS nombre_dueno,
-            cl.ape_pat,
-            cl.ape_mat,
-            cl.telefono,
-            cl.email,
-            GROUP_CONCAT(s.nombre_servicio SEPARATOR ', ') AS servicios,
-            IFNULL(SUM(dc.precio_fijado), 0) AS total_servicios
-        FROM CITA c
-        JOIN MASCOTA m ON c.id_mascota = m.id
-        JOIN CLIENTE cl ON m.id_cliente = cl.id
-        LEFT JOIN DETALLE_CITA dc ON c.id = dc.id_cita
-        LEFT JOIN SERVICIO s ON dc.id_servicio = s.id
-        WHERE c.id = ?
-        GROUP BY c.id";
-
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $id_cita);
-$stmt->execute();
-$result = $stmt->get_result();
-$cita = $result->fetch_assoc();
-
-if (!$cita) {
-    die("Cita no encontrada");
-}
-
-// ========== USAR FUNCIÓN total_servicios_cita ==========
-$total_servicios_cita = $conn->query("SELECT total_servicios_cita($id_cita) as total")->fetch_assoc()['total'];
-
-// Obtener productos ya agregados a esta cita
-$sql_productos_cita = "SELECT COALESCE(SUM(dv.subtotal), 0) as total_productos 
-                       FROM DETALLE_VENTA dv
-                       JOIN VENTA_CITA vc ON vc.id_venta = dv.id_venta
-                       WHERE vc.id_cita = ?";
-                       
-$stmt_prod = $conn->prepare($sql_productos_cita);
-$stmt_prod->bind_param("i", $id_cita);
-$stmt_prod->execute();
-$total_productos = $stmt_prod->get_result()->fetch_assoc()['total_productos'] ?? 0;
-
-// Verificar si la cita ya tiene pago
-$pago_existente = $cita['pagada'] ? true : false;
-
-// Calcular total general
-$total_general = ($cita['total_servicios'] ?? 0) + $total_productos;
-
-// Calcular edad de la mascota
-$edad_mascota = null;
-if ($cita['fecha_nacimiento']) {
-    $sql_edad = "SELECT edad_mascota(?) as edad";
-    $stmt_edad = $conn->prepare($sql_edad);
-    $stmt_edad->bind_param("s", $cita['fecha_nacimiento']);
-    $stmt_edad->execute();
-    $result_edad = $stmt_edad->get_result();
-    $row_edad = $result_edad->fetch_assoc();
-    $edad_mascota = $row_edad['edad'];
-}
-
-// Verificar si la cita se puede cancelar
-$sql_cancelable = "SELECT cita_cancelable(?) as cancelable";
-$stmt_cancelable = $conn->prepare($sql_cancelable);
-$stmt_cancelable->bind_param("i", $id_cita);
-$stmt_cancelable->execute();
-$result_cancelable = $stmt_cancelable->get_result();
-$row_cancelable = $result_cancelable->fetch_assoc();
-$cita_cancelable = $row_cancelable['cancelable'];
-
-// Verificar si el veterinario solo puede ver sus citas asignadas
-if ($_SESSION['rol'] === 'veterinario') {
-    $sql_check = "SELECT id FROM ASIGNACION_CITA WHERE id_cita = ? AND id_empleado = ? AND rol_asignado = 'veterinario'";
-    $stmt_check = $conn->prepare($sql_check);
-    $stmt_check->bind_param("ii", $id_cita, $_SESSION['empleado_id']);
-    $stmt_check->execute();
-    $result_check = $stmt_check->get_result();
-    if ($result_check->num_rows == 0) {
-        die("No tienes permiso para ver esta cita");
-    }
-}
-
-// Obtener veterinarios y asistentes para las asignaciones
-$veterinarios = [];
-$asistentes = [];
-$asignado = null;
-$asignado_asistente = null;
-
-// ========== NUEVO: Grooming (Estética) ==========
-$groomers = [];
-$asignado_groomer = null;
-$tiene_servicios_estetica = false;
-
-// Verificar si la cita tiene servicios de estética
-$servicios_estetica = ['estética', 'baño', 'corte', 'cepillado', 'uñas', 'grooming'];
-$servicios_cita = strtolower($cita['servicios'] ?? '');
-foreach ($servicios_estetica as $keyword) {
-    if (strpos($servicios_cita, $keyword) !== false) {
-        $tiene_servicios_estetica = true;
-        break;
-    }
-}
-if (in_array($_SESSION['rol'], ['super_admin', 'admin']) && $tiene_servicios_estetica) {
-    // Groomer actualmente asignado
-    $sql_asignado_groomer = "SELECT e.id, e.nombre, e.ape_pat 
-                            FROM ASIGNACION_CITA ac
-                            JOIN EMPLEADO e ON ac.id_empleado = e.id
-                            WHERE ac.id_cita = ? AND ac.rol_asignado = 'grooming'";
-    $stmt_asig_groomer = $conn->prepare($sql_asignado_groomer);
-    $stmt_asig_groomer->bind_param("i", $id_cita);
-    $stmt_asig_groomer->execute();
-    $asignado_groomer = $stmt_asig_groomer->get_result()->fetch_assoc();
-
-    // Lista de groomers
-    $sql_groomers = "SELECT e.id, e.nombre, e.ape_pat
-                    FROM EMPLEADO e
-                    JOIN USUARIO u ON e.id = u.id_empleado
-                    WHERE e.puesto = 'grooming' AND e.activo = 1 AND u.activo = 1
-                    ORDER BY e.nombre";
-    $groomers = $conn->query($sql_groomers);
-    }
-// ========== FIN DE NUEVO: Grooming (Estética) ==========
-
-if (in_array($_SESSION['rol'], ['super_admin', 'admin'])) {
-    // Veterinario actualmente asignado
-    $sql_asignado = "SELECT e.id, e.nombre, e.ape_pat, e.especialidad 
-                    FROM ASIGNACION_CITA ac
-                    JOIN EMPLEADO e ON ac.id_empleado = e.id
-                    WHERE ac.id_cita = ? AND ac.rol_asignado = 'veterinario'";
-    $stmt_asig = $conn->prepare($sql_asignado);
-    $stmt_asig->bind_param("i", $id_cita);
-    $stmt_asig->execute();
-    $asignado = $stmt_asig->get_result()->fetch_assoc();
-    
-    // Lista de veterinarios
-    $sql_vets = "SELECT e.id, e.nombre, e.ape_pat, e.especialidad 
-                FROM EMPLEADO e
-                JOIN USUARIO u ON e.id = u.id_empleado
-                WHERE e.puesto = 'veterinario' AND e.activo = 1 AND u.activo = 1
-                ORDER BY e.nombre";
-    $veterinarios = $conn->query($sql_vets);
-    
-    // Asistente actualmente asignado
-    $sql_asignado_asistente = "SELECT e.id, e.nombre, e.ape_pat
-                            FROM ASIGNACION_CITA ac
-                            JOIN EMPLEADO e ON ac.id_empleado = e.id
-                            WHERE ac.id_cita = ? AND ac.rol_asignado = 'asistente'";
-    $stmt_asig_asistente = $conn->prepare($sql_asignado_asistente);
-    $stmt_asig_asistente->bind_param("i", $id_cita);
-    $stmt_asig_asistente->execute();
-    $asignado_asistente = $stmt_asig_asistente->get_result()->fetch_assoc();
-    
-    // Lista de asistentes
-    $sql_asistentes = "SELECT e.id, e.nombre, e.ape_pat
-                    FROM EMPLEADO e
-                    JOIN USUARIO u ON e.id = u.id_empleado
-                    WHERE e.puesto = 'asistente' AND e.activo = 1 AND u.activo = 1
-                    ORDER BY e.nombre";
-    $asistentes = $conn->query($sql_asistentes);
-}
-
-// Obtener servicios disponibles
-$sql_servicios = "SELECT id, nombre_servicio, precio FROM SERVICIO WHERE activo = 1 ORDER BY nombre_servicio";
-$servicios_disponibles = $conn->query($sql_servicios);
-
-// Obtener productos disponibles para la tienda
-$sql_productos = "SELECT id, nombre, precio_venta, stock_actual FROM PRODUCTO WHERE activo = 1 AND stock_actual > 0 ORDER BY nombre";
-$productos = $conn->query($sql_productos);
+// admin/detalle_cita.php
+require_once __DIR__ . '/detalle_cita_back.php';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -337,9 +142,8 @@ $productos = $conn->query($sql_productos);
                 <div class="form-row">
                     <select name="id_veterinario" required style="flex:2; padding:8px;">
                         <option value="">Seleccionar...</option>
-                        <?php while($vet = $veterinarios->fetch_assoc()): ?>
-                            <option value="<?php echo $vet['id']; ?>">Dr/a. <?php echo $vet['nombre'] . ' ' . $vet['ape_pat']; ?></option>
-                        <?php endwhile; ?>
+                        <?php echo $veterinarios_options; ?>
+                            
                     </select>
                     <button type="submit" class="btn-small" style="background: var(--primary);">Asignar</button>
                 </div>
@@ -365,9 +169,7 @@ $productos = $conn->query($sql_productos);
                 <div class="form-row">
                     <select name="id_asistente" required style="flex:2; padding:8px;">
                         <option value="">Seleccionar...</option>
-                        <?php while($asistente = $asistentes->fetch_assoc()): ?>
-                            <option value="<?php echo $asistente['id']; ?>"><?php echo $asistente['nombre'] . ' ' . $asistente['ape_pat']; ?></option>
-                        <?php endwhile; ?>
+                        <?php echo $asistentes_options; ?>
                     </select>
                     <button type="submit" class="btn-small" style="background: var(--primary);">Asignar</button>
                 </div>
@@ -390,9 +192,7 @@ $productos = $conn->query($sql_productos);
         <div class="form-row">
             <select name="id_groomer" required style="flex:2; padding:8px;">
                 <option value="">Seleccionar...</option>
-                <?php while($groomer = $groomers->fetch_assoc()): ?>
-                    <option value="<?php echo $groomer['id']; ?>">✂️ <?php echo $groomer['nombre'] . ' ' . $groomer['ape_pat']; ?></option>
-                <?php endwhile; ?>
+                <?php echo $groomers_options; ?>
             </select>
             <button type="submit" class="btn-small" style="background: var(--primary);">Asignar</button>
         </div>
@@ -472,13 +272,13 @@ $productos = $conn->query($sql_productos);
                             <td style="display: flex; gap: 5px; align-items: center;">
                                 <!-- Botón para quitar UNA unidad -->
                                 <button type="button" class="btn-quitar-uno"
-                                onclick="quitarUnidadProducto(<?php echo $prod['id_producto']; ?>, '<?php echo addslashes($prod['nombre']); ?>', <?php echo $prod['cantidad']; ?>)"
+                                onclick="quitarUnidadProducto(<?php echo $id_cita; ?>, <?php echo $prod['id_producto']; ?>, '<?php echo addslashes($prod['nombre']); ?>', <?php echo $prod['cantidad']; ?>)"
                                 style="background: #ff9800; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">
                                 ➖ Quitar 1
                                 </button>
                                 <!-- Botón para eliminar TODAS las unidades -->
                                 <button type="button" class="btn-eliminar-producto"
-                                onclick="eliminarProductoDeCita(<?php echo $prod['id_producto']; ?>, '<?php echo addslashes($prod['nombre']); ?>')"
+                                onclick="eliminarProductoDeCita(<?php echo $id_cita; ?>, <?php echo $prod['id_producto']; ?>, '<?php echo addslashes($prod['nombre']); ?>')"
                                 style="background: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">
                                 🗑️ Eliminar todo
                                 </button>
@@ -501,9 +301,7 @@ $productos = $conn->query($sql_productos);
                 <div class="form-row">
                     <select name="id_servicio" id="select_servicio" required style="flex:2; padding:8px;">
                         <option value="">Seleccionar...</option>
-                        <?php while($serv = $servicios_disponibles->fetch_assoc()): ?>
-                            <option value="<?php echo $serv['id']; ?>" data-precio="<?php echo $serv['precio']; ?>"><?php echo $serv['nombre_servicio']; ?> - $<?php echo number_format($serv['precio'], 2); ?></option>
-                        <?php endwhile; ?>
+                        <?php echo $servicios_options; ?>
                     </select>
                     <input type="number" step="0.01" name="precio_fijado" id="precio_fijado" required readonly style="background:#f5f5f5; width:120px; padding:8px;">
                     <button type="submit" class="btn-small" style="background:#4caf50;">+ Agregar</button>
@@ -711,28 +509,27 @@ $productos = $conn->query($sql_productos);
                 <span class="close-modal" onclick="cerrarModal('modalProductos')">&times;</span>
             </div>
             <div class="modal-body">
-                <div id="productosLista">
-                    <?php while($prod = $productos->fetch_assoc()): ?>
-                    <div class="producto-item">
-                        <div class="producto-info">
-                            <div class="producto-nombre"><?php echo htmlspecialchars($prod['nombre']); ?></div>
-                            <div class="producto-precio">$<?php echo number_format($prod['precio_venta'], 2); ?></div>
-                            <div class="producto-stock">Stock: <?php echo $prod['stock_actual']; ?> unidades</div>
-                        </div>
-                        <div>
-    <input type="number" id="cantidad_<?php echo $prod['id']; ?>" value="1" min="1" max="<?php echo $prod['stock_actual']; ?>" style="width: 60px; padding: 5px;">
-    <button type="button" class="btn-agregar-producto" data-id="<?php echo $prod['id']; ?>" data-nombre="<?php echo htmlspecialchars($prod['nombre']); ?>" data-precio="<?php echo $prod['precio_venta']; ?>">+ Agregar</button>
-</div>
+                <!-- Buscador de productos -->
+                <div class="buscador-productos" style="margin-bottom: 20px; padding: 10px; background: #f5f5f5; border-radius: 8px;">
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <input type="text"
+                                id="buscador_producto_input"
+                                placeholder="🔍 Buscar por nombre o código de barras..."
+                                style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;">
+                        <button type="button" id="btnBuscarProductos" class="btn-small" style="background: #2196f3; padding: 10px 20px;">Buscar</button>
+                        <button type="button" id="btnLimpiarBusqueda" class="btn-small" style="background: #666; padding: 10px 20px;">Limpiar</button>
                     </div>
-                    <?php endwhile; ?>
+                    <div id="resultado_busqueda_info" style="margin-top: 8px; font-size: 12px; color: #666; display: none;"></div>
                 </div>
-                
+                <!-- Lista de productos - USAR $lista_productos en lugar de while -->
+                <div id="productosLista">
+                    <?php echo $lista_productos; ?>
+                </div>
                 <div class="productos-seleccionados" id="productosSeleccionados">
                     <h4>Productos seleccionados:</h4>
                     <div id="listaProductos"></div>
                     <div class="total-recibo" id="totalProductos">Total: $0.00</div>
                 </div>
-                
                 <button type="button" id="btnAgregarCita" class="btn-guardar" style="background: #ff9800; margin-top: 15px;">✅ Agregar a la cita</button>
             </div>
         </div>

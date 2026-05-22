@@ -198,14 +198,14 @@ window.onclick = function(event) {
 }
 
 // Eliminar producto de la cita (desde la tabla de productos ya agregados)
-function eliminarProductoDeCita(productoId, productoNombre) {
+function eliminarProductoDeCita(idCita, productoId, productoNombre) {
     if (confirm(`¿Eliminar "${productoNombre}" de esta cita?`)) {
         fetch('eliminar_producto_cita.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
             },
-            body: 'id_cita=' + citaIdActual + '&id_producto=' + productoId
+            body: 'id_cita=' + idCita + '&id_producto=' + productoId
         })
         .then(function(response) {
             return response.json();
@@ -227,11 +227,11 @@ function eliminarProductoDeCita(productoId, productoNombre) {
 
 //--------------------------------------
 // Quitar una unidad de un producto de la cita
-function quitarUnidadProducto(productoId, productoNombre, cantidadActual) {
+function quitarUnidadProducto(idCita, productoId, productoNombre, cantidadActual) {
     if (cantidadActual <= 1) {
         // Si solo hay 1, preguntar si quiere eliminar completamente
         if (confirm(`¿Eliminar completamente "${productoNombre}" de la cita?`)) {
-            eliminarProductoDeCita(productoId, productoNombre);
+            eliminarProductoDeCita(idCita, productoId, productoNombre);
         }
         return;
     }
@@ -242,7 +242,7 @@ function quitarUnidadProducto(productoId, productoNombre, cantidadActual) {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
             },
-            body: 'id_cita=' + citaIdActual + '&id_producto=' + productoId
+            body: 'id_cita=' + idCita + '&id_producto=' + productoId
         })
         .then(function(response) {
             return response.json();
@@ -261,3 +261,113 @@ function quitarUnidadProducto(productoId, productoNombre, cantidadActual) {
         });
     }
 }
+
+
+// ========== BÚSQUEDA DE PRODUCTOS CON AJAX ==========
+function buscarProductosAJAX() {
+    const inputBuscar = document.getElementById('buscador_producto_input');
+    const criterio = inputBuscar ? inputBuscar.value.trim() : '';
+    
+    console.log('Buscando productos:', criterio);
+    
+    // Mostrar indicador de carga
+    const productosLista = document.getElementById('productosLista');
+    if (productosLista) {
+        productosLista.innerHTML = '<div style="text-align: center; padding: 20px;">🔍 Buscando...</div>';
+    }
+    
+    // Enviar petición AJAX
+    fetch('buscar_productos_ajax.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: 'buscar_producto=' + encodeURIComponent(criterio)
+    })
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        console.log('Respuesta recibida:', data);
+        if (productosLista) {
+            if (data.success && data.html) {
+                productosLista.innerHTML = data.html;
+                // Reconectar botones después de cargar nuevos productos
+                conectarBotonesAgregar();
+                
+                // Actualizar mensaje de resultados
+                const resultadoInfo = document.getElementById('resultado_busqueda_info');
+                if (resultadoInfo) {
+                    if (criterio !== '') {
+                        resultadoInfo.innerHTML = 'Resultados para: <strong>' + criterio + '</strong>';
+                        resultadoInfo.style.display = 'block';
+                    } else {
+                        resultadoInfo.style.display = 'none';
+                    }
+                }
+            } else {
+                productosLista.innerHTML = '<p style="text-align: center; padding: 20px; color: #999;">' + (data.error || 'No hay productos disponibles') + '</p>';
+            }
+        }
+    })
+    .catch(function(error) {
+        console.error('Error en búsqueda:', error);
+        if (productosLista) {
+            productosLista.innerHTML = '<p style="text-align: center; padding: 20px; color: #f44336;">Error al buscar productos</p>';
+        }
+    });
+}
+
+// Función para limpiar búsqueda
+function limpiarBusquedaProductos() {
+    const inputBuscar = document.getElementById('buscador_producto_input');
+    if (inputBuscar) {
+        inputBuscar.value = '';
+    }
+    buscarProductosAJAX();
+}
+
+// Configurar event listeners para el buscador
+function configurarBuscadorProductos() {
+    const btnBuscar = document.getElementById('btnBuscarProductos');
+    const btnLimpiar = document.getElementById('btnLimpiarBusqueda');
+    const inputBuscar = document.getElementById('buscador_producto_input');
+    
+    if (btnBuscar) {
+        btnBuscar.addEventListener('click', function(e) {
+            e.preventDefault();
+            buscarProductosAJAX();
+        });
+    }
+    
+    if (btnLimpiar) {
+        btnLimpiar.addEventListener('click', function(e) {
+            e.preventDefault();
+            limpiarBusquedaProductos();
+        });
+    }
+    
+    if (inputBuscar) {
+        inputBuscar.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                buscarProductosAJAX();
+            }
+        });
+    }
+}
+
+// Modificar abrirModalProductos para configurar el buscador
+const originalAbrirModalProductos = abrirModalProductos;
+window.abrirModalProductos = function(citaId) {
+    originalAbrirModalProductos(citaId);
+    configurarBuscadorProductos();
+    
+    // Enfocar el buscador
+    setTimeout(function() {
+        const inputBuscar = document.getElementById('buscador_producto_input');
+        if (inputBuscar) {
+            inputBuscar.focus();
+        }
+    }, 100);
+};

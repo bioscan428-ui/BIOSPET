@@ -119,7 +119,20 @@ if ($resumen_sql) {
             <a href="dashboard.php">📋 Citas</a>
             <a href="calendario.php">📅 Calendario</a>
             <a href="reportes.php">📊 Reportes</a>
-            <a href="productos.php">🛒 Productos</a>
+            <!-- Dropdown Productos -->
+            <div class="dropdown">
+                <a href="javascript:void(0)">🛒 Productos ▼</a>
+                <div class="dropdown-content">
+                    <a href="productos.php">📦 Gestión de Productos</a>
+                    <a href="categorias_productos.php">📁 Categorías</a>
+                    <a href="producto_nuevo.php">➕ Nuevo Producto</a>
+                    <hr style="margin: 5px 0; border-color: #eee;">
+                    <a href="proveedores.php">🏭 Proveedores</a>
+                </div>
+            </div>
+            <!-- Dropdown Productos -->
+            <!------
+            <a href="productos.php">🛒 Productos</a>----->
             <a href="punto_venta.php" style="background: #4caf50; padding: 5px 12px; border-radius: 5px;">💰 Punto de Venta</a>
             <a href="corte_caja.php" style="background: #9c27b0; padding: 5px 12px; border-radius: 5px;">💰 Corte de Caja</a>
             <a href="facturas_lista.php" style="background: #9c27b0; padding: 5px 12px; border-radius: 5px;">📄 Facturas</a>

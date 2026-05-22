@@ -166,6 +166,9 @@ if (isset($_GET['ver_historial']) && is_numeric($_GET['ver_historial'])) {
                         <button onclick="verHistorial(<?php echo $user['id']; ?>)" class="btn-historial">
                             📊 Historial
                         </button>
+                        <button onclick="verExpediente(<?php echo $user['id']; ?>, '<?php echo htmlspecialchars($user['nombre'] . ' ' . $user['ape_pat']); ?>')" class="btn-expediente">
+                            📁 Expediente
+                        </button>
                         
                         <?php if ($user['nombre_usuario']): ?>
                         <form method="POST" style="display: inline-block;">
@@ -177,6 +180,7 @@ if (isset($_GET['ver_historial']) && is_numeric($_GET['ver_historial'])) {
                                     <option value="veterinario">Veterinario</option>
                                     <option value="asistente">Asistente</option>
                                     <option value="recepcionista">Recepcionista</option>
+                                    <option value="grooming">Grooming</option>
                                 </select>
                                 <input type="hidden" name="action" value="cambiar_rol">
                             <?php endif; ?>
@@ -206,6 +210,20 @@ if (isset($_GET['ver_historial']) && is_numeric($_GET['ver_historial'])) {
                 <span class="close">&times;</span>
             </div>
             <div class="modal-body" id="modalBody">
+                <div style="text-align: center; padding: 40px;">
+                    Cargando...
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal de Expediente -->
+    <div id="expedienteModal" class="modal">
+        <div class="modal-content modal-expediente">
+            <div class="modal-header">
+                <h2>📁 Expediente de <span id="expedienteEmpleadoNombre"></span></h2>
+                <span class="close-expediente">&times;</span>
+            </div>
+            <div class="modal-body" id="expedienteBody">
                 <div style="text-align: center; padding: 40px;">
                     Cargando...
                 </div>
@@ -243,6 +261,81 @@ if (isset($_GET['ver_historial']) && is_numeric($_GET['ver_historial'])) {
                 modal.style.display = 'none';
             }
         }
+
+        // Modal de Expediente
+const expedienteModal = document.getElementById('expedienteModal');
+const closeExpediente = document.getElementsByClassName('close-expediente')[0];
+let empleadoIdActual = 0;
+
+function verExpediente(empleadoId, empleadoNombre) {
+    empleadoIdActual = empleadoId;
+    document.getElementById('expedienteEmpleadoNombre').innerText = empleadoNombre;
+    expedienteModal.style.display = 'block';
+    cargarExpediente(empleadoId);
+}
+
+function cargarExpediente(empleadoId) {
+    document.getElementById('expedienteBody').innerHTML = '<div style="text-align: center; padding: 40px;">Cargando documentos...</div>';
+    
+    fetch(`expediente_empleado.php?id=${empleadoId}`)
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('expedienteBody').innerHTML = html;
+        })
+        .catch(error => {
+            document.getElementById('expedienteBody').innerHTML = '<div style="color: red; text-align: center; padding: 40px;">Error al cargar los documentos</div>';
+        });
+}
+
+function subirDocumento() {
+    const formData = new FormData();
+    formData.append('id_empleado', empleadoIdActual);
+    formData.append('tipo_documento', document.getElementById('tipo_documento').value);
+    formData.append('descripcion', document.getElementById('descripcion_documento').value);
+    formData.append('archivo', document.getElementById('archivo_documento').files[0]);
+    
+    fetch('subir_expediente.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Documento subido correctamente');
+            cargarExpediente(empleadoIdActual);
+            document.getElementById('archivo_documento').value = '';
+            document.getElementById('descripcion_documento').value = '';
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error al subir el documento');
+    });
+}
+
+function eliminarDocumento(documentoId) {
+    if (confirm('¿Eliminar este documento permanentemente?')) {
+        fetch('eliminar_expediente.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'id=' + documentoId
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Documento eliminado');
+                cargarExpediente(empleadoIdActual);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+
+closeExpediente.onclick = function() {
+    expedienteModal.style.display = 'none';
+}
     </script>
 </body>
 </html>

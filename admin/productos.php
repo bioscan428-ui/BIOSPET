@@ -15,6 +15,20 @@ require_once __DIR__ . '/../includes/conexion.php';
 
 $tab = $_GET['tab'] ?? 'todos';
 $busqueda = isset($_GET['buscar']) ? trim($_GET['buscar']) : '';
+$categoria_id = isset($_GET['categoria']) ? (int)$_GET['categoria'] : 0;
+$categoria_nombre = '';
+
+// Obtener nombre de la categoría si se está filtrando
+if ($categoria_id > 0) {
+    $sql_cat = "SELECT nombre FROM CATEGORIA_PRODUCTO WHERE id = ?";
+    $stmt_cat = $conn->prepare($sql_cat);
+    $stmt_cat->bind_param("i", $categoria_id);
+    $stmt_cat->execute();
+    $cat_result = $stmt_cat->get_result();
+    if ($cat_result->num_rows > 0) {
+        $categoria_nombre = $cat_result->fetch_assoc()['nombre'];
+    }
+}
 
 if (!empty($busqueda)) {
     // Usar el procedimiento buscar_producto
@@ -28,6 +42,18 @@ if (!empty($busqueda)) {
 } elseif ($tab === 'criticos') {
     $sql = "SELECT * FROM vista_stock_critico";
     $result = $conn->query($sql);
+    $criticos_count = $conn->query("SELECT COUNT(*) as total FROM vista_stock_critico")->fetch_assoc()['total'];
+} elseif ($categoria_id > 0) {
+    // Filtrar por categoría
+    $sql = "SELECT p.*, c.nombre AS categoria_nombre 
+            FROM PRODUCTO p
+            JOIN CATEGORIA_PRODUCTO c ON p.id_categoria = c.id
+            WHERE p.id_categoria = ?
+            ORDER BY p.stock_actual ASC, p.id DESC";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $categoria_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
     $criticos_count = $conn->query("SELECT COUNT(*) as total FROM vista_stock_critico")->fetch_assoc()['total'];
 } else {
     $sql = "SELECT p.*, c.nombre AS categoria_nombre 
@@ -160,6 +186,37 @@ if (isset($_SESSION['importacion_mensaje'])) {
             display: flex;
             gap: 10px;
         }
+        /* Estilos para el filtro de categoría */
+        .filtro-activo {
+            background: #e3f2fd;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            border-left: 4px solid #2196f3;
+        }
+        .filtro-activo .filtro-texto {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn-limpiar-filtro {
+            background: #2196f3;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+        .btn-limpiar-filtro:hover {
+            background: #0b7dda;
+        }
     </style>
 </head>
 <body>
@@ -217,6 +274,20 @@ if (isset($_SESSION['importacion_mensaje'])) {
                 <a href="producto_nuevo.php" class="btn-nuevo">+ Nuevo Producto</a>
             </div>
         </div>
+
+        <!-- Indicador de filtro por categoría -->
+        <?php if ($categoria_id > 0 && !empty($categoria_nombre)): ?>
+            <div class="filtro-activo">
+                <div class="filtro-texto">
+                    <span>🔍</span>
+                    <span>Mostrando productos de la categoría:</span>
+                    <strong><?php echo htmlspecialchars($categoria_nombre); ?></strong>
+                </div>
+                <a href="productos.php" class="btn-limpiar-filtro">
+                    ✖️ Limpiar filtro
+                </a>
+            </div>
+        <?php endif; ?>
 
         <?php if (!empty($busqueda) && $result->num_rows === 0): ?>
             <div class="alert-warning">
@@ -309,7 +380,7 @@ if (isset($_SESSION['importacion_mensaje'])) {
                         <tr>
                             <td colspan="<?php echo ($tab === 'criticos') ? '10' : '9'; ?>" style="text-align: center; padding: 40px; color: #999;">
                                 No hay productos para mostrar
-                            </td>
+                             </span>
                         </tr>
                     <?php endif; ?>
                 </tbody>

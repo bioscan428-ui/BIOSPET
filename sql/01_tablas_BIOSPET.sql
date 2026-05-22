@@ -402,3 +402,22 @@ CREATE TABLE IF NOT EXISTS REGISTRO_CORTE (
     CONSTRAINT fk_corte_empleado FOREIGN KEY (id_empleado) REFERENCES EMPLEADO(id) ON DELETE RESTRICT,
     INDEX idx_fecha_corte (fecha_corte)
 );
+
+----28. EXPEDIENTES DEL EMPLEADO
+CREATE TABLE EXPEDIENTE_EMPLEADO (
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    id_empleado INT NOT NULL,
+    tipo_documento ENUM('contrato', 'identificacion', 'comprobante_domicilio', 'cedula_profesional', 'certificado_estudios', 'carta_recomendacion', 'constancia_salud', 'otro') NOT NULL,
+    nombre_archivo VARCHAR(255) NOT NULL,
+    ruta_archivo VARCHAR(500) NOT NULL,
+    tamano INT, -- tamaño en bytes
+    tipo_archivo VARCHAR(50), -- PDF, JPG, PNG, etc.
+    descripcion TEXT,
+    fecha_subida DATETIME DEFAULT CURRENT_TIMESTAMP,
+    subido_por INT, -- id del empleado que subió el archivo
+    activo BOOLEAN DEFAULT TRUE,
+    INDEX (id_empleado),
+    INDEX (tipo_documento),
+    CONSTRAINT fk_expediente_empleado FOREIGN KEY (id_empleado) REFERENCES EMPLEADO(id) ON DELETE CASCADE,
+    CONSTRAINT fk_expediente_subido_por FOREIGN KEY (subido_por) REFERENCES EMPLEADO(id) ON DELETE SET NULL
+);
