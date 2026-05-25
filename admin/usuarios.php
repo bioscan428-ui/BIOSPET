@@ -181,6 +181,7 @@ if (isset($_GET['ver_historial']) && is_numeric($_GET['ver_historial'])) {
                                     <option value="asistente">Asistente</option>
                                     <option value="recepcionista">Recepcionista</option>
                                     <option value="grooming">Grooming</option>
+                                    <option value="caja">Caja</option>
                                 </select>
                                 <input type="hidden" name="action" value="cambiar_rol">
                             <?php endif; ?>

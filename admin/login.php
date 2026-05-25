@@ -55,6 +55,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     break;
                 case 'grooming':
                     header('Location: grooming_dashboard.php');
+                    break;
+                case 'caja':
+                    header('Location: caja_dashboard.php');
+                    break;
                 default:
                     header('Location: dashboard.php');
             }

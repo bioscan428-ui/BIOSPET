@@ -91,7 +91,7 @@ CREATE TABLE USUARIO (
     id_empleado INT NOT NULL,
     nombre_usuario VARCHAR(50) UNIQUE NOT NULL,
     contrasena VARCHAR(255) NOT NULL, -- hash de contraseña
-    rol ENUM('admin', 'veterinario', 'asistente', 'recepcionista', 'grooming') NOT NULL DEFAULT 'recepcionista',
+    rol ENUM('admin', 'veterinario', 'asistente', 'recepcionista', 'grooming', 'caja') NOT NULL DEFAULT 'recepcionista',
     ultimo_acceso DATETIME,
     activo BOOLEAN DEFAULT TRUE,
     reset_token VARCHAR(64),
