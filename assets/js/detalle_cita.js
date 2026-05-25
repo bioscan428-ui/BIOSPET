@@ -1,11 +1,77 @@
 let carritoProductos = [];
 let citaIdActual = 0;
 
+let totalAPagar = 0;  // Agrega esta variable global al inicio del archivo
+
 function abrirModalPago(citaId, totalGeneral) {
+    // Guardar el total
+    totalAPagar = parseFloat(totalGeneral);
+    
+    // Establecer valores básicos
     document.getElementById('pago_cita_id').value = citaId;
-    document.getElementById('monto_total_pago').value = '$' + parseFloat(totalGeneral).toFixed(2);
+    document.getElementById('monto_total_pago').value = '$' + totalAPagar.toFixed(2);
+    
+    // Resetear campos del nuevo modal (los que agregaste)
+    const metodoPagoSelect = document.getElementById('metodo_pago_pago');
+    const vueltoSection = document.getElementById('vueltoSection');
+    const montoRecibidoInput = document.getElementById('montoRecibido');
+    const vueltoInfoDiv = document.getElementById('vueltoInfo');
+    const referenciaInput = document.getElementById('referencia_pago');
+    
+    if (metodoPagoSelect) metodoPagoSelect.value = '';
+    if (vueltoSection) vueltoSection.style.display = 'none';
+    if (montoRecibidoInput) montoRecibidoInput.value = '';
+    if (vueltoInfoDiv) vueltoInfoDiv.innerHTML = '';
+    if (referenciaInput) referenciaInput.value = '';
+    
+    // Mostrar modal
     document.getElementById('modalPago').style.display = 'block';
 }
+//---------------DEPURACION
+function abrirModalPago(citaId, totalGeneral) {
+    console.log('=== abrirModalPago ejecutada ===');
+    console.log('Cita ID:', citaId);
+    console.log('Total:', totalGeneral);
+    
+    // Verificar que los elementos existen
+    const pagoCitaId = document.getElementById('pago_cita_id');
+    const montoTotal = document.getElementById('monto_total_pago');
+    const modal = document.getElementById('modalPago');
+    
+    console.log('Elemento pago_cita_id:', pagoCitaId);
+    console.log('Elemento monto_total_pago:', montoTotal);
+    console.log('Elemento modalPago:', modal);
+    
+    if (!pagoCitaId || !montoTotal || !modal) {
+        console.error('ERROR: No se encontraron los elementos del modal');
+        return;
+    }
+    
+    // Guardar el total
+    totalAPagar = parseFloat(totalGeneral);
+    
+    // Establecer valores básicos
+    pagoCitaId.value = citaId;
+    montoTotal.value = '$' + totalAPagar.toFixed(2);
+    
+    // Resetear campos del nuevo modal
+    const metodoPagoSelect = document.getElementById('metodo_pago_pago');
+    const vueltoSection = document.getElementById('vueltoSection');
+    const montoRecibidoInput = document.getElementById('montoRecibido');
+    const vueltoInfoDiv = document.getElementById('vueltoInfo');
+    const referenciaInput = document.getElementById('referencia_pago');
+    
+    if (metodoPagoSelect) metodoPagoSelect.value = '';
+    if (vueltoSection) vueltoSection.style.display = 'none';
+    if (montoRecibidoInput) montoRecibidoInput.value = '';
+    if (vueltoInfoDiv) vueltoInfoDiv.innerHTML = '';
+    if (referenciaInput) referenciaInput.value = '';
+    
+    // Mostrar modal
+    modal.style.display = 'block';
+    console.log('Modal abierto');
+}
+//---------------FIN DEPURACION
 
 function abrirModalProductos(citaId) {
     console.log('Abriendo modal para cita:', citaId);
@@ -371,3 +437,142 @@ window.abrirModalProductos = function(citaId) {
         }
     }, 100);
 };
+
+
+// ========== PROCESAR PAGO DE CITA CON TICKET ==========
+// Configurar evento para mostrar/ocultar sección de vuelto
+function configurarEventoMetodoPago() {
+    const metodoPagoSelect = document.getElementById('metodo_pago_pago');
+    if (metodoPagoSelect) {
+        metodoPagoSelect.addEventListener('change', function() {
+            const vueltoSection = document.getElementById('vueltoSection');
+            if (this.value === 'efectivo') {
+                if (vueltoSection) vueltoSection.style.display = 'block';
+                const montoRecibido = document.getElementById('montoRecibido');
+                if (montoRecibido) montoRecibido.focus();
+            } else {
+                if (vueltoSection) vueltoSection.style.display = 'none';
+                const montoRecibido = document.getElementById('montoRecibido');
+                if (montoRecibido) montoRecibido.value = '';
+                const vueltoInfo = document.getElementById('vueltoInfo');
+                if (vueltoInfo) vueltoInfo.innerHTML = '';
+            }
+        });
+    }
+}
+
+// Calcular vuelto en tiempo real
+function configurarCalculoVuelto() {
+    const montoRecibido = document.getElementById('montoRecibido');
+    if (montoRecibido) {
+        montoRecibido.addEventListener('input', function() {
+            const recibido = parseFloat(this.value);
+            const total = totalAPagar;
+            const vueltoInfo = document.getElementById('vueltoInfo');
+            
+            if (!isNaN(recibido) && recibido >= total) {
+                const vuelto = recibido - total;
+                if (vueltoInfo) {
+                    vueltoInfo.innerHTML = `<strong style="color: #28a745;">💵 Vuelto: $${vuelto.toFixed(2)}</strong>`;
+                }
+            } else if (!isNaN(recibido) && recibido < total) {
+                const faltante = total - recibido;
+                if (vueltoInfo) {
+                    vueltoInfo.innerHTML = `<strong style="color: #dc3545;">⚠️ Faltante: $${faltante.toFixed(2)}</strong>`;
+                }
+            } else {
+                if (vueltoInfo) vueltoInfo.innerHTML = '';
+            }
+        });
+    }
+}
+
+// Confirmar pago y generar ticket
+function configurarBotonConfirmarPago() {
+    const btnConfirmar = document.getElementById('btnConfirmarPago');
+    if (btnConfirmar) {
+        btnConfirmar.addEventListener('click', async function() {
+            const id_cita = parseInt(document.getElementById('pago_cita_id').value);
+            const metodo_pago = document.getElementById('metodo_pago_pago').value;
+            const referencia = document.getElementById('referencia_pago').value;
+            const montoRecibido = parseFloat(document.getElementById('montoRecibido').value);
+            const total = totalAPagar;
+            
+            if (!metodo_pago) {
+                alert('Seleccione un método de pago');
+                return;
+            }
+            
+            // Validar si es efectivo y el monto recibido es suficiente
+            let vuelto = null;
+            if (metodo_pago === 'efectivo') {
+                if (isNaN(montoRecibido) || montoRecibido < total) {
+                    alert(`El monto recibido (${isNaN(montoRecibido) ? '0' : montoRecibido.toFixed(2)}) es insuficiente. Total a pagar: $${total.toFixed(2)}`);
+                    return;
+                }
+                vuelto = montoRecibido - total;
+            }
+            
+            const btn = this;
+            const textoOriginal = btn.textContent;
+            btn.textContent = '⏳ Procesando...';
+            btn.disabled = true;
+            
+            try {
+                const formData = new FormData();
+                formData.append('id_cita', id_cita);
+                formData.append('metodo_pago', metodo_pago);
+                if (referencia) formData.append('referencia', referencia);
+                if (vuelto !== null) formData.append('recibido', montoRecibido);
+                if (vuelto !== null) formData.append('vuelto', vuelto);
+                
+                const response = await fetch('actualizar_pago_cita.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Pago registrado exitosamente!\nTotal: $${data.total.toFixed(2)}`);
+                    
+                    // Cerrar modal
+                    cerrarModal('modalPago');
+                    
+                    // Abrir ticket en nueva ventana
+                    let ticketUrl = `ticket_cita.php?id=${data.id_venta}`;
+                    if (vuelto !== null) {
+                        ticketUrl += `&recibido=${montoRecibido}&vuelto=${vuelto}`;
+                    }
+                    window.open(ticketUrl, '_blank', 'width=380,height=600,toolbar=no,menubar=no,scrollbars=yes');
+                    
+                    // Recargar la página
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al procesar el pago');
+            } finally {
+                btn.textContent = textoOriginal;
+                btn.disabled = false;
+            }
+        });
+    }
+}
+
+// Inicializar configuración del modal de pago
+function inicializarPago() {
+    configurarEventoMetodoPago();
+    configurarCalculoVuelto();
+    configurarBotonConfirmarPago();
+}
+
+// Llamar a la inicialización cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    inicializarPago();
+});
+// ========== FIN DE PROCESAR PAGO DE CITA CON TICKET ==========

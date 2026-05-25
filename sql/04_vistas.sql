@@ -392,3 +392,82 @@ SELECT
     END AS porcentaje_descuento
 FROM DETALLE_VENTA dv
 JOIN PRODUCTO p ON dv.id_producto = p.id;
+
+
+---------------------------------------------------------VISTAS DE DETALLE_CITA----------------------------------------------------------------
+-- Vista para el encabezado del ticket de cita
+CREATE OR REPLACE VIEW vista_ticket_cita_venta AS
+SELECT 
+    v.id AS venta_id,
+    v.folio,
+    v.fecha_venta,
+    v.subtotal,
+    v.iva,
+    v.total,
+    v.metodo_pago,
+    v.estado,
+    
+    -- Datos del cliente
+    c.id AS cliente_id,
+    CONCAT(c.nombre, ' ', IFNULL(c.ape_pat, ''), ' ', IFNULL(c.ape_mat, '')) AS cliente_nombre,
+    c.telefono AS cliente_telefono,
+    c.email AS cliente_email,
+    c.direccion AS cliente_direccion,
+    
+    -- Datos del empleado (vendedor)
+    e.id AS empleado_id,
+    CONCAT(e.nombre, ' ', IFNULL(e.ape_pat, ''), ' ', IFNULL(e.ape_mat, '')) AS empleado_nombre,
+    
+    -- Datos de la cita
+    ct.id AS cita_id,
+    ct.fecha_cita,
+    ct.hora_cita,
+    m.nombre_mascota,
+    ct.notas as motivo,
+    
+    -- Datos de la empresa
+    'BIOSPET' AS empresa_nombre,
+    'Clínica Veterinaria' AS empresa_eslogan,
+    'Paseo Opera 7 Local 210 Lomas de Angelópolis 72830' AS empresa_direccion,
+    'Tel: 221 820 3396' AS empresa_telefono
+    
+FROM VENTA v
+JOIN VENTA_CITA vc ON v.id = vc.id_venta
+JOIN CITA ct ON vc.id_cita = ct.id
+JOIN MASCOTA m ON ct.id_mascota = m.id
+LEFT JOIN CLIENTE c ON v.id_cliente = c.id
+LEFT JOIN EMPLEADO e ON v.id_empleado = e.id
+WHERE v.estado = 'completada';
+
+-- Vista para el detalle del ticket de cita (productos y servicios)
+CREATE OR REPLACE VIEW vista_ticket_cita_detalle AS
+SELECT 
+    v.id AS id_venta,
+    'producto' AS tipo_item,
+    p.nombre AS descripcion,
+    dv.cantidad,
+    dv.precio_unitario,
+    dv.subtotal
+FROM VENTA v
+JOIN VENTA_CITA vc ON v.id = vc.id_venta
+JOIN DETALLE_VENTA dv ON v.id = dv.id_venta
+JOIN PRODUCTO p ON dv.id_producto = p.id
+WHERE v.estado = 'completada'
+
+UNION ALL
+
+SELECT 
+    v.id AS id_venta,
+    'servicio' AS tipo_item,
+    s.nombre_servicio AS descripcion,
+    1 AS cantidad,
+    dc.precio_fijado AS precio_unitario,
+    dc.precio_fijado AS subtotal
+FROM VENTA v
+JOIN VENTA_CITA vc ON v.id = vc.id_venta
+JOIN CITA ct ON vc.id_cita = ct.id
+JOIN DETALLE_CITA dc ON ct.id = dc.id_cita
+JOIN SERVICIO s ON dc.id_servicio = s.id
+WHERE v.estado = 'completada'
+
+ORDER BY id_venta, tipo_item DESC, descripcion;

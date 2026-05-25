@@ -152,14 +152,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <option value="PERSONA_MORAL">Persona Moral</option>
                     </select>
                 </div>
+
                 <div class="form-group">
-                    <label>Uso de CFDI</label>
-                    <select name="uso_cfdi">
+                    <label>Uso de CFDI *</label>
+                    <select name="uso_cfdi" required>
                         <option value="">Seleccionar...</option>
-                        <option value="G01">G01 - Adquisición de mercancías</option>
-                        <option value="G03">G03 - Gastos en general</option>
-                        <option value="D01">D01 - Honorarios médicos</option>
-                        <option value="D04">D04 - Donativos</option>
+                        <optgroup label="📦 Generales">
+                            <option value="G01">G01 - Adquisición de mercancías</option>
+                            <option value="G02">G02 - Devoluciones, descuentos o bonificaciones</option>
+                            <option value="G03">G03 - Gastos en general</option>
+                        </optgroup>
+                        <optgroup label="🏗️ Inversiones">
+                            <option value="I01">I01 - Construcciones</option>
+                            <option value="I02">I02 - Mobiliario y equipo de oficina</option>
+                            <option value="I03">I03 - Equipo de transporte</option>
+                            <option value="I04">I04 - Equipo de cómputo y accesorios</option>
+                            <option value="I05">I05 - Dados, troqueles, moldes y matrices</option>
+                            <option value="I06">I06 - Comunicaciones telefónicas</option>
+                            <option value="I07">I07 - Comunicaciones satelitales</option>
+                            <option value="I08">I08 - Otra maquinaria y equipo</option>
+                        </optgroup>
+                        <optgroup label="👤 Deducciones personales (solo Personas Físicas)">
+                            <option value="D01">D01 - Honorarios médicos, dentales y hospitalarios</option>
+                            <option value="D02">D02 - Gastos médicos por incapacidad</option>
+                            <option value="D03">D03 - Gastos funerales</option>
+                            <option value="D04">D04 - Donativos</option>
+                            <option value="D05">D05 - Intereses por créditos hipotecarios</option>
+                            <option value="D06">D06 - Aportaciones voluntarias al SAR</option>
+                            <option value="D07">D07 - Primas por seguros de gastos médicos</option>
+                            <option value="D08">D08 - Gastos de transportación escolar</option>
+                            <option value="D09">D09 - Depósitos en cuentas de ahorro</option>
+                            <option value="D10">D10 - Pagos por servicios educativos</option>
+                        </optgroup>
+                        <optgroup label="📄 Especiales">
+                            <option value="S01">S01 - Sin efectos fiscales</option>
+                            <option value="CP01">CP01 - Pagos</option>
+                            <option value="CN01">CN01 - Nómina</option>
+                        </optgroup>
                     </select>
                 </div>
                 <button type="submit" class="btn-enviar">📄 Solicitar Factura</button>

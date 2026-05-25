@@ -17,7 +17,7 @@ if (!in_array($_SESSION['rol'], ['super_admin', 'admin'])) {
 require_once __DIR__ . '/../includes/conexion.php';
 
 // Requerir PhpSpreadsheet
-require_once __DIR__ . '/../vendor/autoload.php';
+
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
 

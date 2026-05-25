@@ -284,7 +284,6 @@ CREATE TABLE FACTURA (
     CONSTRAINT fk_factura_venta FOREIGN KEY (id_venta) REFERENCES VENTA(id) ON DELETE CASCADE,
     CONSTRAINT uk_factura_venta UNIQUE (id_venta) -- Una venta solo puede tener una factura
     CONSTRAINT FOREIGN KEY (id_cliente) REFERENCES CLIENTE(id) ON DELETE SET NULL;
-    
 );
 
 ------ESTAS AUN NO ESTAN CREADAS EN LA BD NI EN EL DER-----
@@ -408,7 +407,7 @@ CREATE TABLE EXPEDIENTE_EMPLEADO (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     id_empleado INT NOT NULL,
     tipo_documento ENUM('contrato', 'identificacion', 'comprobante_domicilio', 'cedula_profesional', 'certificado_estudios', 'carta_recomendacion', 'constancia_salud', 'otro') NOT NULL,
-    nombre_archivo VARCHAR(255) NOT NULL,
+    nombre_archivo VARCHAR(100) NOT NULL,
     ruta_archivo VARCHAR(500) NOT NULL,
     tamano INT, -- tamaño en bytes
     tipo_archivo VARCHAR(50), -- PDF, JPG, PNG, etc.

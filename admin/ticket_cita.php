@@ -1,50 +1,18 @@
 <?php
+// ticket_cita.php
 session_start();
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 require_once __DIR__ . '/../includes/conexion.php';
 
-// ============================================
-// COMANDO PARA ABRIR CAJA (ESC/POS)
-// ============================================
-function enviarComandoAbrirCaja() {
-    $comando = chr(27) . chr(112) . chr(0) . chr(50) . chr(250);
-    $impresora = "GTP 801 Printer"; 
-    
-    if (($handle = @fopen($impresora, "w"))) {
-        fwrite($handle, $comando);
-        fclose($handle);
-        return true;
-    }
-    
-    $usb_paths = ["\\\\.\\USB001", "\\\\.\\USB002", "\\\\.\\LPT1"];
-    foreach ($usb_paths as $path) {
-        if (($handle = @fopen($path, "w"))) {
-            fwrite($handle, $comando);
-            fclose($handle);
-            return true;
-        }
-    }
-    
-    if (($handle = @fopen("/dev/usb/lp0", "w"))) {
-        fwrite($handle, $comando);
-        fclose($handle);
-        return true;
-    }
-    
-    return false;
-}
-
-$caja_abierta = enviarComandoAbrirCaja();
-// ============================================
-
 $id_venta = $_GET['id'] ?? 0;
 if (!$id_venta) {
     die("Venta no encontrada");
 }
 
-$sql = "SELECT * FROM vista_ticket_venta WHERE venta_id = ?";
+// Usar la vista para el encabezado
+$sql = "SELECT * FROM vista_ticket_cita_venta WHERE venta_id = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $id_venta);
 $stmt->execute();
@@ -54,11 +22,12 @@ if (!$venta) {
     die("Venta no encontrada");
 }
 
-$sql_prod = "SELECT * FROM vista_ticket_detalle WHERE id_venta = ? ORDER BY id_producto";
+// Usar la vista para el detalle
+$sql_prod = "SELECT * FROM vista_ticket_cita_detalle WHERE id_venta = ? ORDER BY tipo_item DESC, descripcion";
 $stmt_prod = $conn->prepare($sql_prod);
 $stmt_prod->bind_param("i", $id_venta);
 $stmt_prod->execute();
-$productos = $stmt_prod->get_result();
+$items = $stmt_prod->get_result();
 
 $recibido = $_GET['recibido'] ?? null;
 $vuelto = $_GET['vuelto'] ?? null;
@@ -67,17 +36,12 @@ $vuelto = $_GET['vuelto'] ?? null;
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Ticket #<?php echo str_pad($id_venta, 8, '0', STR_PAD_LEFT); ?></title>
+    <title>Ticket Cita #<?php echo str_pad($id_venta, 8, '0', STR_PAD_LEFT); ?> - BIOSPET</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Courier New', monospace;
-            /* SE AUMENTÓ EL TAMAÑO BASE DE 11px A 13px */
-            font-size: 13px; 
+            font-size: 13px;
             width: 280px;
             margin: 0 auto;
             padding: 10px;
@@ -86,39 +50,20 @@ $vuelto = $_GET['vuelto'] ?? null;
         }
         .center { text-align: center; }
         .bold { font-weight: bold; }
-        
-        /* Líneas divisorias con guiones simulados para mejor visibilidad térmica */
-        .line { 
-            border-top: 1px dashed #000; 
-            margin: 6px 0; 
-            height: 0;
-        }
-        .line-doble { 
-            border-top: 1px double #000; 
-            margin: 10px 0; 
-            height: 4px;
-        }
-        
-        /* SE AUMENTÓ EL TOTAL DE 14px A 16px */
+        .line { border-top: 1px dashed #000; margin: 6px 0; }
+        .line-doble { border-top: 1px double #000; margin: 10px 0; }
         .total { font-size: 16px; font-weight: bold; }
-        
-        /* Ajuste de columnas para evitar que se encimen textos */
         .producto { margin: 6px 0; display: flex; justify-content: space-between; align-items: flex-start; }
-        .producto-nombre { width: 50%; word-wrap: break-word; }
-        .producto-cantidad { width: 20%; text-align: center; }
+        .producto-nombre { width: 55%; word-wrap: break-word; }
+        .producto-cantidad { width: 15%; text-align: center; }
         .producto-precio { width: 30%; text-align: right; }
-        
         .info-row { display: flex; justify-content: space-between; margin: 4px 0; }
         .info-label { font-weight: bold; }
         .gracias { margin-top: 20px; text-align: center; }
-        
-        /* SE DETECTÓ QUE TENÍAS FUENTES DE 9px QUE SALÍAN BORROSAS, SE SUBIERON A 11px */
         .text-muted { font-size: 11px; }
-
-        @media print {
-            body { margin: 0; padding: 5px; }
-            .no-print { display: none; }
-        }
+        .servicio-item { color: #2c7da0; }
+        .producto-item { color: #2e7d32; }
+        @media print { body { margin: 0; padding: 5px; } .no-print { display: none; } }
         .btn-print {
             background: #4caf50;
             color: white;
@@ -140,16 +85,31 @@ $vuelto = $_GET['vuelto'] ?? null;
         <?php echo $venta['empresa_direccion']; ?><br>
         Tel: <?php echo $venta['empresa_telefono']; ?></p>
         <div class="line"></div>
-        <p><strong>TICKET #<?php echo str_pad($id_venta, 8, '0', STR_PAD_LEFT); ?></strong><br>
+        <p><strong>TICKET DE CITA #<?php echo str_pad($id_venta, 8, '0', STR_PAD_LEFT); ?></strong><br>
         <?php echo date('d/m/Y H:i:s', strtotime($venta['fecha_venta'])); ?></p>
         <div class="line"></div>
     </div>
 
-    <div>
-        <div class="info-row">
-            <span><?php // echo $venta['cliente_nombre']; ?></span>
-        </div>
+    <!-- Información de la cita -->
+    <div class="info-row">
+        <span class="info-label">Cita #:</span>
+        <span><?php echo $venta['cita_id']; ?></span>
     </div>
+    <div class="info-row">
+        <span class="info-label">Fecha Cita:</span>
+        <span><?php echo date('d/m/Y', strtotime($venta['fecha_cita'])); ?> <?php echo $venta['hora_cita']; ?></span>
+    </div>
+    <div class="info-row">
+        <span class="info-label">Mascota:</span>
+        <span><?php echo htmlspecialchars($venta['nombre_mascota']); ?></span>
+    </div>
+    <?php if($venta['motivo']): ?>
+    <div class="info-row">
+        <span class="info-label">Motivo:</span>
+        <span><?php echo substr(htmlspecialchars($venta['motivo']), 0, 50); ?></span>
+    </div>
+    <?php endif; ?>
+    <div class="line"></div>
 
     <div class="info-row">
         <span class="info-label">Atendió:</span>
@@ -158,32 +118,27 @@ $vuelto = $_GET['vuelto'] ?? null;
 
     <div class="line"></div>
 
+    <!-- Items (productos y servicios) -->
     <div>
         <div class="producto bold">
-            <span class="producto-nombre">Producto</span>
+            <span class="producto-nombre">Concepto</span>
             <span class="producto-cantidad">Cant</span>
             <span class="producto-precio">Total</span>
         </div>
         <div class="line"></div>
         
-        <?php while($prod = $productos->fetch_assoc()): ?>
-        <div class="producto">
-            <span class="producto-nombre"><?php echo htmlspecialchars($prod['producto_nombre']); ?></span>
-            <span class="producto-cantidad"><?php echo $prod['cantidad']; ?></span>
-            <span class="producto-precio">$<?php echo number_format($prod['subtotal'], 2); ?></span>
+        <?php while($item = $items->fetch_assoc()): ?>
+        <div class="producto <?php echo $item['tipo_item'] === 'servicio' ? 'servicio-item' : 'producto-item'; ?>">
+            <span class="producto-nombre"><?php echo htmlspecialchars($item['descripcion']); ?></span>
+            <span class="producto-cantidad"><?php echo $item['cantidad']; ?></span>
+            <span class="producto-precio">$<?php echo number_format($item['subtotal'], 2); ?></span>
         </div>
-        <?php if($prod['descuento'] > 0): ?>
-        <div class="producto text-muted" style="margin-top: -2px;">
-            <span class="producto-nombre">&nbsp;&nbsp;Descuento <?php echo $prod['porcentaje_descuento']; ?></span>
-            <span class="producto-cantidad"></span>
-            <span class="producto-precio">-$<?php echo number_format($prod['descuento'], 2); ?></span>
-        </div>
-        <?php endif; ?>
         <?php endwhile; ?>
     </div>
 
     <div class="line"></div>
 
+    <!-- Totales -->
     <div>
         <div class="info-row">
             <span>SUBTOTAL:</span>
@@ -203,6 +158,7 @@ $vuelto = $_GET['vuelto'] ?? null;
 
     <div class="line"></div>
 
+    <!-- Método de pago y vuelto -->
     <div>
         <div class="info-row">
             <span>Método de pago:</span>
@@ -223,6 +179,7 @@ $vuelto = $_GET['vuelto'] ?? null;
 
     <div class="line-doble"></div>
 
+    <!-- QR para facturación -->
     <?php
     $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
     $host = $_SERVER['HTTP_HOST'];
@@ -239,52 +196,39 @@ $vuelto = $_GET['vuelto'] ?? null;
     <div class="line"></div>
     
     <div class="gracias">
-        <p><strong>¡Gracias por su compra!</strong><br>
-        Vuelva pronto</p>
+        <p><strong>¡Gracias por su visita!</strong><br>
+        Vuelva pronto con su mascota</p>
         <br>
         <p class="text-muted">Este ticket es comprobante de pago<br>
         No tiene validez fiscal</p>
     </div>
 
     <div class="no-print" style="margin-top: 15px;">
-        <button onclick="window.print()" class="btn-print">
-            🖨️ Imprimir Ticket
-        </button>
-        <button onclick="window.close()" class="btn-print" style="background: #666; margin-top: 5px;">
-            ❌ Cerrar
-        </button>
+        <button onclick="window.print()" class="btn-print">🖨️ Imprimir Ticket</button>
+        <button onclick="window.close()" class="btn-print" style="background: #666; margin-top: 5px;">❌ Cerrar</button>
     </div>
 
     <script>
-        async function abrirCajaWebSerial() {
-            try {
-                if (!navigator.serial) {
-                    console.log('Web Serial API no soportada');
-                    return;
-                }
-                const port = await navigator.serial.requestPort();
-                await port.open({ baudRate: 9600 });
-                const comando = new Uint8Array([27, 112, 0, 50, 250]);
-                const writer = port.writable.getWriter();
-                await writer.write(comando);
-                writer.releaseLock();
-                await port.close();
-            } catch (error) {
-                console.log('No se pudo abrir caja:', error);
-            }
+        function abrirCajaWebSerial() {
+            if (!navigator.serial) return;
+            navigator.serial.requestPort()
+                .then(port => port.open({ baudRate: 9600 }))
+                .then(port => {
+                    const writer = port.writable.getWriter();
+                    writer.write(new Uint8Array([27, 112, 0, 50, 250]));
+                    writer.releaseLock();
+                    return port.close();
+                })
+                .catch(e => console.log('No se pudo abrir caja:', e));
         }
 
         window.onload = function() {
             abrirCajaWebSerial();
-            setTimeout(function() {
-                window.print();
-            }, 500);
+            setTimeout(() => window.print(), 500);
         };
         
         window.onafterprint = function() {
-            setTimeout(function() {
-                window.close();
-            }, 1000);
+            setTimeout(() => window.close(), 1000);
         };
     </script>
 </body>

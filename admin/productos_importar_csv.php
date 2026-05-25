@@ -1,6 +1,8 @@
 <?php
 // admin/productos_importar_csv.php
 session_start();
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
@@ -40,8 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['archivo_csv'])) {
         exit;
     }
     
-    // Saltar encabezados
-    fgetcsv($handle);
+    // Saltar encabezados (primera fila)
+    $encabezados = fgetcsv($handle);
     
     $importados = 0;
     $actualizados = 0;
@@ -65,7 +67,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['archivo_csv'])) {
             continue;
         }
         
-        // Buscar si existe
+        // Verificar categoría
+        $check_cat = $conn->prepare("SELECT id FROM CATEGORIA_PRODUCTO WHERE id = ? AND activo = 1");
+        $check_cat->bind_param("i", $id_categoria);
+        $check_cat->execute();
+        $cat_result = $check_cat->get_result();
+        
+        if ($cat_result->num_rows === 0) {
+            $errores[] = "Producto '$nombre' - categoría ID $id_categoria no existe";
+            continue;
+        }
+        
+        // Verificar si ya existe por código de barras
         $existe = false;
         if (!empty($codigo_barras)) {
             $check = $conn->prepare("SELECT id FROM PRODUCTO WHERE codigo_barras = ?");
@@ -76,23 +89,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['archivo_csv'])) {
         
         if ($existe) {
             $sql = "UPDATE PRODUCTO SET nombre=?, descripcion=?, id_categoria=?, precio_compra=?, 
-                    precio_venta=?, stock_actual=?, stock_minimo=?, unidad_medida=?, 
-                    ubicacion=?, fecha_vencimiento=?, activo=1 WHERE codigo_barras=?";
+                     precio_venta=?, stock_actual=?, stock_minimo=?, unidad_medida=?, 
+                     ubicacion=?, fecha_vencimiento=?, activo=1 WHERE codigo_barras=?";
             $stmt = $conn->prepare($sql);
             $stmt->bind_param("ssiddiissss", $nombre, $descripcion, $id_categoria, $precio_compra,
-                            $precio_venta, $stock_actual, $stock_minimo, $unidad_medida,
-                            $ubicacion, $fecha_vencimiento, $codigo_barras);
+                              $precio_venta, $stock_actual, $stock_minimo, $unidad_medida,
+                              $ubicacion, $fecha_vencimiento, $codigo_barras);
             if ($stmt->execute()) $actualizados++;
             else $errores[] = "Error actualizando '$nombre'";
         } else {
             $sql = "INSERT INTO PRODUCTO (nombre, descripcion, codigo_barras, id_categoria, 
-                    precio_compra, precio_venta, stock_actual, stock_minimo, unidad_medida, 
-                    ubicacion, fecha_vencimiento, activo) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)";
+                     precio_compra, precio_venta, stock_actual, stock_minimo, unidad_medida, 
+                     ubicacion, fecha_vencimiento, activo) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)";
             $stmt = $conn->prepare($sql);
             $stmt->bind_param("sssiddiisss", $nombre, $descripcion, $codigo_barras, $id_categoria,
-                            $precio_compra, $precio_venta, $stock_actual, $stock_minimo,
-                            $unidad_medida, $ubicacion, $fecha_vencimiento);
+                              $precio_compra, $precio_venta, $stock_actual, $stock_minimo,
+                              $unidad_medida, $ubicacion, $fecha_vencimiento);
             if ($stmt->execute()) $importados++;
             else $errores[] = "Error insertando '$nombre'";
         }
@@ -102,8 +115,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['archivo_csv'])) {
     
     $mensaje = "✅ Importación: $importados nuevos, $actualizados actualizados";
     if (count($errores) > 0) $mensaje .= " ⚠️ " . count($errores) . " errores";
+    
     $_SESSION['importacion_mensaje'] = $mensaje;
     $_SESSION['importacion_tipo'] = 'exito';
+} else {
+    $_SESSION['importacion_mensaje'] = 'No se recibió ningún archivo';
+    $_SESSION['importacion_tipo'] = 'error';
 }
 
 header('Location: productos.php');

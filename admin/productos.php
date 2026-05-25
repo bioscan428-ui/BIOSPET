@@ -406,7 +406,7 @@ if (isset($_SESSION['importacion_mensaje'])) {
                 <li>ubicacion</li>
                 <li>fecha_vencimiento (formato YYYY-MM-DD)</li>
             </ul>
-            <form id="formImportar" action="productos_importar_csv.php" method="POST" enctype="multipart/form-data">
+            <form id="formImportar" action="productos_importar_excel.php" method="POST" enctype="multipart/form-data">
                 <input type="file" name="archivo_excel" accept=".xlsx, .xls" required>
                 <div class="modal-buttons">
                     <button type="button" class="btn-cancelar-modal" id="btnCerrarModal">Cancelar</button>
@@ -414,7 +414,7 @@ if (isset($_SESSION['importacion_mensaje'])) {
                 </div>
             </form>
             <div style="margin-top: 15px; text-align: center;">
-                <a href="plantilla_productos.xlsx" class="btn-descargar" style="color: var(--primary);">📎 Descargar plantilla ejemplo</a>
+                <a href="descargar_plantilla.php" class="btn-descargar" style="color: var(--primary);">📎 Descargar plantilla ejemplo</a>
             </div>
         </div>
     </div>

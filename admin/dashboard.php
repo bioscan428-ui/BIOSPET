@@ -38,14 +38,14 @@ while ($row = $stats_origen->fetch_assoc()) {
 }
 
 // ========== ADICIONAL: Productos con stock crítico ==========
-$stock_critico = $conn->query("SELECT * FROM vista_stock_critico LIMIT 5");
+$stock_critico = $conn->query("SELECT * FROM vista_stock_critico ");
 // Si la vista no existe, usar consulta alternativa
 if (!$stock_critico) {
     $stock_critico = $conn->query("SELECT p.id, p.nombre, c.nombre as categoria, p.stock_actual, p.stock_minimo 
                                    FROM PRODUCTO p
                                    LEFT JOIN CATEGORIA_PRODUCTO c ON p.id_categoria = c.id
                                    WHERE p.stock_actual <= p.stock_minimo AND p.activo = 1 
-                                   LIMIT 5");
+                                   ");
 }
 
 // ========== USANDO EL PROCEDIMIENTO dashboard_ejecutivo ==========
@@ -244,19 +244,38 @@ if ($resumen_sql) {
         </div>
 
         <!-- Alerta de stock crítico (desde vista_stock_critico) -->
-        <?php 
+        <?php
         if (isset($stock_critico) && $stock_critico && $stock_critico->num_rows > 0): 
         ?>
         <div class="alert-card">
-            <h3 style="color: #f44336; margin-bottom: 15px;">⚠️ Productos con Stock Crítico</h3>
-            <?php while($producto = $stock_critico->fetch_assoc()): ?>
-            <div class="alert-item">
-                <span><strong><?php echo $producto['nombre']; ?></strong> (<?php echo $producto['categoria']; ?>)</span>
-                <span class="alert-stock-bajo">Stock: <?php echo $producto['stock_actual']; ?> / Mínimo: <?php echo $producto['stock_minimo']; ?></span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="color: #f44336; margin: 0;">⚠️ Productos con Stock Crítico</h3>
+                <span class="badge-count" style="background: #f44336; color: white; padding: 4px 10px; border-radius: 20px;">
+                    <?php echo $stock_critico->num_rows; ?> productos
+                </span>
             </div>
-            <?php endwhile; ?>
-        </div>
-        <?php endif; ?>
+            <div style="max-height: 250px; overflow-y: auto; padding-right: 5px;">
+                <?php while($producto = $stock_critico->fetch_assoc()): ?>
+                    <div class="alert-item">
+                        <span>
+                            <strong><?php echo htmlspecialchars($producto['nombre']); ?></strong>
+                            <span style="color: #666; font-size: 12px;">(<?php echo htmlspecialchars($producto['categoria']); ?>)</span>
+                        </span>
+                        <span class="alert-stock-bajo">
+                            Stock: <?php echo $producto['stock_actual']; ?> / 
+                            Mínimo: <?php echo $producto['stock_minimo']; ?>
+                        </span>
+                    </div>
+                    <?php endwhile; ?>
+                </div>
+                <div style="margin-top: 10px; text-align: center;">
+                    <a href="productos.php?tab=criticos" class="btn-ver-todos" style="font-size: 12px; color: #E68D0B; text-decoration: none;">
+                        📦 Ver todos los productos con stock bajo →
+                    </a>
+                </div>
+            </div>
+            <?php endif; ?>
+        <!-- Fin de Alerta de stock crítico (desde vista_stock_critico) -->
 
         <!-- ========== NUEVA SECCIÓN: Próximas citas (del procedimiento) ========== -->
         <?php if (!empty($proximas_citas_data)): ?>

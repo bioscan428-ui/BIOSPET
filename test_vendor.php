@@ -13,7 +13,8 @@ if (file_exists($ruta_autoload)) {
     require_once $ruta_autoload;
     echo "✅ autoload.php cargado<br><br>";
     
-    // 2. Verificar si la clase Dompdf existe
+    // 2. Verificar Dompdf
+    echo "<h3>📄 Dompdf</h3>";
     if (class_exists('Dompdf\Dompdf')) {
         echo "✅ Clase Dompdf encontrada<br>";
     } else {
@@ -26,33 +27,88 @@ if (file_exists($ruta_autoload)) {
         echo "❌ Clase Options NO encontrada<br>";
     }
     
-    // 3. Listar clases de Dompdf cargadas
+    // 3. Verificar PhpSpreadsheet
+    echo "<h3>📊 PhpSpreadsheet</h3>";
+    if (class_exists('PhpOffice\PhpSpreadsheet\Spreadsheet')) {
+        echo "✅ Clase PhpOffice\\PhpSpreadsheet\\Spreadsheet encontrada<br>";
+        
+        // Probar crear una instancia
+        try {
+            $spreadsheet = new PhpOffice\PhpSpreadsheet\Spreadsheet();
+            echo "✅ Se pudo crear una instancia de Spreadsheet<br>";
+            echo "✅ PhpSpreadsheet está funcionando correctamente!<br>";
+        } catch (Exception $e) {
+            echo "❌ Error al crear instancia: " . $e->getMessage() . "<br>";
+        }
+    } else {
+        echo "❌ Clase PhpOffice\\PhpSpreadsheet\\Spreadsheet NO encontrada<br>";
+    }
+    
+    if (class_exists('PhpOffice\PhpSpreadsheet\IOFactory')) {
+        echo "✅ Clase PhpOffice\\PhpSpreadsheet\\IOFactory encontrada<br>";
+    } else {
+        echo "❌ Clase PhpOffice\\PhpSpreadsheet\\IOFactory NO encontrada<br>";
+    }
+    
+    // 4. Listar todas las clases de PhpOffice cargadas
     $clases = get_declared_classes();
-    $clases_dompdf = array_filter($clases, function($c) {
-        return strpos($c, 'Dompdf') !== false;
+    $clases_phpoffice = array_filter($clases, function($c) {
+        return strpos($c, 'PhpOffice') !== false;
     });
     
-    if (!empty($clases_dompdf)) {
-        echo "<br>📚 Clases de Dompdf cargadas:<br>";
-        foreach($clases_dompdf as $clase) {
+    if (!empty($clases_phpoffice)) {
+        echo "<br>📚 Clases de PhpOffice cargadas:<br>";
+        foreach($clases_phpoffice as $clase) {
             echo "- $clase<br>";
         }
     } else {
-        echo "<br>❌ No hay clases de Dompdf cargadas<br>";
+        echo "<br>❌ No hay clases de PhpOffice cargadas<br>";
+    }
+    
+    // 5. Verificar la estructura de carpetas
+    echo "<h3>📁 Estructura de vendor</h3>";
+    $vendor_path = __DIR__ . '/biospet/vendor';
+    if (is_dir($vendor_path)) {
+        echo "Contenido de $vendor_path:<br>";
+        $archivos = scandir($vendor_path);
+        foreach($archivos as $archivo) {
+            if ($archivo != '.' && $archivo != '..') {
+                if (is_dir($vendor_path . '/' . $archivo)) {
+                    echo "📁 $archivo/<br>";
+                    // Listar subcarpetas de phpoffice
+                    if ($archivo == 'phpoffice') {
+                        $subdir = $vendor_path . '/phpoffice';
+                        $subarchivos = scandir($subdir);
+                        foreach($subarchivos as $sub) {
+                            if ($sub != '.' && $sub != '..') {
+                                echo "   📁 phpoffice/$sub/<br>";
+                                // Listar contenido de PhpSpreadsheet
+                                if ($sub == 'PhpSpreadsheet') {
+                                    $subsubdir = $subdir . '/PhpSpreadsheet';
+                                    $subsubarchivos = scandir($subsubdir);
+                                    foreach($subsubarchivos as $subsub) {
+                                        if ($subsub != '.' && $subsub != '..') {
+                                            if (is_dir($subsubdir . '/' . $subsub)) {
+                                                echo "      📁 $subsub/<br>";
+                                            } else {
+                                                echo "      📄 $subsub<br>";
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    echo "📄 $archivo<br>";
+                }
+            }
+        }
+    } else {
+        echo "❌ La carpeta vendor no existe en: $vendor_path";
     }
     
 } else {
     echo "❌ autoload.php NO encontrado<br>";
-    echo "Contenido de la carpeta biospet/vendor:<br>";
-    if (is_dir(__DIR__ . '/biospet/vendor')) {
-        $archivos = scandir(__DIR__ . '/biospet/vendor');
-        foreach($archivos as $archivo) {
-            if ($archivo != '.' && $archivo != '..') {
-                echo "- $archivo<br>";
-            }
-        }
-    } else {
-        echo "La carpeta biospet/vendor no existe";
-    }
 }
 ?>
