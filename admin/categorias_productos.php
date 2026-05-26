@@ -1,5 +1,6 @@
 <?php
 session_start();
+$dashboard_link = ($_SESSION['rol'] === 'caja') ? 'caja_dashboard.php' : 'dashboard.php';
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
@@ -10,7 +11,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Verificar rol
-if (!in_array($_SESSION['rol'], ['super_admin', 'admin'])) {
+if (!in_array($_SESSION['rol'], ['super_admin', 'admin', 'caja'])) {
     header('Location: dashboard.php');
     exit;
 }
@@ -193,7 +194,7 @@ unset($_SESSION['tipo_mensaje']);
     <div class="admin-header">
         <h1>🐾 BIOSPET - Categorías de Productos</h1>
         <div>
-            <a href="dashboard.php">📋 Dashboard</a>
+            <a href="<?php echo $dashboard_link; ?>">📋 Dashboard</a>
             <a href="productos.php">🛒 Productos</a>
             <a href="logout.php">🚪 Cerrar Sesión</a>
         </div>

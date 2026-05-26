@@ -42,39 +42,48 @@ $result_productos = $stmt->get_result();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tienda - BIOSPET</title>
+    <title>Catálogo de Productos - BIOSPET</title>
     <link rel="stylesheet" href="assets/css/global.css">
     <link rel="stylesheet" href="assets/css/estilo.css">
     <style>
         .tienda-header {
-            background: var(--primary);
+            background: #0d2c40; /* Color azul premium de tu marca */
             color: white;
-            padding: 40px 0;
+            padding: 50px 0;
             text-align: center;
         }
         .tienda-header h1 { font-size: 2.5rem; margin-bottom: 10px; }
+        
         .filtros {
             background: white;
-            padding: 20px;
+            padding: 25px;
             border-radius: var(--radius-md);
-            margin-bottom: 30px;
+            margin-bottom: 40px;
             display: flex;
-            gap: 20px;
+            gap: 15px;
             flex-wrap: wrap;
             align-items: center;
+            box-shadow: var(--shadow-soft);
         }
         .filtros select, .filtros input {
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #ddd;
             border-radius: var(--radius-sm);
+            flex: 1;
+            min-width: 200px;
         }
         .filtros button {
-            background: var(--primary);
+            background: #0d2c40;
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 12px 25px;
+            border-radius: var(--radius-sm);
             cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
         }
+        .filtros button:hover { background: #163e59; }
+        
         .grid-productos {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -85,24 +94,47 @@ $result_productos = $stmt->get_result();
             border-radius: var(--radius-md);
             overflow: hidden;
             box-shadow: var(--shadow-soft);
-            transition: transform 0.3s;
+            transition: transform 0.3s, box-shadow 0.3s;
+            display: flex;
+            flex-direction: column;
         }
-        .producto-card:hover { transform: translateY(-5px); }
-        .producto-imagen { height: 200px; background: #f5f5f5; }
+        .producto-card:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .producto-imagen { height: 220px; background: #f5f5f5; position: relative; }
         .producto-imagen img { width: 100%; height: 100%; object-fit: cover; }
-        .producto-info { padding: 20px; }
-        .producto-precio { font-size: 1.3rem; font-weight: bold; color: var(--primary); }
+        
+        .producto-info { 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            flex-grow: 1; 
+        }
+        .producto-info h3 { font-size: 1.2rem; margin-bottom: 10px; color: #333; }
+        .producto-info p { font-size: 0.9rem; color: #666; line-height: 1.4; margin-bottom: 15px; }
+        
+        .producto-meta {
+            margin-top: auto; /* Empuja el precio y botón al fondo de la card */
+        }
+        .producto-precio { 
+            font-size: 1.4rem; 
+            font-weight: bold; 
+            color: #0d2c40; 
+            margin-bottom: 15px; 
+        }
         .btn-producto {
             display: block;
-            background: var(--primary);
+            background: #0d2c40;
             color: white;
             text-align: center;
-            padding: 10px;
+            padding: 12px;
             border-radius: var(--radius-sm);
             text-decoration: none;
-            margin-top: 15px;
+            font-weight: bold;
+            transition: background 0.2s;
         }
-        .btn-producto:hover { background: var(--primary-dark); }
+        .btn-producto:hover { background: #163e59; color: white; }
     </style>
 </head>
 <body>
@@ -117,15 +149,15 @@ $result_productos = $stmt->get_result();
                 <a href="index.php#servicios">Servicios</a>
                 <a href="citas.php">Citas</a>
                 <a href="tienda.php">Tienda</a>
-                <a href="#contacto">Contacto</a>
+                <a href="index.php#contacto">Contacto</a>
             </nav>
         </div>
     </header>
 
     <div class="tienda-header">
         <div class="container">
-            <h1>🛒 Tienda BIOSPET</h1>
-            <p>Todo lo que tu mascota necesita</p>
+            <h1>🛒 Nuestro Catálogo</h1>
+            <p>Medicamentos, alimentos especializados y accesorios para el cuidado de tu mascota</p>
         </div>
     </div>
 
@@ -139,9 +171,9 @@ $result_productos = $stmt->get_result();
                 </option>
                 <?php endwhile; ?>
             </select>
-            <input type="text" id="buscar" placeholder="Buscar producto..." value="<?php echo isset($_GET['buscar']) ? htmlspecialchars($_GET['buscar']) : ''; ?>">
+            <input type="text" id="buscar" placeholder="¿Qué estás buscando?..." value="<?php echo isset($_GET['buscar']) ? htmlspecialchars($_GET['buscar']) : ''; ?>">
             <button onclick="filtrar()">Buscar</button>
-            <a href="tienda.php" style="color: var(--primary);">Limpiar filtros</a>
+            <a href="tienda.php" style="color: #666; text-decoration: none; font-size: 14px; margin-left: 10px;">Limpiar filtros</a>
         </div>
 
         <div class="grid-productos">
@@ -149,22 +181,45 @@ $result_productos = $stmt->get_result();
                 <?php while($producto = $result_productos->fetch_assoc()): ?>
                 <div class="producto-card">
                     <div class="producto-imagen">
-                        <img src="<?php echo !empty($producto['imagen']) ? $producto['imagen'] : 'assets/images/productos/placeholder.jpg'; ?>" alt="<?php echo $producto['nombre']; ?>">
+                        <img src="<?php echo !empty($producto['imagen']) ? $producto['imagen'] : 'assets/images/productos/placeholder.jpg'; ?>" alt="<?php echo htmlspecialchars($producto['nombre']); ?>">
                     </div>
                     <div class="producto-info">
                         <h3><?php echo htmlspecialchars($producto['nombre']); ?></h3>
-                        <p><?php echo htmlspecialchars(substr($producto['descripcion'], 0, 100)); ?>...</p>
-                        <div class="producto-precio">$<?php echo number_format($producto['precio_venta'], 2); ?> MXN</div>
-                        <a href="producto.php?id=<?php echo $producto['id']; ?>" class="btn-producto">Ver detalles</a>
-                        <a href="agregar_carrito.php?id=<?php echo $producto['id']; ?>" class="btn-producto" style="flex: 1; margin-top: 0; background: #4caf50;">🛒 Agregar</a>
+                        <p><?php echo htmlspecialchars(substr($producto['descripcion'] ?? '', 0, 95)); ?>...</p>
+                        
+                        <div class="producto-meta">
+                            <div class="producto-precio">$<?php echo number_format($producto['precio_venta'], 2); ?> MXN</div>
+                            <a href="producto.php?id=<?php echo $producto['id']; ?>" class="btn-producto">Ver detalles</a>
+                        </div>
                     </div>
                 </div>
                 <?php endwhile; ?>
             <?php else: ?>
-                <p style="text-align: center; grid-column: 1/-1;">No se encontraron productos</p>
+                <p style="text-align: center; grid-column: 1/-1; color: #666; font-size: 1.2rem; padding: 40px 0;">
+                    🔍 No encontramos productos que coincidan con tu búsqueda.
+                </p>
             <?php endif; ?>
         </div>
     </div>
+
+    <footer class="main-footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <h3 class="footer-title">BIOSPET</h3>
+                    
+                </div>
+                
+                <div>
+                    <h3 class="footer-title">Síguenos</h3>
+                    <a href="https://www.facebook.com/share/1B46s8Hz3g" target="_blank" class="footer-link">📱 Facebook</a>
+                    <a href="https://www.instagram.com/biospet_puebla" target="_blank" class="footer-link">📷 Instagram</a>
+                </div>
+            </div>
+            <hr class="footer-divider">
+            <p class="footer-copyright">© <?php echo date('Y'); ?> BIOSPET. Todos los derechos reservados.</p>
+        </div>
+    </footer>
 
     <script>
         function filtrar() {
@@ -175,29 +230,13 @@ $result_productos = $stmt->get_result();
             if (buscar) url += 'buscar=' + encodeURIComponent(buscar);
             window.location.href = url;
         }
-    </script>
 
-    <footer class="main-footer">
-        <div class="container">
-            <div class="footer-grid">
-                <div>
-                    <h3 class="footer-title">BIOSPET</h3>
-                    <p>Cuidando la salud de tus mascotas con tecnología de punta.</p>
-                </div>
-                <div>
-                    <h3 class="footer-title">Contacto</h3>
-                    <p>📞 Tel: (123) 456-7890</p>
-                    <p>📧 Email: info@biospet.com</p>
-                </div>
-                <div>
-                    <h3 class="footer-title">Síguenos</h3>
-                    <a href="#" class="footer-link">📱 Facebook</a>
-                    <a href="#" class="footer-link">📷 Instagram</a>
-                </div>
-            </div>
-            <hr class="footer-divider">
-            <p class="footer-copyright">© <?php echo date('Y'); ?> BIOSPET. Todos los derechos reservados.</p>
-        </div>
-    </footer>
+        // Permitir buscar al presionar "Enter" en el input
+        document.getElementById('buscar').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                filtrar();
+            }
+        });
+    </script>
 </body>
 </html>

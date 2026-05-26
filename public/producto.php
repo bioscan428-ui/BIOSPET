@@ -23,7 +23,7 @@ if (!$producto) {
 }
 
 // Configuración de WhatsApp (¡CAMBIAR POR TU NÚMERO REAL!)
-$whatsapp_num = "521234567890"; // Reemplaza con el número real: código país + número
+$whatsapp_num = "522218203396"; // Reemplaza con el número real: código país + número
 $nombre_producto = $producto['nombre'];
 $precio = $producto['precio_venta'];
 $id = $producto['id'];

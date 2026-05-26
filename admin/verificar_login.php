@@ -1,9 +1,11 @@
 <?php
 // admin/verificar_login.php
 session_start();
-require_once '../includes/conexion.php'; // Sube un nivel para llegar a includes
+require_once '../includes/conexion.php';
 
 header('Content-Type: application/json');
+
+error_log("=== verificar_login.php ejecutado ===");
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $usuario = trim($_POST['usuario'] ?? '');
@@ -28,10 +30,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $user = $result->fetch_assoc();
         
         if (password_verify($password, $user['contrasena'])) {
+            // Sincronización de llaves con login.php para evitar la expulsión
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['empleado_id'] = $user['id_empleado'];
-            $_SESSION['usuario_nombre'] = $user['nombre'] . ' ' . $user['ape_pat'];
-            $_SESSION['usuario_rol'] = $user['rol'];
+            $_SESSION['nombre'] = $user['nombre'] . ' ' . $user['ape_pat'];
+            $_SESSION['rol'] = $user['rol'];
             $_SESSION['usuario'] = $user['nombre_usuario'];
             $_SESSION['logueado'] = true;
             
@@ -40,23 +43,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt_up = $conn->prepare($update);
             $stmt_up->bind_param("i", $user['id']);
             $stmt_up->execute();
+            $stmt_up->close();
             
-            // Determinar redirección según rol
-            $redirect = 'admin/dashboard.php';
+            // Determinar redirección según rol (ruta desde la raíz)
+            $redirect = '';
             switch ($user['rol']) {
                 case 'super_admin':
+                    $redirect = 'admin/dashboard.php'; break;
                 case 'admin':
-                    $redirect = 'admin/dashboard.php';
-                    break;
+                    $redirect = 'admin/admin_dashboard.php'; break;
                 case 'veterinario':
-                    $redirect = 'admin/veterinario_dashboard.php';
-                    break;
+                    $redirect = 'admin/veterinario_dashboard.php'; break;
                 case 'asistente':
-                    $redirect = 'admin/asistente_dashboard.php';
-                    break;
+                    $redirect = 'admin/asistente_dashboard.php'; break;
                 case 'recepcionista':
-                    $redirect = 'admin/recepcionista_dashboard.php';
-                    break;
+                    $redirect = 'admin/recepcionista_dashboard.php'; break;
+                case 'grooming':
+                    $redirect = 'admin/grooming_dashboard.php'; break;
+                case 'caja':
+                    $redirect = 'admin/caja_dashboard.php'; break;
+                default:
+                    $redirect = 'admin/dashboard.php';
             }
             
             echo json_encode([

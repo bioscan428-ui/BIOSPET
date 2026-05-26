@@ -1,5 +1,10 @@
 <?php
+if ($_SESSION['rol'] === 'caja') {
+    header('Location: caja_dashboard.php');
+    exit;
+}
 session_start();
+$dashboard_link = ($_SESSION['rol'] === 'caja') ? 'caja_dashboard.php' : 'dashboard.php';
 
 // Verificar que el usuario haya iniciado sesión
 if (!isset($_SESSION['user_id'])) {
@@ -8,7 +13,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Verificar rol para acceso (solo admin y super_admin pueden gestionar proveedores)
-if (!in_array($_SESSION['rol'], ['super_admin', 'admin'])) {
+if (!in_array($_SESSION['rol'], ['super_admin', 'admin', 'caja'])) {
     header('Location: dashboard.php');
     exit;
 }
@@ -64,7 +69,7 @@ $total_proveedores = $total_activos + $total_inactivos;
     <div class="admin-header">
         <h1>🐾 BIOSPET - Gestión de Proveedores</h1>
         <div>
-            <a href="dashboard.php">📋 Dashboard</a>
+            <a href="<?php echo $dashboard_link; ?>">📋 Dashboard</a>
             <a href="clientes.php">👥 Clientes</a>
             <a href="proveedores.php">🏭 Proveedores</a>
             <a href="productos.php">🛒 Productos</a>

@@ -3,6 +3,29 @@ session_start();
 
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
+
+// Si ya viene logueado del modal con las llaves correctas, mandarlo directo al panel
+if (isset($_SESSION['logueado']) && $_SESSION['logueado'] === true && isset($_SESSION['rol'])) {
+    switch ($_SESSION['rol']) {
+        case 'super_admin':
+            header('Location: dashboard.php'); exit;
+        case 'admin':
+            header('Location: admin_dashboard.php'); exit;
+        case 'veterinario':
+            header('Location: veterinario_dashboard.php'); exit;
+        case 'asistente':
+            header('Location: asistente_dashboard.php'); exit;
+        case 'recepcionista':
+            header('Location: recepcionista_dashboard.php'); exit;
+        case 'grooming':
+            header('Location: grooming_dashboard.php'); exit;
+        case 'caja':
+            header('Location: caja_dashboard.php'); exit;
+        default:
+            header('Location: dashboard.php'); exit;
+    }
+}
+
 require_once __DIR__ . '/../includes/conexion.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -22,46 +45,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($result->num_rows === 1) {
         $user = $result->fetch_assoc();
         
-        // Uso de password_verify() para comparar hash
         if (password_verify($password, $user['contrasena'])) {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['empleado_id'] = $user['id_empleado'];
             $_SESSION['nombre'] = $user['nombre'] . ' ' . $user['ape_pat'];
             $_SESSION['rol'] = $user['rol'];
             $_SESSION['usuario'] = $user['nombre_usuario'];
+            $_SESSION['logueado'] = true;
             
-            // Actualizar último acceso
             $update = "UPDATE USUARIO SET ultimo_acceso = NOW() WHERE id = ?";
             $stmt_up = $conn->prepare($update);
             $stmt_up->bind_param("i", $user['id']);
             $stmt_up->execute();
+            $stmt_up->close();
             
-            // Redirigir según rol
             switch ($user['rol']) {
                 case 'super_admin':
-                    header('Location: dashboard.php');
-                    break;
+                    header('Location: dashboard.php'); break;
                 case 'admin':
-                    header('Location: admin_dashboard.php');
-                    break;
+                    header('Location: admin_dashboard.php'); break;
                 case 'veterinario':
-                    header('Location: veterinario_dashboard.php');
-                    break;
+                    header('Location: veterinario_dashboard.php'); break;
                 case 'asistente':
-                    header('Location: asistente_dashboard.php');
-                    break;
+                    header('Location: asistente_dashboard.php'); break;
                 case 'recepcionista':
-                    header('Location: recepcionista_dashboard.php');
-                    break;
+                    header('Location: recepcionista_dashboard.php'); break;
                 case 'grooming':
-                    header('Location: grooming_dashboard.php');
-                    break;
+                    header('Location: grooming_dashboard.php'); break;
                 case 'caja':
-                    header('Location: caja_dashboard.php');
-                    break;
+                    header('Location: caja_dashboard.php'); break;
                 default:
                     header('Location: dashboard.php');
             }
+            $stmt->close();
+            $conn->close();
             exit;
         } else {
             $error = "Contraseña incorrecta";
@@ -107,9 +124,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <a href="olvide_contrasena.php" style="color: var(--primary); text-decoration: none; font-size: 12px;">¿Olvidaste tu contraseña?</a>
             </div>
         </form>
-        <div class="info">
-            
-        </div>
     </div>
 </body>
 </html>

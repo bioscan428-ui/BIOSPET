@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Verificar rol para acceso (solo recepcionistas y admin)
-if (!in_array($_SESSION['rol'], ['super_admin', 'admin', 'recepcionista'])) {
+if (!in_array($_SESSION['rol'], ['super_admin', 'admin', 'recepcionista', 'caja'])) {
     header('Location: login.php');
     exit;
 }
@@ -146,9 +146,19 @@ $movimientos_recientes = $conn->query($sql_movimientos);
     <div class="admin-header">
         <h1>🐾 BIOSPET - Caja / Inventario</h1>
         <div>
-            <a href="dashboard.php">📋 Dashboard</a>
-            <a href="punto_venta.php">💰 Punto de Venta</a>
-            <a href="corte_caja.php">📊 Corte de Caja</a>
+            <div class="dropdown">
+                <a href="javascript:void(0)">🛒 Productos ▼</a>
+                <div class="dropdown-content">
+                    <a href="productos.php">📦 Gestión de Productos</a>
+                    <a href="categorias_productos.php">📁 Categorías</a>
+                    <a href="producto_nuevo.php">➕ Nuevo Producto</a>
+                    <?php if ($_SESSION['rol'] !== 'caja'): ?>
+                    <hr style="margin: 5px 0; border-color: #eee;">
+                    <a href="proveedores.php">🏭 Proveedores</a>
+                    <?php endif; ?>
+                </div>
+            </div>
+            
             <a href="caja_dashboard.php">📦 Inventario</a>
             <a href="../index.php" target="_blank">🌐 Ver Sitio</a>
             <a href="logout.php">🚪 Cerrar Sesión</a>

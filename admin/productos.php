@@ -1,12 +1,14 @@
 <?php
 session_start();
+$es_caja = ($_SESSION['rol'] === 'caja');
+$dashboard_link = ($_SESSION['rol'] === 'caja') ? 'caja_dashboard.php' : 'dashboard.php';
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
     exit;
 }
 
-if (!in_array($_SESSION['rol'], ['super_admin', 'admin'])) {
+if (!in_array($_SESSION['rol'], ['super_admin', 'admin', 'caja'])) {
     header('Location: login.php');
     exit;
 }
@@ -223,7 +225,7 @@ if (isset($_SESSION['importacion_mensaje'])) {
     <div class="admin-header">
         <h1>🐾 BIOSPET - Gestión de Productos</h1>
         <div>
-            <a href="dashboard.php">📋 Dashboard</a>
+            <a href="<?php echo $dashboard_link; ?>">📋 Dashboard</a>
             <a href="calendario.php">📅 Calendario</a>
             <a href="productos.php">🛒 Productos</a>
             <a href="../index.php" target="_blank">🌐 Ver Sitio</a>
@@ -310,7 +312,10 @@ if (isset($_SESSION['importacion_mensaje'])) {
                         <th>Nombre</th>
                         <th>Categoría</th>
                         <th>Precio de Venta</th>
+                        <?php if (!$es_caja): ?>
                         <th>Precio de Compra</th>
+                        <th>Proveedor</th>
+                        <?php endif; ?>
                         <th>Stock</th>
                         <?php if ($tab === 'criticos'): ?>
                             <th>Stock Mínimo</th>
@@ -331,7 +336,7 @@ if (isset($_SESSION['importacion_mensaje'])) {
                                 <?php else: ?>
                                     <span class="sin-imagen">📦</span>
                                 <?php endif; ?>
-                             </span>
+                            </span>
                             <td><strong><?php echo htmlspecialchars($producto['nombre']); ?></strong></td>
                             <td><?php echo $producto['categoria_nombre'] ?? $producto['categoria']; ?></td>
                             <td>$<?php echo number_format($producto['precio_venta'], 2); ?></td>

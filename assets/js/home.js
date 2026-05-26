@@ -53,6 +53,7 @@ if(modal) {
 }
 
 // Procesar login
+// Procesar login
 if(btnAcceder) {
     btnAcceder.addEventListener('click', async () => {
         const usuario = loginUsuario ? loginUsuario.value.trim() : '';
@@ -68,6 +69,9 @@ if(btnAcceder) {
         btnAcceder.disabled = true;
         
         try {
+            console.log('=== Enviando login ===');
+            console.log('Usuario:', usuario);
+            
             const formData = new FormData();
             formData.append('usuario', usuario);
             formData.append('password', password);
@@ -77,24 +81,24 @@ if(btnAcceder) {
                 body: formData
             });
             
+            console.log('Response status:', response.status);
+            
             const data = await response.json();
+            console.log('Response data:', data);
             
             if (data.success) {
                 alert('¡Bienvenido ' + data.nombre + '!');
                 modal.classList.remove('active');
-                if (data.redirect) {
-                    window.location.href = data.redirect;
-                } else {
-                    location.reload();
-                }
+                console.log('Redirigiendo a:', data.redirect);
+                window.location.href = data.redirect;
             } else {
                 alert('Error: ' + data.message);
                 if(loginPassword) loginPassword.value = '';
                 if(loginPassword) loginPassword.focus();
             }
         } catch (error) {
-            console.error('Error:', error);
-            alert('Error al conectar con el servidor. Verifica que el archivo admin/verificar_login.php exista.');
+            console.error('Error en fetch:', error);
+            alert('Error al conectar con el servidor: ' + error);
         } finally {
             btnAcceder.textContent = textoOriginal;
             btnAcceder.disabled = false;

@@ -77,7 +77,7 @@ CREATE TABLE EMPLEADO (
     ape_mat VARCHAR(50),
     email VARCHAR(100) UNIQUE NOT NULL,
     telefono VARCHAR(15),
-    puesto ENUM('super_admin', 'admin', 'veterinario', 'asistente', 'recepcionista', 'grooming') NOT NULL,
+    puesto ENUM('super_admin', 'admin', 'veterinario', 'asistente', 'recepcionista', 'grooming', 'caja') NOT NULL,
     especialidad VARCHAR(100), -- para veterinarios: 'radiología', 'cirugía', etc.
     fecha_contratacion DATE NOT NULL,
     activo BOOLEAN DEFAULT TRUE,
@@ -154,6 +154,7 @@ CREATE TABLE PRODUCTO (
     descripcion TEXT,
     codigo_barras VARCHAR(50) UNIQUE,
     id_categoria INT NOT NULL,
+    id_proveedor INT
     precio_compra DECIMAL(10,2) NOT NULL,
     precio_venta DECIMAL(10,2) NOT NULL,
     stock_actual INT NOT NULL DEFAULT 0,
@@ -164,6 +165,7 @@ CREATE TABLE PRODUCTO (
     activo BOOLEAN DEFAULT TRUE,
     imagen VARCHAR(500),
     CONSTRAINT fk_producto_categoria FOREIGN KEY (id_categoria) REFERENCES CATEGORIA_PRODUCTO(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_producto_proveedor FOREIGN KEY (id_proveedor)  REFERENCES PROVEEDOR(id) ON DELETE SET NULL,
     INDEX (nombre),
     INDEX (codigo_barras)
 );

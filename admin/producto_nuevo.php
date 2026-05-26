@@ -1,5 +1,6 @@
 <?php
 session_start();
+$es_caja = ($_SESSION['rol'] === 'caja');
 
 // Verificar sesión
 if (!isset($_SESSION['user_id'])) {
@@ -8,7 +9,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Verificar rol
-if (!in_array($_SESSION['rol'], ['super_admin', 'admin'])) {
+if (!in_array($_SESSION['rol'], ['super_admin', 'admin', 'caja'])) {
     header('Location: dashboard.php');
     exit;
 }
@@ -17,17 +18,13 @@ require_once __DIR__ . '/../includes/conexion.php';
 
 // Función para generar código de barras único
 function generarCodigoBarras($conn, $intento = 1) {
-    // Formato: BIOSPET + año + mes + día + número aleatorio + dígito de control
     $prefijo = 'BIO';
     $fecha = date('ymd');
     $aleatorio = str_pad(mt_rand(1, 99999), 5, '0', STR_PAD_LEFT);
     $codigo_base = $prefijo . $fecha . $aleatorio;
-    
-    // Calcular dígito de control (módulo 10)
     $digito_control = calcularDigitoControl($codigo_base);
     $codigo_barras = $codigo_base . $digito_control;
     
-    // Verificar si ya existe en la BD
     $sql_check = "SELECT id FROM PRODUCTO WHERE codigo_barras = ?";
     $stmt_check = $conn->prepare($sql_check);
     $stmt_check->bind_param("s", $codigo_barras);
@@ -35,7 +32,6 @@ function generarCodigoBarras($conn, $intento = 1) {
     $result_check = $stmt_check->get_result();
     
     if ($result_check->num_rows > 0 && $intento < 5) {
-        // Si ya existe, intentar de nuevo (máximo 5 intentos)
         return generarCodigoBarras($conn, $intento + 1);
     }
     
@@ -61,13 +57,16 @@ function calcularDigitoControl($codigo) {
     }
     
     $resto = $suma % 10;
-    $digito_control = ($resto == 0) ? 0 : (10 - $resto);
-    return $digito_control;
+    return ($resto == 0) ? 0 : (10 - $resto);
 }
 
 // Obtener categorías
 $sql_categorias = "SELECT id, nombre FROM CATEGORIA_PRODUCTO WHERE activo = 1";
 $categorias = $conn->query($sql_categorias);
+
+// Obtener proveedores activos
+$sql_proveedores = "SELECT id, nombre FROM PROVEEDOR WHERE activo = 1 ORDER BY nombre ASC";
+$proveedores = $conn->query($sql_proveedores);
 
 // Generar código de barras sugerido
 $codigo_sugerido = generarCodigoBarras($conn);
@@ -78,6 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $descripcion = trim($_POST['descripcion']);
     $codigo_barras = trim($_POST['codigo_barras']);
     $id_categoria = (int)$_POST['id_categoria'];
+    $id_proveedor = !empty($_POST['id_proveedor']) ? (int)$_POST['id_proveedor'] : null;
     $precio_compra = (float)$_POST['precio_compra'];
     $precio_venta = (float)$_POST['precio_venta'];
     $stock_actual = (int)$_POST['stock_actual'];
@@ -86,19 +86,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ubicacion = trim($_POST['ubicacion']);
     $fecha_vencimiento = !empty($_POST['fecha_vencimiento']) ? $_POST['fecha_vencimiento'] : null;
     $activo = isset($_POST['activo']) ? 1 : 0;
+
+    // Para usuarios caja, precio_compra y id_proveedor van NULL
+    if ($es_caja) {
+        $precio_compra = null;
+        $id_proveedor = null;
+    } else {
+        $precio_compra = (float)$_POST['precio_compra'];
+        $id_proveedor = !empty($_POST['id_proveedor']) ? (int)$_POST['id_proveedor'] : null;
+    }
     
     // Si no se ingresó código de barras, generar uno automático
     if (empty($codigo_barras)) {
         $codigo_barras = generarCodigoBarras($conn);
     }
     
-    // Crear directorio si no existe
+    if (empty($codigo_barras)) {
+        $codigo_barras = generarCodigoBarras($conn);
+    }
+    
     $upload_dir = __DIR__ . '/../assets/images/productos/';
     if (!file_exists($upload_dir)) {
         mkdir($upload_dir, 0777, true);
     }
     
-    // Manejo de imagen
     $imagen = '';
     if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
         $extension = pathinfo($_FILES['imagen']['name'], PATHINFO_EXTENSION);
@@ -110,15 +121,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     
-    $sql = "INSERT INTO PRODUCTO (nombre, descripcion, codigo_barras, id_categoria, precio_compra, precio_venta, 
-                                   stock_actual, stock_minimo, unidad_medida, ubicacion, 
-                                   fecha_vencimiento, imagen, activo) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO PRODUCTO (nombre, descripcion, codigo_barras, id_categoria, id_proveedor,
+                                   precio_compra, precio_venta, stock_actual, stock_minimo, unidad_medida, 
+                                   ubicacion, fecha_vencimiento, imagen, activo) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sssiddiissssi", $nombre, $descripcion, $codigo_barras, $id_categoria, $precio_compra, 
-                      $precio_venta, $stock_actual, $stock_minimo, $unidad_medida, 
-                      $ubicacion, $fecha_vencimiento, $imagen, $activo);
+    $stmt->bind_param("sssiiiddiisssi", 
+        $nombre, $descripcion, $codigo_barras, $id_categoria, $id_proveedor,
+        $precio_compra, $precio_venta, $stock_actual, $stock_minimo, $unidad_medida, 
+        $ubicacion, $fecha_vencimiento, $imagen, $activo
+    );
     
     if ($stmt->execute()) {
         header('Location: productos.php?success=1');
@@ -206,6 +219,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <?php endwhile; ?>
                     </select>
                 </div>
+
+                <?php if (!$es_caja): ?>
+                <div class="form-group">
+                    <label>Proveedor</label>
+                    <select name="id_proveedor">
+                        <option value="">-- Seleccionar proveedor --</option>
+                        <?php while($prov = $proveedores->fetch_assoc()): ?>
+                            <option value="<?php echo $prov['id']; ?>"><?php echo htmlspecialchars($prov['nombre']); ?></option>
+                        <?php endwhile; ?>
+                    </select>
+                    <small style="color:#666;">Proveedor habitual de este producto (opcional)</small>
+                </div>
+                <?php endif; ?>
                 
                 <div class="form-group">
                     <label>Unidad de medida</label>
@@ -220,10 +246,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
             
             <div class="form-row">
+                <?php if (!$es_caja): ?>
                 <div class="form-group">
                     <label>Precio compra (MXN)</label>
                     <input type="number" step="0.01" name="precio_compra">
                 </div>
+                <?php endif; ?>
                 <div class="form-group">
                     <label>Precio venta (MXN) *</label>
                     <input type="number" step="0.01" name="precio_venta" required>
@@ -289,7 +317,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 if (data.success) {
                     inputCodigo.value = data.codigo;
-                    // Mostrar efecto visual
                     inputCodigo.style.backgroundColor = '#d4edda';
                     setTimeout(() => {
                         inputCodigo.style.backgroundColor = '';
@@ -324,7 +351,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         });
         
-        // Validar que el código de barras no esté repetido (si se ingresa manualmente)
+        // Validar que el código de barras no esté repetido
         const inputCodigo = document.getElementById('codigo_barras');
         inputCodigo.addEventListener('blur', async function() {
             const codigo = this.value.trim();
@@ -335,7 +362,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 const data = await response.json();
                 
                 if (data.existe) {
-                    alert('⚠️ Este código de barras ya existe en otro producto. Se generará uno automático al guardar.');
+                    alert('⚠️ Este código de barras ya existe. Se generará uno automático al guardar.');
                     this.style.backgroundColor = '#f8d7da';
                 } else {
                     this.style.backgroundColor = '#d4edda';
