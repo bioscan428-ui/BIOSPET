@@ -1,0 +1,219 @@
+/* assets/css/tienda.css */
+.catalogo-header {
+    background: linear-gradient(135deg, var(--naranja), var(--naranja-dark));
+    color: white;
+    padding: 50px 0;
+    text-align: center;
+}
+
+.catalogo-header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.catalogo-header p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+.filtros {
+    background: white;
+    padding: 25px;
+    border-radius: 20px;
+    margin: 30px 0;
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+}
+
+.filtros .grupo {
+    flex: 1;
+    min-width: 180px;
+}
+
+.filtros label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+    font-size: 0.85rem;
+}
+
+.filtros select, .filtros input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    transition: border-color 0.3s;
+}
+
+.filtros select:focus, .filtros input:focus {
+    outline: none;
+    border-color: var(--naranja);
+}
+
+.btn-filtrar {
+    background: var(--naranja);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.3s;
+    width: 100%;
+}
+
+.btn-filtrar:hover {
+    background: var(--naranja-dark);
+}
+
+.btn-limpiar {
+    background: #6c757d;
+    color: white;
+    text-decoration: none;
+    padding: 12px 25px;
+    border-radius: 10px;
+    display: inline-block;
+    text-align: center;
+    width: 100%;
+    transition: background 0.3s;
+}
+
+.btn-limpiar:hover {
+    background: #5a6268;
+    color: white;
+}
+
+.resultado-info {
+    margin-bottom: 20px;
+    padding: 10px 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    display: inline-block;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.resultado-info strong {
+    color: var(--naranja);
+}
+
+.grid-productos {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 30px;
+    margin-top: 20px;
+}
+
+.producto-card {
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.producto-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+}
+
+.producto-imagen {
+    height: 220px;
+    background: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.producto-imagen img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s;
+}
+
+.producto-card:hover .producto-imagen img {
+    transform: scale(1.05);
+}
+
+.producto-info {
+    padding: 20px;
+}
+
+.producto-info h3 {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    color: #333;
+    height: 50px;
+    overflow: hidden;
+}
+
+.producto-descripcion {
+    color: #666;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    margin-bottom: 15px;
+    height: 60px;
+    overflow: hidden;
+}
+
+.producto-precio {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: var(--naranja);
+    margin-bottom: 15px;
+}
+
+.producto-stock {
+    font-size: 0.75rem;
+    color: #28a745;
+    margin-bottom: 15px;
+}
+
+.producto-stock.stock-bajo {
+    color: #f44336;
+}
+
+.btn-detalle {
+    display: block;
+    background: var(--naranja);
+    color: white;
+    text-align: center;
+    padding: 10px;
+    border-radius: 25px;
+    text-decoration: none;
+    transition: background 0.3s;
+}
+
+.btn-detalle:hover {
+    background: var(--naranja-dark);
+    color: white;
+}
+
+.sin-productos {
+    text-align: center;
+    padding: 60px;
+    color: #999;
+}
+
+@media (max-width: 768px) {
+    .filtros {
+        flex-direction: column;
+    }
+    .filtros .grupo {
+        width: 100%;
+    }
+    .btn-filtrar, .btn-limpiar {
+        width: 100%;
+    }
+    .grid-productos {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 20px;
+    }
+}
