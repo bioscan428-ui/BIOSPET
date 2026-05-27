@@ -392,14 +392,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Mantener el foco en el campo de código de barras
-const buscadorCodigoInput = document.getElementById('buscadorCodigo');
-if (buscadorCodigoInput) {
-    buscadorCodigoInput.addEventListener('blur', function() {
-        setTimeout(() => {
-            this.focus();
-        }, 10);
-    });
-}
+
 
 console.log('=== script listo ===');
