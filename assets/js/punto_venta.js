@@ -298,20 +298,33 @@ if (buscadorCodigo) {
 }
 
 async function buscarProductoPorCodigo(codigo) {
+    console.log('Buscando producto por código:', codigo);
+    
     try {
-        const response = await fetch(`buscar_producto_por_codigo.php?codigo=${codigo}`);
-        const producto = await response.json();
+        const response = await fetch(`buscar_por_codigo.php?codigo=${encodeURIComponent(codigo)}`);
+        const data = await response.json();
         
-        if (producto && producto.id && (producto.stock_actual > 0 || producto.maneja_stock == 0)) {
-            // Agregar producto al carrito
-            agregarProducto(producto.id, producto.nombre, producto.precio_venta, producto.stock_actual, producto.maneja_stock);
-            // Opcional: mostrar mensaje de éxito
-            console.log('Producto agregado:', producto.nombre);
+        console.log('Respuesta:', data);
+        
+        if (data.success) {
+            // Verificar si es servicio (maneja_stock = 0) o tiene stock disponible
+            if (data.maneja_stock == 0 || data.stock_actual > 0) {
+                agregarProducto(data.id, data.nombre, data.precio_venta, data.stock_actual, data.maneja_stock);
+                
+                // Opcional: mostrar mensaje de éxito
+                const mensaje = document.createElement('div');
+                mensaje.textContent = `✅ ${data.nombre} agregado al carrito`;
+                mensaje.style.cssText = 'position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #4caf50; color: white; padding: 10px 20px; border-radius: 5px; z-index: 9999;';
+                document.body.appendChild(mensaje);
+                setTimeout(() => mensaje.remove(), 2000);
+            } else {
+                alert(`Producto "${data.nombre}" sin stock disponible`);
+            }
         } else {
-            alert('Producto no encontrado o sin stock disponible');
+            alert('Producto no encontrado: ' + (data.error || 'Código inválido'));
         }
     } catch (error) {
-        console.error('Error al buscar producto:', error);
+        console.error('Error:', error);
         alert('Error al buscar el producto');
     }
 }
