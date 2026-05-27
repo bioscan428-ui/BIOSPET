@@ -164,6 +164,7 @@ CREATE TABLE PRODUCTO (
     fecha_vencimiento DATE,
     activo BOOLEAN DEFAULT TRUE,
     imagen VARCHAR(500),
+    maneja_stock TINYINT(1),
     CONSTRAINT fk_producto_categoria FOREIGN KEY (id_categoria) REFERENCES CATEGORIA_PRODUCTO(id) ON DELETE RESTRICT,
     CONSTRAINT fk_producto_proveedor FOREIGN KEY (id_proveedor)  REFERENCES PROVEEDOR(id) ON DELETE SET NULL,
     INDEX (nombre),

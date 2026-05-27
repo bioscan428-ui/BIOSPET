@@ -86,6 +86,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ubicacion = trim($_POST['ubicacion']);
     $fecha_vencimiento = !empty($_POST['fecha_vencimiento']) ? $_POST['fecha_vencimiento'] : null;
     $activo = isset($_POST['activo']) ? 1 : 0;
+    
+    // Obtener valor de maneja_stock (checkbox: si está marcado = 0, no maneja stock)
+    $maneja_stock = isset($_POST['maneja_stock']) ? 0 : 1;
 
     // Para usuarios caja, precio_compra y id_proveedor van NULL
     if ($es_caja) {
@@ -96,11 +99,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id_proveedor = !empty($_POST['id_proveedor']) ? (int)$_POST['id_proveedor'] : null;
     }
     
-    // Si no se ingresó código de barras, generar uno automático
-    if (empty($codigo_barras)) {
-        $codigo_barras = generarCodigoBarras($conn);
+    // Si no maneja stock, forzar stock_actual = 0 y stock_minimo = 0
+    if ($maneja_stock == 0) {
+        $stock_actual = 0;
+        $stock_minimo = 0;
+        $ubicacion = null;
+        $fecha_vencimiento = null;
     }
     
+    // Si no se ingresó código de barras, generar uno automático
     if (empty($codigo_barras)) {
         $codigo_barras = generarCodigoBarras($conn);
     }
@@ -123,14 +130,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     $sql = "INSERT INTO PRODUCTO (nombre, descripcion, codigo_barras, id_categoria, id_proveedor,
                                    precio_compra, precio_venta, stock_actual, stock_minimo, unidad_medida, 
-                                   ubicacion, fecha_vencimiento, imagen, activo) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                                   ubicacion, fecha_vencimiento, imagen, activo, maneja_stock) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sssiiiddiisssi", 
+    $stmt->bind_param("sssiiiddiisssii", 
         $nombre, $descripcion, $codigo_barras, $id_categoria, $id_proveedor,
         $precio_compra, $precio_venta, $stock_actual, $stock_minimo, $unidad_medida, 
-        $ubicacion, $fecha_vencimiento, $imagen, $activo
+        $ubicacion, $fecha_vencimiento, $imagen, $activo, $maneja_stock
     );
     
     if ($stmt->execute()) {
@@ -141,6 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -165,6 +173,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .codigo-wrapper input { flex: 1; }
         .info-text { font-size: 12px; color: #666; margin-top: 5px; }
         .codigo-ejemplo { background: #f0f0f0; padding: 10px; border-radius: 5px; margin-top: 10px; font-family: monospace; text-align: center; }
+        .btn-small {display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: normal; transition: background 0.3s; }
+        .btn-small:hover { opacity: 0.9; transform: translateY(-1px); }
     </style>
 </head>
 <body>
@@ -208,31 +218,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     💡 Ejemplo de código sugerido: <strong><?php echo $codigo_sugerido; ?></strong>
                 </div>
             </div>
-            
+
             <div class="form-row">
                 <div class="form-group">
                     <label>Categoría *</label>
-                    <select name="id_categoria" required>
-                        <option value="">Seleccionar...</option>
-                        <?php while($cat = $categorias->fetch_assoc()): ?>
-                            <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['nombre']); ?></option>
-                        <?php endwhile; ?>
-                    </select>
+                    <div style="display: flex; gap: 10px;">
+                        <select name="id_categoria" required style="flex: 1;">
+                            <option value="">Seleccionar...</option>
+                            <?php while($cat = $categorias->fetch_assoc()): ?>
+                                <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['nombre']); ?></option>
+                            <?php endwhile; ?>
+                        </select>
+                        <a href="categorias_productos.php" target="_blank" class="btn-small" style="background: #2196f3; color: white; padding: 10px 15px; 
+                        border-radius: 5px; text-decoration: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;">
+                        📁 Gestionar
+                        </a>
+                    </div>
+                    <small style="color:#666;">Si la categoría no existe, créala desde "Gestionar"</small>
                 </div>
-
                 <?php if (!$es_caja): ?>
                 <div class="form-group">
                     <label>Proveedor</label>
-                    <select name="id_proveedor">
-                        <option value="">-- Seleccionar proveedor --</option>
-                        <?php while($prov = $proveedores->fetch_assoc()): ?>
-                            <option value="<?php echo $prov['id']; ?>"><?php echo htmlspecialchars($prov['nombre']); ?></option>
-                        <?php endwhile; ?>
-                    </select>
-                    <small style="color:#666;">Proveedor habitual de este producto (opcional)</small>
+                    <div style="display: flex; gap: 10px;">
+                        <select name="id_proveedor" style="flex: 1;">
+                            <option value="">-- Seleccionar proveedor --</option>
+                            <?php while($prov = $proveedores->fetch_assoc()): ?>
+                                <option value="<?php echo $prov['id']; ?>"><?php echo htmlspecialchars($prov['nombre']); ?></option>
+                            <?php endwhile; ?>
+                        </select>
+                        <a href="proveedor_nuevo.php" target="_blank" class="btn-small" style="background: #4caf50; color: white; padding: 10px 15px; border-radius: 5px; 
+                        text-decoration: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;">
+                        ➕ Nuevo
+                        </a>
+                    </div>
+                    <small style="color:#666;">¿No aparece el proveedor? Regístralo con el botón "Nuevo"</small>
                 </div>
                 <?php endif; ?>
-                
                 <div class="form-group">
                     <label>Unidad de medida</label>
                     <select name="unidad_medida">
@@ -268,6 +289,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="number" name="stock_minimo" value="5">
                 </div>
             </div>
+
+            <!-------CHECKBOX DE MANEJO DE STOCK-------->
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="maneja_stock" id="maneja_stock" value="0" onchange="toggleStockFields()">
+                    ❌ No maneja stock (es un servicio o producto sin inventario)
+                </label>
+                <small style="color:#666;">Marca esta opción si es un servicio (estética, baño, consulta) o un producto que no requiere control de inventario</small>
+            </div>
+            <!-------FIN DE CHECKBOX DE MANEJO DE STOCK-------->
             
             <div class="form-row">
                 <div class="form-group">
@@ -373,6 +404,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } catch (error) {
                 console.error('Error al validar:', error);
             }
+        });
+
+        // Función para habilitar/deshabilitar campos de stock
+        function toggleStockFields() {
+            const checkBox = document.getElementById('maneja_stock');
+            const stockActualInput = document.querySelector('input[name="stock_actual"]');
+            const stockMinimoInput = document.querySelector('input[name="stock_minimo"]');
+            const ubicacionInput = document.querySelector('input[name="ubicacion"]');
+            const fechaVencimientoInput = document.querySelector('input[name="fecha_vencimiento"]');
+            if (checkBox.checked) {
+                // No maneja stock - deshabilitar campos y poner valores por defecto
+                if (stockActualInput) {
+                    stockActualInput.disabled = true;
+                    stockActualInput.value = 0;
+                }
+                if (stockMinimoInput) {
+                    stockMinimoInput.disabled = true;
+                    stockMinimoInput.value = 0;
+                }
+                if (ubicacionInput) ubicacionInput.disabled = true;
+                if (fechaVencimientoInput) fechaVencimientoInput.disabled = true;
+            } else {
+                // Maneja stock - habilitar campos
+                if (stockActualInput) {
+                    stockActualInput.disabled = false;
+                    stockActualInput.value = 0;
+                }
+                if (stockMinimoInput) {
+                    stockMinimoInput.disabled = false;
+                    stockMinimoInput.value = 5;
+                }
+                if (ubicacionInput) ubicacionInput.disabled = false;
+                if (fechaVencimientoInput) fechaVencimientoInput.disabled = false;
+            }
+        }
+        // Llamar a la función al cargar la página para inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleStockFields();
         });
     </script>
 </body>

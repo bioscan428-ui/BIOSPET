@@ -18,11 +18,12 @@ if (!in_array($_SESSION['rol'], ['super_admin', 'admin', 'recepcionista'])) {
 require_once __DIR__ . '/../includes/conexion.php';
 
 // Obtener productos activos con stock
-$sql_productos = "SELECT p.*, c.nombre as categoria 
-                  FROM PRODUCTO p
-                  JOIN CATEGORIA_PRODUCTO c ON p.id_categoria = c.id
-                  WHERE p.activo = 1 AND p.stock_actual > 0
-                  ORDER BY p.nombre ASC";
+$sql_productos = "SELECT p.*, c.nombre as categoria
+                FROM PRODUCTO p
+                JOIN CATEGORIA_PRODUCTO c ON p.id_categoria = c.id
+                WHERE p.activo = 1
+                    AND (p.stock_actual > 0 OR p.maneja_stock = 0)
+                ORDER BY p.nombre ASC";
 $productos = $conn->query($sql_productos);
 
 // Obtener clientes para seleccionar
@@ -84,11 +85,12 @@ $empleado_id = $_SESSION['empleado_id'] ?? null;
                 
                 <div class="productos-grid" id="productosGrid">
                     <?php while($prod = $productos->fetch_assoc()): ?>
-                        <div class="producto-card" data-id="<?php echo $prod['id']; ?>" 
-                             data-nombre="<?php echo htmlspecialchars($prod['nombre']); ?>"
-                             data-precio="<?php echo $prod['precio_venta']; ?>"
-                             data-stock="<?php echo $prod['stock_actual']; ?>"
-                             data-codigo="<?php echo $prod['codigo_barras'] ?? ''; ?>">
+                        <div class="producto-card" data-id="<?php echo $prod['id']; ?>"
+                            data-nombre="<?php echo htmlspecialchars($prod['nombre']); ?>"
+                            data-precio="<?php echo $prod['precio_venta']; ?>"
+                            data-stock="<?php echo $prod['stock_actual']; ?>"
+                            data-codigo="<?php echo $prod['codigo_barras'] ?? ''; ?>"
+                            data-maneja-stock="<?php echo $prod['maneja_stock'] ?? 1; ?>">
                             <div class="nombre"><?php echo htmlspecialchars($prod['nombre']); ?></div>
                             <div class="precio">$<?php echo number_format($prod['precio_venta'], 2); ?></div>
                             <div class="stock <?php echo $prod['stock_actual'] < 10 ? 'stock-bajo' : ''; ?>">

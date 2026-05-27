@@ -47,9 +47,11 @@ if (!empty($busqueda)) {
     $criticos_count = $conn->query("SELECT COUNT(*) as total FROM vista_stock_critico")->fetch_assoc()['total'];
 } elseif ($categoria_id > 0) {
     // Filtrar por categoría
-    $sql = "SELECT p.*, c.nombre AS categoria_nombre 
+    $sql = "SELECT p.*, c.nombre AS categoria_nombre,
+                    prov.nombre AS proveedor_nombre
             FROM PRODUCTO p
             JOIN CATEGORIA_PRODUCTO c ON p.id_categoria = c.id
+            LEFT JOIN PROVEEDOR prov ON p.id_proveedor = prov.id
             WHERE p.id_categoria = ?
             ORDER BY p.stock_actual ASC, p.id DESC";
     $stmt = $conn->prepare($sql);
@@ -58,9 +60,11 @@ if (!empty($busqueda)) {
     $result = $stmt->get_result();
     $criticos_count = $conn->query("SELECT COUNT(*) as total FROM vista_stock_critico")->fetch_assoc()['total'];
 } else {
-    $sql = "SELECT p.*, c.nombre AS categoria_nombre 
+    $sql = "SELECT p.*, c.nombre AS categoria_nombre, 
+                    prov.nombre AS proveedor_nombre
             FROM PRODUCTO p
             JOIN CATEGORIA_PRODUCTO c ON p.id_categoria = c.id
+            LEFT JOIN PROVEEDOR prov ON p.id_proveedor = prov.id
             ORDER BY p.stock_actual ASC, p.id DESC";
     $result = $conn->query($sql);
     $criticos_count = $conn->query("SELECT COUNT(*) as total FROM vista_stock_critico")->fetch_assoc()['total'];
@@ -341,6 +345,15 @@ if (isset($_SESSION['importacion_mensaje'])) {
                             <td><?php echo $producto['categoria_nombre'] ?? $producto['categoria']; ?></td>
                             <td>$<?php echo number_format($producto['precio_venta'], 2); ?></td>
                             <td>$<?php echo number_format($producto['precio_compra'], 2); ?></td>
+                            <td>
+                                <?php 
+                                if (!empty($producto['proveedor_nombre'])) {
+                                        echo htmlspecialchars($producto['proveedor_nombre']);
+                                } else {
+                                    echo '<span style="color: #999;">—</span>';
+                                }
+                                ?>
+                            </td>
                             <td>
                                 <?php 
                                 $stock_minimo = $producto['stock_minimo'] ?? 5;

@@ -18,30 +18,50 @@ const metodoPagoSelect = document.getElementById('metodo_pago');
 // FUNCIONES DEL CARRITO
 // ============================================
 
-function agregarProducto(id, nombre, precio, stock) {
-    console.log('Agregando producto:', nombre, 'Precio:', precio);
+function agregarProducto(id, nombre, precio, stock, manejaStock) {
+    console.log('Agregando producto:', nombre, 'Precio:', precio, 'Stock:', stock, 'ManejaStock:', manejaStock);
     
     const existente = carrito.find(item => item.id === id);
     
-    if (existente) {
-        if (existente.cantidad + 1 > stock) {
-            alert(`Stock insuficiente. Solo hay ${stock} unidades disponibles.`);
-            return;
+    // Verificar si el producto maneja stock (servicios tienen manejaStock = 0 o stock = 0)
+    const esServicio = (manejaStock === 0 || stock === 0);
+    
+    if (esServicio) {
+        // Es un servicio - permitir agregar sin límite de stock
+        if (existente) {
+            existente.cantidad++;
+            existente.subtotal = existente.cantidad * existente.precio;
+        } else {
+            carrito.push({
+                id: id,
+                nombre: nombre,
+                precio: precio,
+                cantidad: 1,
+                subtotal: precio
+            });
         }
-        existente.cantidad++;
-        existente.subtotal = existente.cantidad * existente.precio;
     } else {
-        if (1 > stock) {
-            alert(`Producto sin stock disponible.`);
-            return;
+        // Es producto físico - validar stock
+        if (existente) {
+            if (existente.cantidad + 1 > stock) {
+                alert(`Stock insuficiente. Solo hay ${stock} unidades disponibles.`);
+                return;
+            }
+            existente.cantidad++;
+            existente.subtotal = existente.cantidad * existente.precio;
+        } else {
+            if (1 > stock) {
+                alert(`Producto sin stock disponible.`);
+                return;
+            }
+            carrito.push({
+                id: id,
+                nombre: nombre,
+                precio: precio,
+                cantidad: 1,
+                subtotal: precio
+            });
         }
-        carrito.push({
-            id: id,
-            nombre: nombre,
-            precio: precio,
-            cantidad: 1,
-            subtotal: precio
-        });
     }
     
     actualizarCarrito();
@@ -234,7 +254,8 @@ function asignarEventosProductos() {
             const nombre = card.dataset.nombre;
             const precio = parseFloat(card.dataset.precio);
             const stock = parseInt(card.dataset.stock);
-            agregarProducto(id, nombre, precio, stock);
+            const manejaStock = parseInt(card.dataset.manejaStock);
+            agregarProducto(id, nombre, precio, stock, manejaStock);
         };
     });
 }
