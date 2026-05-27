@@ -329,4 +329,69 @@ async function buscarProductoPorCodigo(codigo) {
     }
 }
 
+
+// ========== CÓDIGO DE BARRAS - CAPTURA GLOBAL ==========
+let codigoBuffer = '';
+let tiempoUltimaTecla = 0;
+
+// Capturar cualquier tecleo para detectar escaneo
+document.addEventListener('keypress', function(e) {
+    // Solo procesar caracteres imprimibles (no Enter, no Ctrl, etc.)
+    if (e.key.length === 1 && e.key !== 'Enter') {
+        codigoBuffer += e.key;
+        tiempoUltimaTecla = Date.now();
+        
+        // Limpiar buffer después de 100ms sin teclear
+        setTimeout(function() {
+            if (Date.now() - tiempoUltimaTecla > 100) {
+                if (codigoBuffer.length > 0) {
+                    console.log('Buffer limpiado:', codigoBuffer);
+                    codigoBuffer = '';
+                }
+            }
+        }, 100);
+    }
+    
+    // Cuando presionan Enter, procesar el código
+    if (e.key === 'Enter' && codigoBuffer.length > 0) {
+        e.preventDefault();
+        console.log('Código escaneado:', codigoBuffer);
+        
+        // Buscar producto por código
+        buscarProductoPorCodigo(codigoBuffer);
+        
+        // Mostrar en el campo visualmente
+        const buscadorCodigo = document.getElementById('buscadorCodigo');
+        if (buscadorCodigo) {
+            buscadorCodigo.value = codigoBuffer;
+            setTimeout(() => {
+                buscadorCodigo.value = '';
+            }, 1000);
+        }
+        
+        // Limpiar buffer
+        codigoBuffer = '';
+    }
+});
+
+// Enfocar el campo de código de barras al cargar
+document.addEventListener('DOMContentLoaded', function() {
+    const buscadorCodigo = document.getElementById('buscadorCodigo');
+    if (buscadorCodigo) {
+        buscadorCodigo.focus();
+    }
+});
+
+// Mantener el foco en el campo de código de barras
+const buscadorCodigoInput = document.getElementById('buscadorCodigo');
+if (buscadorCodigoInput) {
+    buscadorCodigoInput.addEventListener('blur', function() {
+        setTimeout(() => {
+            this.focus();
+        }, 10);
+    });
+}
+
+
+
 console.log('=== script listo ===');
