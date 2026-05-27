@@ -301,13 +301,18 @@ async function buscarProductoPorCodigo(codigo) {
     try {
         const response = await fetch(`buscar_producto_por_codigo.php?codigo=${codigo}`);
         const producto = await response.json();
-        if (producto && producto.id && producto.stock_actual > 0) {
-            agregarProducto(producto.id, producto.nombre, producto.precio_venta, producto.stock_actual);
+        
+        if (producto && producto.id && (producto.stock_actual > 0 || producto.maneja_stock == 0)) {
+            // Agregar producto al carrito
+            agregarProducto(producto.id, producto.nombre, producto.precio_venta, producto.stock_actual, producto.maneja_stock);
+            // Opcional: mostrar mensaje de éxito
+            console.log('Producto agregado:', producto.nombre);
         } else {
-            alert('Producto no encontrado');
+            alert('Producto no encontrado o sin stock disponible');
         }
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error al buscar producto:', error);
+        alert('Error al buscar el producto');
     }
 }
 
