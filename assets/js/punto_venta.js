@@ -131,7 +131,16 @@ function eliminarProducto(id) {
 
 function getStockProducto(id) {
     const card = document.querySelector(`.producto-card[data-id="${id}"]`);
-    return card ? parseInt(card.dataset.stock) : 0;
+    if (!card) return 0;
+    
+    const manejaStock = parseInt(card.dataset.manejaStock);
+    const stock = parseInt(card.dataset.stock);
+    
+    // Si no maneja stock (servicio), retornar un número alto (prácticamente ilimitado)
+    if (manejaStock === 0) {
+        return 999999;
+    }
+    return stock;
 }
 
 function vaciarCarrito() {
@@ -330,6 +339,7 @@ async function buscarProductoPorCodigo(codigo) {
 }
 
 
+
 // ========== CÓDIGO DE BARRAS - CAPTURA GLOBAL ==========
 let codigoBuffer = '';
 let tiempoUltimaTecla = 0;
@@ -391,7 +401,5 @@ if (buscadorCodigoInput) {
         }, 10);
     });
 }
-
-
 
 console.log('=== script listo ===');
