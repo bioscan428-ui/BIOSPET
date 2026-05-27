@@ -30,13 +30,15 @@ $result = $stmt->get_result();
 
 if ($result->num_rows > 0) {
     $producto = $result->fetch_assoc();
+    
+    // ⭐ CONVERSIÓN EXPLÍCITA A NÚMEROS
     echo json_encode([
         'success' => true,
-        'id' => $producto['id'],
+        'id' => (int)$producto['id'],
         'nombre' => $producto['nombre'],
-        'precio_venta' => $producto['precio_venta'],
-        'stock_actual' => $producto['stock_actual'],
-        'maneja_stock' => $producto['maneja_stock']
+        'precio_venta' => (float)$producto['precio_venta'],  // Convertir a float/número
+        'stock_actual' => (int)$producto['stock_actual'],
+        'maneja_stock' => (int)$producto['maneja_stock']
     ]);
 } else {
     echo json_encode(['success' => false, 'error' => 'Producto no encontrado']);
