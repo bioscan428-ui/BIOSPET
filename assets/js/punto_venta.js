@@ -307,91 +307,53 @@ if (buscadorCodigo) {
 }
 
 async function buscarProductoPorCodigo(codigo) {
-    console.log('Buscando producto por código:', codigo);
+    console.log('🔍 1. Buscando producto por código:', codigo);
+    
+    if (!codigo) {
+        console.log('❌ Código vacío');
+        return;
+    }
     
     try {
+        console.log('📡 2. Haciendo fetch a buscar_por_codigo.php...');
         const response = await fetch(`buscar_por_codigo.php?codigo=${encodeURIComponent(codigo)}`);
-        const data = await response.json();
+        console.log('📡 3. Response status:', response.status);
         
-        console.log('Respuesta:', data);
+        const data = await response.json();
+        console.log('📦 4. Datos recibidos:', data);
         
         if (data.success) {
-            // Verificar si es servicio (maneja_stock = 0) o tiene stock disponible
+            console.log('✅ 5. Producto encontrado:', data.nombre);
+            console.log('   - ID:', data.id);
+            console.log('   - Precio:', data.precio_venta);
+            console.log('   - Stock:', data.stock_actual);
+            console.log('   - Maneja stock:', data.maneja_stock);
+            
+            // Verificar stock
             if (data.maneja_stock == 0 || data.stock_actual > 0) {
+                console.log('🛒 6. Agregando al carrito...');
                 agregarProducto(data.id, data.nombre, data.precio_venta, data.stock_actual, data.maneja_stock);
+                console.log('✅ 7. Producto agregado al carrito');
                 
-                // Opcional: mostrar mensaje de éxito
+                // Mostrar mensaje de éxito
                 const mensaje = document.createElement('div');
                 mensaje.textContent = `✅ ${data.nombre} agregado al carrito`;
                 mensaje.style.cssText = 'position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #4caf50; color: white; padding: 10px 20px; border-radius: 5px; z-index: 9999;';
                 document.body.appendChild(mensaje);
                 setTimeout(() => mensaje.remove(), 2000);
             } else {
+                console.log('❌ Stock insuficiente');
                 alert(`Producto "${data.nombre}" sin stock disponible`);
             }
         } else {
+            console.log('❌ Producto no encontrado:', data.error);
             alert('Producto no encontrado: ' + (data.error || 'Código inválido'));
         }
     } catch (error) {
-        console.error('Error:', error);
-        alert('Error al buscar el producto');
+        console.error('❌ Error en fetch:', error);
+        alert('Error al buscar el producto: ' + error.message);
     }
 }
-
-
-
-// ========== CÓDIGO DE BARRAS - CAPTURA GLOBAL ==========
-let codigoBuffer = '';
-let tiempoUltimaTecla = 0;
-
-// Capturar cualquier tecleo para detectar escaneo
-document.addEventListener('keypress', function(e) {
-    // Solo procesar caracteres imprimibles (no Enter, no Ctrl, etc.)
-    if (e.key.length === 1 && e.key !== 'Enter') {
-        codigoBuffer += e.key;
-        tiempoUltimaTecla = Date.now();
-        
-        // Limpiar buffer después de 100ms sin teclear
-        setTimeout(function() {
-            if (Date.now() - tiempoUltimaTecla > 100) {
-                if (codigoBuffer.length > 0) {
-                    console.log('Buffer limpiado:', codigoBuffer);
-                    codigoBuffer = '';
-                }
-            }
-        }, 100);
-    }
-    
-    // Cuando presionan Enter, procesar el código
-    if (e.key === 'Enter' && codigoBuffer.length > 0) {
-        e.preventDefault();
-        console.log('Código escaneado:', codigoBuffer);
-        
-        // Buscar producto por código
-        buscarProductoPorCodigo(codigoBuffer);
-        
-        // Mostrar en el campo visualmente
-        const buscadorCodigo = document.getElementById('buscadorCodigo');
-        if (buscadorCodigo) {
-            buscadorCodigo.value = codigoBuffer;
-            setTimeout(() => {
-                buscadorCodigo.value = '';
-            }, 1000);
-        }
-        
-        // Limpiar buffer
-        codigoBuffer = '';
-    }
-});
-
-// Enfocar el campo de código de barras al cargar
-document.addEventListener('DOMContentLoaded', function() {
-    const buscadorCodigo = document.getElementById('buscadorCodigo');
-    if (buscadorCodigo) {
-        buscadorCodigo.focus();
-    }
-});
-
 
 
 console.log('=== script listo ===');
