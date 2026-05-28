@@ -158,12 +158,16 @@ WHERE e.activo = 1
 ORDER BY c.fecha_cita DESC, e.nombre;
 
 -- 4. VISTAS DE INVENTARIO
-CREATE OR REPLACE VIEW vista_stock_critico AS
+DROP VIEW IF EXISTS vista_stock_critico;
+
+CREATE VIEW vista_stock_critico AS
 SELECT 
     p.id,
     p.nombre,
     p.codigo_barras,
     c.nombre AS categoria,
+    p.id_categoria,
+    p.id_proveedor,  -- ← AGREGAR esta línea
     p.stock_actual,
     p.stock_minimo,
     p.precio_compra,
@@ -177,6 +181,7 @@ WHERE p.activo = 1
   AND (p.stock_actual <= p.stock_minimo 
        OR p.fecha_vencimiento <= DATE_ADD(CURDATE(), INTERVAL 30 DAY))
 ORDER BY p.stock_actual ASC, p.fecha_vencimiento ASC;
+
 
 CREATE OR REPLACE VIEW vista_movimientos_recientes AS
 SELECT 

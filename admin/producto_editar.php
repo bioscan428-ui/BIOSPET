@@ -38,6 +38,10 @@ if (!$producto) {
 $sql_categorias = "SELECT id, nombre FROM CATEGORIA_PRODUCTO WHERE activo = 1";
 $categorias = $conn->query($sql_categorias);
 
+// Obtener proveedores activos
+$sql_proveedores = "SELECT id, nombre FROM PROVEEDOR WHERE activo = 1 ORDER BY nombre ASC";
+$proveedores = $conn->query($sql_proveedores);
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nombre = trim($_POST['nombre']);
     $descripcion = trim($_POST['descripcion']);
@@ -46,6 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $codigo_barras = null;
     }
     $id_categoria = (int)$_POST['id_categoria'];
+    $id_proveedor = !empty($_POST['id_proveedor']) ? (int)$_POST['id_proveedor'] : null;
     $precio_compra = (float)$_POST['precio_compra'];
     $precio_venta = (float)$_POST['precio_venta'];
     $stock_actual = (int)$_POST['stock_actual'];
@@ -54,6 +59,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ubicacion = trim($_POST['ubicacion']);
     $fecha_vencimiento = !empty($_POST['fecha_vencimiento']) ? $_POST['fecha_vencimiento'] : null;
     $activo = isset($_POST['activo']) ? 1 : 0;
+    $maneja_stock = isset($_POST['maneja_stock']) ? 0 : 1;
+    
+    // Si no maneja stock, forzar stock_actual = 0 y stock_minimo = 0
+    if ($maneja_stock == 0) {
+        $stock_actual = 0;
+        $stock_minimo = 0;
+        $ubicacion = null;
+        $fecha_vencimiento = null;
+    }
     
     // Crear directorio si no existe
     $upload_dir = __DIR__ . '/../assets/images/productos/';
@@ -78,15 +92,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     $sql = "UPDATE PRODUCTO SET 
-            nombre = ?, descripcion = ?, codigo_barras = ?, id_categoria = ?, 
+            nombre = ?, descripcion = ?, codigo_barras = ?, id_categoria = ?, id_proveedor = ?,
             precio_compra = ?, precio_venta = ?, stock_actual = ?, stock_minimo = ?, 
-            unidad_medida = ?, ubicacion = ?, fecha_vencimiento = ?, imagen = ?, activo = ? 
+            unidad_medida = ?, ubicacion = ?, fecha_vencimiento = ?, imagen = ?, activo = ?, maneja_stock = ? 
             WHERE id = ?";
     
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sssiddiissssii", $nombre, $descripcion, $codigo_barras, $id_categoria, 
-                      $precio_compra, $precio_venta, $stock_actual, $stock_minimo, 
-                      $unidad_medida, $ubicacion, $fecha_vencimiento, $imagen, $activo, $id_producto);
+    $stmt->bind_param("sssiiiddiissssii", 
+        $nombre, $descripcion, $codigo_barras, $id_categoria, $id_proveedor,
+        $precio_compra, $precio_venta, $stock_actual, $stock_minimo, 
+        $unidad_medida, $ubicacion, $fecha_vencimiento, $imagen, $activo, $maneja_stock, $id_producto
+    );
     
     if ($stmt->execute()) {
         header('Location: productos.php?success=2');
@@ -103,21 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editar Producto - BIOSPET</title>
     <link rel="stylesheet" href="../assets/css/global.css">
-    <style>
-        body { background: var(--muted); }
-        .admin-header { background: var(--primary); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .admin-header a { color: white; text-decoration: none; margin-left: 20px; }
-        .container { max-width: 800px; margin: 20px auto; padding: 20px; background: white; border-radius: var(--radius-md); }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: var(--radius-sm); }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .btn-guardar { background: var(--primary); color: white; padding: 12px 30px; border: none; border-radius: var(--radius-sm); cursor: pointer; }
-        .btn-cancelar { background: #666; color: white; padding: 12px 30px; text-decoration: none; border-radius: var(--radius-sm); display: inline-block; margin-left: 10px; }
-        .error { color: red; margin-bottom: 15px; }
-        .imagen-actual { margin: 10px 0; }
-        .imagen-actual img { max-width: 100px; border-radius: var(--radius-sm); }
-    </style>
+    <link rel="stylesheet" href="../assets/css/producto_editar.css">
 </head>
 <body>
     <div class="admin-header">
@@ -145,24 +147,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <textarea name="descripcion" rows="4"><?php echo htmlspecialchars($producto['descripcion']); ?></textarea>
             </div>
 
+            <!-- Código de barras con generador -->
             <div class="form-group">
                 <label>Código de barras</label>
-                <input type="text" name="codigo_barras" value="<?php echo htmlspecialchars($producto['codigo_barras']); ?>">
+                <div class="codigo-wrapper">
+                    <input type="text" name="codigo_barras" id="codigo_barras" value="<?php echo htmlspecialchars($producto['codigo_barras']); ?>" placeholder="Déjalo vacío para generar automáticamente">
+                    <button type="button" class="btn-generar" id="btnGenerarCodigo">🎲 Generar</button>
+                </div>
+                <p class="info-text">
+                    ⚡ Si dejas el campo vacío, se generará un código único automáticamente al guardar.
+                </p>
             </div>
             
             <div class="form-row">
                 <div class="form-group">
                     <label>Categoría *</label>
-                    <select name="id_categoria" required>
-                        <option value="">Seleccionar...</option>
-                        <?php while($cat = $categorias->fetch_assoc()): ?>
-                            <option value="<?php echo $cat['id']; ?>" <?php echo $producto['id_categoria'] == $cat['id'] ? 'selected' : ''; ?>>
-                                <?php echo $cat['nombre']; ?>
-                            </option>
-                        <?php endwhile; ?>
-                    </select>
+                    <div style="display: flex; gap: 10px;">
+                        <select name="id_categoria" required style="flex: 1;">
+                            <option value="">Seleccionar...</option>
+                            <?php while($cat = $categorias->fetch_assoc()): ?>
+                                <option value="<?php echo $cat['id']; ?>" <?php echo $producto['id_categoria'] == $cat['id'] ? 'selected' : ''; ?>>
+                                    <?php echo $cat['nombre']; ?>
+                                </option>
+                            <?php endwhile; ?>
+                        </select>
+                        <a href="categorias_productos.php" target="_blank" class="btn-small" style="background: #2196f3; color: white; padding: 10px 15px; border-radius: 5px; text-decoration: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;">
+                            📁 Gestionar
+                        </a>
+                    </div>
                 </div>
                 
+                <div class="form-group">
+                    <label>Proveedor</label>
+                    <div style="display: flex; gap: 10px;">
+                        <select name="id_proveedor" style="flex: 1;">
+                            <option value="">-- Seleccionar proveedor --</option>
+                            <?php 
+                            // Resetear puntero del resultado
+                            $proveedores->data_seek(0);
+                            while($prov = $proveedores->fetch_assoc()): 
+                            ?>
+                                <option value="<?php echo $prov['id']; ?>" <?php echo $producto['id_proveedor'] == $prov['id'] ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($prov['nombre']); ?>
+                                </option>
+                            <?php endwhile; ?>
+                        </select>
+                        <a href="proveedor_nuevo.php" target="_blank" class="btn-small" style="background: #4caf50; color: white; padding: 10px 15px; border-radius: 5px; text-decoration: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;">
+                            ➕ Nuevo
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row">
                 <div class="form-group">
                     <label>Unidad de medida</label>
                     <select name="unidad_medida">
@@ -173,51 +210,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <option value="caja" <?php echo $producto['unidad_medida'] == 'caja' ? 'selected' : ''; ?>>Caja</option>
                     </select>
                 </div>
-            </div>
-            
-            <div class="form-row">
+                
                 <div class="form-group">
                     <label>Precio compra (MXN)</label>
                     <input type="number" step="0.01" name="precio_compra" value="<?php echo $producto['precio_compra']; ?>">
                 </div>
+            </div>
+            
+            <div class="form-row">
                 <div class="form-group">
                     <label>Precio venta (MXN) *</label>
                     <input type="number" step="0.01" name="precio_venta" value="<?php echo $producto['precio_venta']; ?>" required>
                 </div>
-            </div>
-            
-            <div class="form-row">
+                
                 <div class="form-group">
                     <label>Stock actual</label>
-                    <input type="number" name="stock_actual" value="<?php echo $producto['stock_actual']; ?>">
-                </div>
-                <div class="form-group">
-                    <label>Stock mínimo (alerta)</label>
-                    <input type="number" name="stock_minimo" value="<?php echo $producto['stock_minimo']; ?>">
+                    <input type="number" name="stock_actual" id="stock_actual" value="<?php echo $producto['stock_actual']; ?>">
                 </div>
             </div>
             
             <div class="form-row">
                 <div class="form-group">
-                    <label>Ubicación (estante)</label>
-                    <input type="text" name="ubicacion" value="<?php echo htmlspecialchars($producto['ubicacion']); ?>" placeholder="Ej: Estante A1">
+                    <label>Stock mínimo (alerta)</label>
+                    <input type="number" name="stock_minimo" id="stock_minimo" value="<?php echo $producto['stock_minimo']; ?>">
                 </div>
+                
                 <div class="form-group">
-                    <label>Fecha vencimiento</label>
-                    <input type="date" name="fecha_vencimiento" value="<?php echo $producto['fecha_vencimiento']; ?>">
+                    <label>Ubicación (estante)</label>
+                    <input type="text" name="ubicacion" id="ubicacion" value="<?php echo htmlspecialchars($producto['ubicacion']); ?>" placeholder="Ej: Estante A1">
                 </div>
             </div>
-            
+
+            <!-- CHECKBOX DE MANEJO DE STOCK -->
             <div class="form-group">
-                <label>Imagen del producto</label>
-                <?php if(!empty($producto['imagen'])): ?>
-                    <div class="imagen-actual">
-                        <img src="../<?php echo $producto['imagen']; ?>" alt="Imagen actual">
-                        <p><small>Imagen actual. Sube una nueva para reemplazarla.</small></p>
-                    </div>
-                <?php endif; ?>
-                <input type="file" name="imagen" accept="image/*">
-                <small style="color:#666;">Formatos: JPG, PNG, GIF. Tamaño recomendado: 300x300px</small>
+                <label>
+                    <input type="checkbox" name="maneja_stock" id="maneja_stock" <?php echo ($producto['maneja_stock'] == 0) ? 'checked' : ''; ?> value="0" onchange="toggleStockFields()">
+                    ❌ No maneja stock (es un servicio o producto sin inventario)
+                </label>
+                <small style="color:#666;">Marca esta opción si es un servicio (estética, baño, consulta) o un producto que no requiere control de inventario</small>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Fecha vencimiento</label>
+                    <input type="date" name="fecha_vencimiento" id="fecha_vencimiento" value="<?php echo $producto['fecha_vencimiento']; ?>">
+                </div>
+                
+                <div class="form-group">
+                    <label>Imagen del producto</label>
+                    <?php if(!empty($producto['imagen'])): ?>
+                        <div class="imagen-actual">
+                            <img src="../<?php echo $producto['imagen']; ?>" alt="Imagen actual">
+                            <p><small>Imagen actual. Sube una nueva para reemplazarla.</small></p>
+                        </div>
+                    <?php endif; ?>
+                    <input type="file" name="imagen" accept="image/*">
+                    <small style="color:#666;">Formatos: JPG, PNG, GIF. Tamaño recomendado: 300x300px</small>
+                </div>
             </div>
             
             <div class="form-group">
@@ -232,5 +281,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </form>
     </div>
+
+    <script src="../assets/js/producto_editar.js"></script>
 </body>
 </html>

@@ -42,7 +42,9 @@ if (!empty($busqueda)) {
     $conn->next_result();
     $criticos_count = $conn->query("SELECT COUNT(*) as total FROM vista_stock_critico")->fetch_assoc()['total'];
 } elseif ($tab === 'criticos') {
-    $sql = "SELECT * FROM vista_stock_critico";
+    $sql = "SELECT v.*, prov.nombre AS proveedor_nombre
+            FROM vista_stock_critico v
+            LEFT JOIN PROVEEDOR prov ON v.id_proveedor = prov.id";
     $result = $conn->query($sql);
     $criticos_count = $conn->query("SELECT COUNT(*) as total FROM vista_stock_critico")->fetch_assoc()['total'];
 } elseif ($categoria_id > 0) {
@@ -239,11 +241,32 @@ if (isset($_SESSION['importacion_mensaje'])) {
 
     <div class="container">
         <!-- Mensajes de importación -->
-        <?php if ($mensaje_importacion): ?>
-            <div class="alert-<?php echo $tipo_mensaje; ?>">
-                <?php echo htmlspecialchars($mensaje_importacion); ?>
-            </div>
-        <?php endif; ?>
+        <!-- Mensajes de importación -->
+<?php if ($mensaje_importacion): ?>
+    <div class="alert-<?php echo $tipo_mensaje; ?>">
+        <?php echo htmlspecialchars($mensaje_importacion); ?>
+    </div>
+<?php endif; ?>
+
+<!-- Mostrar detalles de errores de importación -->
+<?php if (isset($_SESSION['importacion_errores_muestra']) && !empty($_SESSION['importacion_errores_muestra'])): ?>
+    <div class="alert-error" style="margin-top: 10px;">
+        <strong>🔍 Detalles de errores:</strong>
+        <ul style="margin: 10px 0 0 20px; max-height: 200px; overflow-y: auto;">
+            <?php foreach ($_SESSION['importacion_errores_muestra'] as $error): ?>
+                <li><?php echo htmlspecialchars($error); ?></li>
+            <?php endforeach; ?>
+            <?php if (isset($_SESSION['importacion_detalle_errores']) && count($_SESSION['importacion_detalle_errores']) > 5): ?>
+                <li><em>... y <?php echo count($_SESSION['importacion_detalle_errores']) - 5; ?> errores más</em></li>
+            <?php endif; ?>
+        </ul>
+    </div>
+    <?php 
+    // Limpiar las variables de sesión después de mostrarlas
+    unset($_SESSION['importacion_errores_muestra']); 
+    unset($_SESSION['importacion_detalle_errores']); 
+    ?>
+<?php endif; ?>
 
         <div class="header-actions">
             <div class="tab-buttons">
@@ -416,6 +439,7 @@ if (isset($_SESSION['importacion_mensaje'])) {
                 <li>descripcion</li>
                 <li>codigo_barras</li>
                 <li>id_categoria *</li>
+                <li>id_proveedor</li>
                 <li>precio_compra</li>
                 <li>precio_venta *</li>
                 <li>stock_actual</li>

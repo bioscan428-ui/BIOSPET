@@ -432,6 +432,7 @@ BEGIN
         SELECT 
             p.*,
             c.nombre AS categoria_nombre,
+            prov.nombre AS proveedor_nombre,
             CASE 
                 WHEN p.stock_actual <= 0 THEN 'AGOTADO'
                 WHEN p.stock_actual <= p.stock_minimo THEN 'STOCK BAJO'
@@ -439,6 +440,7 @@ BEGIN
             END AS estado_stock
         FROM PRODUCTO p
         JOIN CATEGORIA_PRODUCTO c ON p.id_categoria = c.id
+        LEFT JOIN PROVEEDOR prov ON p.id_proveedor = prov.id
         WHERE p.id = CAST(p_criterio AS UNSIGNED)
         AND p.activo = 1;
     ELSE
@@ -446,6 +448,7 @@ BEGIN
         SELECT 
             p.*,
             c.nombre AS categoria_nombre,
+            prov.nombre AS proveedor_nombre,
             CASE 
                 WHEN p.stock_actual <= 0 THEN 'AGOTADO'
                 WHEN p.stock_actual <= p.stock_minimo THEN 'STOCK BAJO'
@@ -453,6 +456,7 @@ BEGIN
             END AS estado_stock
         FROM PRODUCTO p
         JOIN CATEGORIA_PRODUCTO c ON p.id_categoria = c.id
+        LEFT JOIN PROVEEDOR prov ON p.id_proveedor = prov.id
         WHERE (p.nombre LIKE CONCAT('%', p_criterio, '%')
                 OR p.codigo_barras LIKE CONCAT('%', p_criterio, '%'))
         AND p.activo = 1
@@ -461,7 +465,6 @@ BEGIN
 END$$
 
 DELIMITER ;
-
 ---------PROCEDIMIENTO PARA GUARDAR EN FACTURA (VERIFICA QUE EL CLIENTE YA ESTE REGISTRADO)-------
 DELIMITER $$
 

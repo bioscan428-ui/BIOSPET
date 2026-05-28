@@ -156,26 +156,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nuevo Producto - BIOSPET</title>
     <link rel="stylesheet" href="../assets/css/global.css">
-    <style>
-        body { background: var(--muted); }
-        .admin-header { background: var(--primary); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .admin-header a { color: white; text-decoration: none; margin-left: 20px; }
-        .container { max-width: 800px; margin: 20px auto; padding: 20px; background: white; border-radius: var(--radius-md); }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: var(--radius-sm); }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .btn-guardar { background: var(--primary); color: white; padding: 12px 30px; border: none; border-radius: var(--radius-sm); cursor: pointer; }
-        .btn-cancelar { background: #666; color: white; padding: 12px 30px; text-decoration: none; border-radius: var(--radius-sm); display: inline-block; margin-left: 10px; }
-        .btn-generar { background: #28a745; color: white; border: none; border-radius: var(--radius-sm); cursor: pointer; padding: 8px 15px; margin-left: 10px; }
-        .error { color: red; margin-bottom: 15px; }
-        .codigo-wrapper { display: flex; align-items: center; gap: 10px; }
-        .codigo-wrapper input { flex: 1; }
-        .info-text { font-size: 12px; color: #666; margin-top: 5px; }
-        .codigo-ejemplo { background: #f0f0f0; padding: 10px; border-radius: 5px; margin-top: 10px; font-family: monospace; text-align: center; }
-        .btn-small {display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: normal; transition: background 0.3s; }
-        .btn-small:hover { opacity: 0.9; transform: translateY(-1px); }
-    </style>
+    <link rel="stylesheet" href="../assets/css/producto_nuevo.css">
 </head>
 <body>
     <div class="admin-header">
@@ -332,117 +313,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </form>
     </div>
-
-    <script>
-        // Generar código de barras vía AJAX
-        document.getElementById('btnGenerarCodigo').addEventListener('click', async function() {
-            const btn = this;
-            const inputCodigo = document.getElementById('codigo_barras');
-            
-            btn.textContent = '⏳ Generando...';
-            btn.disabled = true;
-            
-            try {
-                const response = await fetch('generar_codigo_barras.php');
-                const data = await response.json();
-                
-                if (data.success) {
-                    inputCodigo.value = data.codigo;
-                    inputCodigo.style.backgroundColor = '#d4edda';
-                    setTimeout(() => {
-                        inputCodigo.style.backgroundColor = '';
-                    }, 1000);
-                } else {
-                    alert('Error al generar código: ' + data.message);
-                }
-            } catch (error) {
-                alert('Error al conectar con el servidor');
-            } finally {
-                btn.textContent = '🎲 Generar';
-                btn.disabled = false;
-            }
-        });
-        
-        // Vista previa de imagen
-        document.getElementById('imagenProducto').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            const vistaPrevia = document.getElementById('vistaPrevia');
-            const previewImg = document.getElementById('previewImg');
-            
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    previewImg.src = event.target.result;
-                    vistaPrevia.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-            } else {
-                vistaPrevia.style.display = 'none';
-                previewImg.src = '';
-            }
-        });
-        
-        // Validar que el código de barras no esté repetido
-        const inputCodigo = document.getElementById('codigo_barras');
-        inputCodigo.addEventListener('blur', async function() {
-            const codigo = this.value.trim();
-            if (codigo === '') return;
-            
-            try {
-                const response = await fetch(`validar_codigo_barras.php?codigo=${encodeURIComponent(codigo)}`);
-                const data = await response.json();
-                
-                if (data.existe) {
-                    alert('⚠️ Este código de barras ya existe. Se generará uno automático al guardar.');
-                    this.style.backgroundColor = '#f8d7da';
-                } else {
-                    this.style.backgroundColor = '#d4edda';
-                    setTimeout(() => {
-                        this.style.backgroundColor = '';
-                    }, 1000);
-                }
-            } catch (error) {
-                console.error('Error al validar:', error);
-            }
-        });
-
-        // Función para habilitar/deshabilitar campos de stock
-        function toggleStockFields() {
-            const checkBox = document.getElementById('maneja_stock');
-            const stockActualInput = document.querySelector('input[name="stock_actual"]');
-            const stockMinimoInput = document.querySelector('input[name="stock_minimo"]');
-            const ubicacionInput = document.querySelector('input[name="ubicacion"]');
-            const fechaVencimientoInput = document.querySelector('input[name="fecha_vencimiento"]');
-            if (checkBox.checked) {
-                // No maneja stock - deshabilitar campos y poner valores por defecto
-                if (stockActualInput) {
-                    stockActualInput.disabled = true;
-                    stockActualInput.value = 0;
-                }
-                if (stockMinimoInput) {
-                    stockMinimoInput.disabled = true;
-                    stockMinimoInput.value = 0;
-                }
-                if (ubicacionInput) ubicacionInput.disabled = true;
-                if (fechaVencimientoInput) fechaVencimientoInput.disabled = true;
-            } else {
-                // Maneja stock - habilitar campos
-                if (stockActualInput) {
-                    stockActualInput.disabled = false;
-                    stockActualInput.value = 0;
-                }
-                if (stockMinimoInput) {
-                    stockMinimoInput.disabled = false;
-                    stockMinimoInput.value = 5;
-                }
-                if (ubicacionInput) ubicacionInput.disabled = false;
-                if (fechaVencimientoInput) fechaVencimientoInput.disabled = false;
-            }
-        }
-        // Llamar a la función al cargar la página para inicializar
-        document.addEventListener('DOMContentLoaded', function() {
-            toggleStockFields();
-        });
-    </script>
+    <script src="../assets/js/producto_nuevo.js"></script>
 </body>
 </html>

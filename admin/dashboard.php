@@ -163,6 +163,7 @@ if ($resumen_sql) {
                 <a href="usuarios.php">👥 Usuarios</a>
             <?php endif; ?>
 
+            <a href="imprimir_consentimiento_formato.php">📋 Formatos</a>
             <a href="../index.php" target="_blank">🌐 Ver Sitio</a>
             <a href="logout.php">🚪 Cerrar Sesión</a>
         </div>

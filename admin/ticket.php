@@ -76,60 +76,130 @@ $vuelto = $_GET['vuelto'] ?? null;
         }
         body {
             font-family: 'Courier New', monospace;
-            /* SE AUMENTÓ EL TAMAÑO BASE DE 11px A 13px */
-            font-size: 13px; 
-            width: 280px;
+            font-size: 13px;
+            /* AUMENTÉ EL ANCHO DE 280px a 350px para más espacio lateral */
+            width: 350px;
             margin: 0 auto;
-            padding: 10px;
+            /* AUMENTÉ EL PADDING LATERAL de 10px a 15px */
+            padding: 15px 20px;
             background: white;
             color: #000;
         }
         .center { text-align: center; }
         .bold { font-weight: bold; }
         
-        /* Líneas divisorias con guiones simulados para mejor visibilidad térmica */
+        /* Líneas divisorias */
         .line { 
             border-top: 1px dashed #000; 
-            margin: 6px 0; 
+            margin: 8px 0; 
             height: 0;
         }
         .line-doble { 
             border-top: 1px double #000; 
-            margin: 10px 0; 
+            margin: 12px 0; 
             height: 4px;
         }
         
-        /* SE AUMENTÓ EL TOTAL DE 14px A 16px */
         .total { font-size: 16px; font-weight: bold; }
         
-        /* Ajuste de columnas para evitar que se encimen textos */
-        .producto { margin: 6px 0; display: flex; justify-content: space-between; align-items: flex-start; }
-        .producto-nombre { width: 50%; word-wrap: break-word; }
-        .producto-cantidad { width: 20%; text-align: center; }
-        .producto-precio { width: 30%; text-align: right; }
+        /* Ajuste de columnas - MEJOR DISTRIBUCIÓN DEL ESPACIO */
+        .producto { 
+            margin: 6px 0; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-start; 
+        }
+        .producto-nombre { 
+            width: 55%; 
+            word-wrap: break-word; 
+        }
+        .producto-cantidad { 
+            width: 15%; 
+            text-align: center; 
+        }
+        .producto-precio { 
+            width: 30%; 
+            text-align: right; 
+        }
         
-        .info-row { display: flex; justify-content: space-between; margin: 4px 0; }
-        .info-label { font-weight: bold; }
-        .gracias { margin-top: 20px; text-align: center; }
+        .info-row { 
+            display: flex; 
+            justify-content: space-between; 
+            margin: 6px 0; 
+        }
+        .info-label { 
+            font-weight: bold; 
+        }
+        .gracias { 
+            margin-top: 20px; 
+            text-align: center; 
+        }
         
-        /* SE DETECTÓ QUE TENÍAS FUENTES DE 9px QUE SALÍAN BORROSAS, SE SUBIERON A 11px */
-        .text-muted { font-size: 11px; }
+        .text-muted { 
+            font-size: 11px; 
+        }
+
+        /* MEJOR VISUALIZACIÓN DEL QR */
+        .qr-container {
+            text-align: center;
+            margin: 15px 0;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        .qr-container img {
+            width: 100px;
+            height: 100px;
+            margin: 8px auto;
+            display: block;
+        }
 
         @media print {
-            body { margin: 0; padding: 5px; }
-            .no-print { display: none; }
+            body { 
+                margin: 0; 
+                padding: 10px 15px; 
+            }
+            .no-print { 
+                display: none; 
+            }
+            .qr-container {
+                background: none;
+            }
         }
         .btn-print {
             background: #4caf50;
             color: white;
             border: none;
-            padding: 10px 15px;
+            padding: 12px 15px;
             margin-top: 15px;
             cursor: pointer;
             border-radius: 5px;
             width: 100%;
             font-family: monospace;
             font-size: 14px;
+        }
+        .btn-close {
+            background: #666;
+            color: white;
+            border: none;
+            padding: 12px 15px;
+            margin-top: 8px;
+            cursor: pointer;
+            border-radius: 5px;
+            width: 100%;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        /* MEJOR ESPACIADO PARA EL LOGO */
+        .logo {
+            max-width: 200px;
+            margin-bottom: 15px;
+        }
+        
+        /* SEPARACIÓN ENTRE SECCIONES */
+        .section {
+            margin-bottom: 5px;
         }
     </style>
 </head>
