@@ -76,130 +76,108 @@ $vuelto = $_GET['vuelto'] ?? null;
         }
         body {
             font-family: 'Courier New', monospace;
-            font-size: 13px;
-            /* AUMENTÉ EL ANCHO DE 280px a 350px para más espacio lateral */
-            width: 350px;
+            font-size: 12px;
+            width: 300px;
             margin: 0 auto;
-            /* AUMENTÉ EL PADDING LATERAL de 10px a 15px */
-            padding: 15px 20px;
+            padding: 10px 8px;
             background: white;
             color: #000;
         }
+        
+        /* Ajustes de texto */
         .center { text-align: center; }
         .bold { font-weight: bold; }
+        .right { text-align: right; }
+        .left { text-align: left; }
         
         /* Líneas divisorias */
         .line { 
             border-top: 1px dashed #000; 
-            margin: 8px 0; 
-            height: 0;
+            margin: 6px 0; 
         }
         .line-doble { 
-            border-top: 1px double #000; 
-            margin: 12px 0; 
-            height: 4px;
+            border-top: 2px solid #000; 
+            margin: 8px 0; 
         }
         
-        .total { font-size: 16px; font-weight: bold; }
+        /* Tamaños de fuente */
+        .titulo { font-size: 14px; font-weight: bold; }
+        .total { font-size: 14px; font-weight: bold; }
+        .pequeño { font-size: 10px; }
         
-        /* Ajuste de columnas - MEJOR DISTRIBUCIÓN DEL ESPACIO */
-        .producto { 
-            margin: 6px 0; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: flex-start; 
+        /* Tabla de productos */
+        .producto-tabla {
+            width: 100%;
+            margin: 5px 0;
         }
-        .producto-nombre { 
-            width: 55%; 
-            word-wrap: break-word; 
+        .producto-tabla th {
+            text-align: left;
+            font-weight: bold;
+            border-bottom: 1px dashed #000;
+            padding-bottom: 3px;
         }
-        .producto-cantidad { 
-            width: 15%; 
-            text-align: center; 
+        .producto-tabla td {
+            padding: 2px 0;
         }
-        .producto-precio { 
-            width: 30%; 
-            text-align: right; 
-        }
+        .col-nombre { width: 55%; text-align: left; }
+        .col-cant { width: 15%; text-align: center; }
+        .col-precio { width: 30%; text-align: right; }
         
+        /* Filas de información */
         .info-row { 
             display: flex; 
             justify-content: space-between; 
-            margin: 6px 0; 
+            margin: 4px 0; 
         }
         .info-label { 
             font-weight: bold; 
         }
-        .gracias { 
-            margin-top: 20px; 
-            text-align: center; 
+        
+        /* QR */
+        .qr-code {
+            text-align: center;
+            margin: 10px 0;
+        }
+        .qr-code img {
+            width: 80px;
+            height: 80px;
         }
         
-        .text-muted { 
-            font-size: 11px; 
-        }
-
-        /* MEJOR VISUALIZACIÓN DEL QR */
-        .qr-container {
+        /* Botones solo para pantalla */
+        .no-print {
             text-align: center;
-            margin: 15px 0;
-            padding: 10px;
-            background: #f9f9f9;
-            border-radius: 8px;
-        }
-        .qr-container img {
-            width: 100px;
-            height: 100px;
-            margin: 8px auto;
-            display: block;
-        }
-
-        @media print {
-            body { 
-                margin: 0; 
-                padding: 10px 15px; 
-            }
-            .no-print { 
-                display: none; 
-            }
-            .qr-container {
-                background: none;
-            }
+            margin-top: 15px;
         }
         .btn-print {
             background: #4caf50;
             color: white;
             border: none;
-            padding: 12px 15px;
-            margin-top: 15px;
+            padding: 8px 12px;
+            margin: 5px;
             cursor: pointer;
             border-radius: 5px;
-            width: 100%;
             font-family: monospace;
-            font-size: 14px;
+            font-size: 12px;
         }
         .btn-close {
             background: #666;
             color: white;
             border: none;
-            padding: 12px 15px;
-            margin-top: 8px;
+            padding: 8px 12px;
+            margin: 5px;
             cursor: pointer;
             border-radius: 5px;
-            width: 100%;
             font-family: monospace;
-            font-size: 14px;
+            font-size: 12px;
         }
         
-        /* MEJOR ESPACIADO PARA EL LOGO */
-        .logo {
-            max-width: 200px;
-            margin-bottom: 15px;
-        }
-        
-        /* SEPARACIÓN ENTRE SECCIONES */
-        .section {
-            margin-bottom: 5px;
+        @media print {
+            body { 
+                padding: 5px; 
+            }
+            .no-print { 
+                display: none; 
+            }
         }
     </style>
 </head>
