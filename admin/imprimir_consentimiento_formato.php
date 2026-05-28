@@ -44,12 +44,15 @@ if ($id_servicio > 0) {
     $servicio_nombre = $servicio['nombre_servicio'] ?? '';
 }
 
-// Si no hay servicio específico, mostrar campo en blanco
+// Variables pre-llenadas
+$nombre_propietario = $cliente ? htmlspecialchars($cliente['nombre'] . ' ' . ($cliente['ape_pat'] ?? '')) : '';
+$nombre_mascota = $mascota ? htmlspecialchars($mascota['nombre_mascota']) : '';
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Formato de Consentimiento Informado - BIOSPET</title>
     <style>
         * {
@@ -61,18 +64,34 @@ if ($id_servicio > 0) {
         body {
             font-family: 'Times New Roman', Times, serif;
             background: #f0f0f0;
-            padding: 40px 20px;
+            padding: 20px;
         }
         
         .formato {
             max-width: 800px;
             margin: 0 auto;
             background: white;
-            padding: 40px;
+            padding: 30px;
             box-shadow: 0 0 20px rgba(0,0,0,0.1);
         }
         
-        /* Estilos para impresión */
+        /* Estilos para tablets */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .formato {
+                padding: 20px;
+            }
+            .campo-label {
+                width: 120px !important;
+                font-size: 14px;
+            }
+            .campo-linea {
+                min-width: 150px !important;
+            }
+        }
+        
         @media print {
             body {
                 background: white;
@@ -88,6 +107,9 @@ if ($id_servicio > 0) {
             }
             .btn-imprimir {
                 display: none;
+            }
+            input, .campo-linea {
+                border-bottom: 1px solid #333 !important;
             }
         }
         
@@ -165,16 +187,35 @@ if ($id_servicio > 0) {
             min-width: 200px;
         }
         
+        /* Para inputs editables */
+        .campo-input {
+            flex: 1;
+            border: none;
+            border-bottom: 1px solid #333;
+            margin-left: 10px;
+            padding: 5px 0;
+            font-family: inherit;
+            font-size: inherit;
+            background: transparent;
+            outline: none;
+        }
+        
+        .campo-input:focus {
+            border-bottom-color: #4caf50;
+        }
+        
         .firma {
             margin-top: 50px;
             display: flex;
             justify-content: space-between;
             gap: 40px;
+            flex-wrap: wrap;
         }
         
         .firma-caja {
             flex: 1;
             text-align: center;
+            min-width: 200px;
         }
         
         .firma-linea {
@@ -214,6 +255,13 @@ if ($id_servicio > 0) {
         .btn-imprimir:hover {
             background: #45a049;
         }
+        
+        .sync-info {
+            font-size: 11px;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -230,64 +278,59 @@ if ($id_servicio > 0) {
             <h2>FORMATO DE AUTORIZACIÓN PARA SERVICIOS</h2>
         </div>
         
-        <!-- Datos del cliente (pre-llenados o en blanco) -->
+        <!-- Datos del cliente (editables) -->
         <div class="datos-cliente">
             <div class="campo">
                 <span class="campo-label">Nombre del propietario:</span>
-                <span class="campo-linea">
-                    <?php echo $cliente ? htmlspecialchars($cliente['nombre'] . ' ' . ($cliente['ape_pat'] ?? '')) : '_________________________'; ?>
-                </span>
+                <input type="text" id="propietario" class="campo-input" value="<?php echo $nombre_propietario; ?>" placeholder="Escriba el nombre completo">
             </div>
+            <div class="sync-info">⬆ Este nombre se copiará automáticamente en el texto del consentimiento</div>
+            
             <div class="campo">
                 <span class="campo-label">Teléfono / Celular:</span>
-                <span class="campo-linea">
-                    <?php echo $cliente ? htmlspecialchars($cliente['telefono'] ?? '') : '_________________________'; ?>
-                </span>
+                <input type="text" id="telefono" class="campo-input" value="<?php echo $cliente ? htmlspecialchars($cliente['telefono'] ?? '') : ''; ?>" placeholder="Teléfono">
             </div>
             <div class="campo">
                 <span class="campo-label">Correo electrónico:</span>
-                <span class="campo-linea">
-                    <?php echo $cliente ? htmlspecialchars($cliente['email'] ?? '') : '_________________________'; ?>
-                </span>
+                <input type="email" id="email" class="campo-input" value="<?php echo $cliente ? htmlspecialchars($cliente['email'] ?? '') : ''; ?>" placeholder="Correo electrónico">
             </div>
             <div class="campo">
                 <span class="campo-label">Nombre de la mascota:</span>
-                <span class="campo-linea">
-                    <?php echo $mascota ? htmlspecialchars($mascota['nombre_mascota']) : '_________________________'; ?>
-                </span>
+                <input type="text" id="mascota_nombre" class="campo-input" value="<?php echo $nombre_mascota; ?>" placeholder="Nombre de la mascota">
             </div>
+            <div class="sync-info">⬆ Este nombre se copiará automáticamente en el texto del consentimiento</div>
+            
             <div class="campo">
                 <span class="campo-label">Especie / Raza:</span>
-                <span class="campo-linea">
-                    <?php 
+                <input type="text" id="especie_raza" class="campo-input" value="<?php 
                     if ($mascota) {
                         echo htmlspecialchars($mascota['especie'] . ($mascota['raza'] ? ' - ' . $mascota['raza'] : ''));
                     } else {
-                        echo '_________________________';
+                        echo '';
                     }
-                    ?>
-                </span>
+                ?>" placeholder="Ej: Canino - Labrador">
             </div>
             <div class="campo">
                 <span class="campo-label">Servicio solicitado:</span>
-                <span class="campo-linea">
-                    <?php echo $servicio_nombre ? htmlspecialchars($servicio_nombre) : '_________________________'; ?>
-                </span>
+                <input type="text" id="servicio" class="campo-input" value="<?php echo htmlspecialchars($servicio_nombre); ?>" placeholder="Servicio solicitado">
             </div>
             <div class="campo">
                 <span class="campo-label">Fecha:</span>
-                <span class="campo-linea">____ / ____ / ________</span>
+                <input type="text" id="fecha" class="campo-input" value="<?php echo date('d/m/Y'); ?>" placeholder="dd/mm/aaaa">
             </div>
         </div>
         
-        <!-- Contenido del consentimiento -->
+        <!-- Contenido del consentimiento con campos sincronizados -->
         <div class="contenido">
-            <p>Por medio del presente, yo <strong>_________________________________</strong>, actuando en mi calidad de propietario y/o responsable de la mascota 
-            <strong>_______________</strong>, manifiesto que:</p>
+            <p>Por medio del presente, yo <strong id="propietario_texto">_________________________</strong>, 
+            actuando en mi calidad 
+            de propietario y/o responsable de la mascota <strong id="mascota_texto">_______________</strong>, 
+            manifiesto que:</p>
             
             <h3>1. INFORMACIÓN DEL SERVICIO</h3>
-            <p>He sido informado(a) de manera clara y suficiente sobre el procedimiento o servicio que se realizará, 
-            incluyendo sus beneficios, posibles riesgos, cuidados posteriores y alternativas existentes.</p>
+            <p>He sido informado(a) de manera clara y suficiente sobre el procedimiento o servicio 
+            <strong id="servicio_texto">_________________</strong> que se realizará, incluyendo sus beneficios, 
+            posibles riesgos, cuidados posteriores y alternativas existentes.</p>
             
             <h3>2. AUTORIZACIÓN</h3>
             <p>Autorizo voluntariamente al personal de BIOSPET a realizar el servicio solicitado, así como a tomar 
@@ -311,6 +354,8 @@ if ($id_servicio > 0) {
             <h3>6. ACEPTACIÓN</h3>
             <p>He leído y comprendido todas las cláusulas de este consentimiento informado. Acepto voluntariamente 
             los términos aquí establecidos.</p>
+            
+            <p>Fecha: <strong id="fecha_texto">____/____/________</strong></p>
         </div>
         
         <!-- Firmas -->
@@ -318,7 +363,7 @@ if ($id_servicio > 0) {
             <div class="firma-caja">
                 <div class="firma-linea"></div>
                 <p><strong>Firma del propietario</strong></p>
-                <p>Nombre: _________________________</p>
+                <p>Nombre: <span id="firma_nombre">_________________________</span></p>
                 <p>CC: _________________________</p>
             </div>
             <div class="firma-caja">
@@ -355,13 +400,61 @@ if ($id_servicio > 0) {
     </div>
     
     <!-- Botón para imprimir (solo visible en pantalla) -->
-    <button class="btn-imprimir no-print" onclick="window.print(); setTimeout(() => window.close(), 1000);">
+    <button class="btn-imprimir no-print" onclick="window.print();">
         🖨️ Imprimir Formato
     </button>
     
     <script>
-        // Imprimir automáticamente al cargar si se prefiere
-        // window.print();
+        // Función para actualizar todos los campos sincronizados
+        function actualizarCampos() {
+            // Obtener valores
+            let propietario = document.getElementById('propietario').value;
+            let mascota = document.getElementById('mascota_nombre').value;
+            let servicio = document.getElementById('servicio').value;
+            let fecha = document.getElementById('fecha').value;
+            
+            // Si están vacíos, mostrar guiones
+            if (propietario === '') propietario = '_________________________';
+            if (mascota === '') mascota = '_______________';
+            if (servicio === '') servicio = '_________________';
+            if (fecha === '') fecha = '____/____/________';
+            
+            // Actualizar todos los lugares donde aparece el nombre del propietario
+            document.getElementById('propietario_texto').innerHTML = propietario;
+            document.getElementById('firma_nombre').innerHTML = propietario;
+            
+            // Actualizar nombre de la mascota
+            document.getElementById('mascota_texto').innerHTML = mascota;
+            
+            // Actualizar servicio
+            document.getElementById('servicio_texto').innerHTML = servicio;
+            
+            // Actualizar fecha
+            document.getElementById('fecha_texto').innerHTML = fecha;
+        }
+        
+        // Agregar event listeners a los campos editables
+        document.getElementById('propietario').addEventListener('input', actualizarCampos);
+        document.getElementById('mascota_nombre').addEventListener('input', actualizarCampos);
+        document.getElementById('servicio').addEventListener('input', actualizarCampos);
+        document.getElementById('fecha').addEventListener('input', actualizarCampos);
+        
+        // Ejecutar al cargar la página para sincronizar valores iniciales
+        document.addEventListener('DOMContentLoaded', function() {
+            actualizarCampos();
+        });
+        
+        // Para tablets: asegurar que el teclado no bloquee la vista
+        if ('ontouchstart' in window) {
+            var inputs = document.querySelectorAll('input');
+            inputs.forEach(function(input) {
+                input.addEventListener('focus', function() {
+                    setTimeout(function() {
+                        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 300);
+                });
+            });
+        }
     </script>
 </body>
 </html>
