@@ -282,8 +282,7 @@ if ($id_servicio > 0) {
         
         <!-- Contenido del consentimiento -->
         <div class="contenido">
-            <p>Por medio del presente, yo <strong>_________________________________</strong>, identificado con cédula de ciudadanía No. 
-            <strong>_______________</strong>, actuando en mi calidad de propietario y/o responsable de la mascota 
+            <p>Por medio del presente, yo <strong>_________________________________</strong>, actuando en mi calidad de propietario y/o responsable de la mascota 
             <strong>_______________</strong>, manifiesto que:</p>
             
             <h3>1. INFORMACIÓN DEL SERVICIO</h3>
