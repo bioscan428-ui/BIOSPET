@@ -78,6 +78,7 @@ $conn->begin_transaction();
 
 try {
     $id_venta = null;
+    error_log("ID_VENTA a usar: " . ($id_venta ?? 'NULL'));
     
     // Si ya existe una venta, usarla; si no, crear una nueva
     if ($venta_existente) {
