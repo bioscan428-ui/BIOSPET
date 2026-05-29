@@ -165,11 +165,12 @@ function confirmarAgregarProductos() {
         };
     });
     
-    console.log('Enviando peticion a agregar_productos_cita.php');
-    console.log('Datos:', {
-        id_cita: citaIdActual,
-        productos_json: JSON.stringify(productosJSON)
-    });
+    // Deshabilitar el botón para evitar múltiples envíos
+    const btnConfirmar = document.getElementById('btnAgregarCita');
+    if (btnConfirmar) {
+        btnConfirmar.disabled = true;
+        btnConfirmar.textContent = '⏳ Agregando...';
+    }
     
     fetch('agregar_productos_cita.php', {
         method: 'POST',
@@ -179,21 +180,34 @@ function confirmarAgregarProductos() {
         body: 'id_cita=' + citaIdActual + '&productos_json=' + JSON.stringify(productosJSON)
     })
     .then(function(response) {
-        console.log('Respuesta recibida, status:', response.status);
         return response.json();
     })
     .then(function(data) {
         console.log('Respuesta del servidor:', data);
         if (data.success) {
+            // ⭐⭐⭐ VACIAR EL CARRITO ANTES DE RECARGAR ⭐⭐⭐
+            carritoProductos = [];
+            actualizarListaProductos();
+            
             alert('Productos agregados correctamente');
+            // Recargar la página para ver los productos actualizados
             location.reload();
         } else {
             alert('Error: ' + data.error);
+            // Re-habilitar botón en caso de error
+            if (btnConfirmar) {
+                btnConfirmar.disabled = false;
+                btnConfirmar.textContent = '✅ Agregar a la cita';
+            }
         }
     })
     .catch(function(error) {
         console.error('Error en fetch:', error);
         alert('Error al conectar con el servidor: ' + error);
+        if (btnConfirmar) {
+            btnConfirmar.disabled = false;
+            btnConfirmar.textContent = '✅ Agregar a la cita';
+        }
     });
 }
 
