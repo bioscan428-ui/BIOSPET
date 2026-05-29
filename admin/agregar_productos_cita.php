@@ -78,7 +78,6 @@ $conn->begin_transaction();
 
 try {
     $id_venta = null;
-    error_log("ID_VENTA a usar: " . ($id_venta ?? 'NULL'));
     
     // Si ya existe una venta, usarla; si no, crear una nueva
     if ($venta_existente) {
@@ -103,6 +102,8 @@ try {
         $stmt->execute();
     }
     
+    error_log("ID_VENTA a usar: " . ($id_venta ?? 'NULL'));
+    
     // Calcular subtotales y verificar productos existentes
     $subtotal_total = 0;
     
@@ -115,25 +116,10 @@ try {
         $subtotal_item = $item['cantidad'] * $precio;
         $subtotal_total += $subtotal_item;
 
-        //DEPURACION
-        // Dentro del foreach, antes de verificar existencia
-error_log("=== Procesando producto ID: " . $item['id_producto'] . " ===");
-error_log("Buscando en DETALLE_VENTA con id_venta: $id_venta y id_producto: " . $item['id_producto']);
-
-$sql_check_existente = "SELECT id, cantidad FROM DETALLE_VENTA WHERE id_venta = ? AND id_producto = ?";
-$stmt_check = $conn->prepare($sql_check_existente);
-$stmt_check->bind_param("ii", $id_venta, $item['id_producto']);
-$stmt_check->execute();
-$existente = $stmt_check->get_result()->fetch_assoc();
-
-if ($existente) {
-    error_log("Producto EXISTE en DETALLE_VENTA. ID: " . $existente['id'] . ", Cantidad actual: " . $existente['cantidad']);
-    // ... actualizar
-} else {
-    error_log("Producto NO EXISTE en DETALLE_VENTA. Se insertará nuevo.");
-    // ... insertar
-}
-        //FIN DEPURACION
+        // ========== DEPURACIÓN ==========
+        error_log("=== Procesando producto ID: " . $item['id_producto'] . " ===");
+        error_log("Buscando en DETALLE_VENTA con id_venta: $id_venta y id_producto: " . $item['id_producto']);
+        // ================================
         
         // Verificar si el producto ya existe en DETALLE_VENTA para esta venta
         $sql_check_existente = "SELECT id, cantidad FROM DETALLE_VENTA WHERE id_venta = ? AND id_producto = ?";
@@ -143,6 +129,8 @@ if ($existente) {
         $existente = $stmt_check->get_result()->fetch_assoc();
         
         if ($existente) {
+            error_log("Producto EXISTE en DETALLE_VENTA. ID: " . $existente['id'] . ", Cantidad actual: " . $existente['cantidad']);
+            
             // ACTUALIZAR cantidad existente (NO insertar nuevo)
             $nueva_cantidad = $existente['cantidad'] + $item['cantidad'];
             $nuevo_subtotal = $nueva_cantidad * $precio;
@@ -153,15 +141,17 @@ if ($existente) {
             $stmt_update = $conn->prepare($sql_update);
             $stmt_update->bind_param("idi", $nueva_cantidad, $nuevo_subtotal, $existente['id']);
             $stmt_update->execute();
-            error_log("Producto " . $item['id_producto'] . " actualizado. Nueva cantidad: $nueva_cantidad");
+            error_log("Producto " . $item['id_producto'] . " ACTUALIZADO. Nueva cantidad: $nueva_cantidad");
         } else {
+            error_log("Producto NO EXISTE en DETALLE_VENTA. Se insertará nuevo.");
+            
             // INSERTAR nuevo producto
             $sql_detalle = "INSERT INTO DETALLE_VENTA (id_venta, id_producto, cantidad, precio_unitario, descuento, subtotal) 
                             VALUES (?, ?, ?, ?, 0, ?)";
             $stmt = $conn->prepare($sql_detalle);
             $stmt->bind_param("iiidd", $id_venta, $item['id_producto'], $item['cantidad'], $precio, $subtotal_item);
             $stmt->execute();
-            error_log("Producto " . $item['id_producto'] . " insertado. Cantidad: " . $item['cantidad']);
+            error_log("Producto " . $item['id_producto'] . " INSERTADO. Cantidad: " . $item['cantidad']);
         }
     }
     
