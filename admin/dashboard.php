@@ -1,4 +1,5 @@
 <?php
+date_default_timezone_set('America/Mexico_City');
 session_start();
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
@@ -184,8 +185,24 @@ if ($resumen_sql) {
         });
     </script>
     <?php endif; ?>
+
+    
         
     <div class="container">
+    <!-- ========== TARJETA DE BIENVENIDA ========== -->
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+            <div>
+                <h2 style="margin: 0;">¡Bienvenido, <?php echo htmlspecialchars($_SESSION['nombre']); ?>! 👋</h2>
+                <p style="margin: 5px 0 0 0; opacity: 0.9;">Hoy es <?php echo date('d/m/Y'); ?></p>
+            </div>
+            <div style="text-align: right;">
+                <span style="background: rgba(255,255,255,0.2); padding: 8px 15px; border-radius: 20px;">
+                    ⏰ <?php echo date('h:i A'); ?>
+                </span>
+            </div>
+        </div>
+    <!-- ========== FIN DE TARJETA DE BIENVENIDA ========== -->
+    
         <!-- Resumen Ejecutivo -->
         <div class="resumen-grid">
             <div class="resumen-card">

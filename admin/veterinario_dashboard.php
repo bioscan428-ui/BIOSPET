@@ -55,51 +55,13 @@ $citas = $stmt->get_result();
         .estado-confirmada { background: #4caf50; color: white; padding: 4px 8px; border-radius: 20px; font-size: 12px; display: inline-block; }
         .estado-cancelada { background: #f44336; color: white; padding: 4px 8px; border-radius: 20px; font-size: 12px; display: inline-block; }
         .estado-completada { background: #2196f3; color: white; padding: 4px 8px; border-radius: 20px; font-size: 12px; display: inline-block; }
-        .foto-miniatura {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .foto-miniatura:hover {
-            transform: scale(3);
-            z-index: 1000;
-            position: relative;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.3);
-        }
-        .sintomas-icono {
-            cursor: pointer;
-            font-size: 18px;
-            color: var(--primary);
-        }
-        .sintomas-tooltip {
-            position: relative;
-            display: inline-block;
-        }
-        .sintomas-tooltip .tooltip-texto {
-            visibility: hidden;
-            background-color: #333;
-            color: #fff;
-            text-align: left;
-            border-radius: 5px;
-            padding: 8px 12px;
-            position: absolute;
-            z-index: 100;
-            bottom: 125%;
-            left: 50%;
-            transform: translateX(-50%);
-            white-space: nowrap;
-            font-size: 12px;
-            font-weight: normal;
-            min-width: 200px;
-            white-space: normal;
-        }
-        .sintomas-tooltip:hover .tooltip-texto {
-            visibility: visible;
-        }
+        .foto-miniatura { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; cursor: pointer; transition: transform 0.2s; }
+        .foto-miniatura:hover { transform: scale(3); z-index: 1000; position: relative; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.3); }
+        .sintomas-icono { cursor: pointer; font-size: 18px; color: var(--primary); }
+        .sintomas-tooltip { position: relative; display: inline-block; }
+        .sintomas-tooltip .tooltip-texto { visibility: hidden; background-color: #333; color: #fff; text-align: left; border-radius: 5px; padding: 8px 12px; position: absolute; 
+        z-index: 100; bottom: 125%; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 12px; font-weight: normal; min-width: 200px; white-space: normal; }
+        .sintomas-tooltip:hover .tooltip-texto { visibility: visible; }
     </style>
 </head>
 <body>
@@ -108,6 +70,7 @@ $citas = $stmt->get_result();
         <div>
             <a href="veterinario_dashboard.php">📋 Mis Citas</a>
             <a href="veterinario_pacientes.php">🐕 Mis Pacientes</a>
+            <a href="imprimir_consentimiento_formato.php" style="background: #ff9800; padding: 5px 12px; border-radius: 5px;">📋 Formatos</a>
             <a href="../index.php" target="_blank">🌐 Ver Sitio</a>
             <a href="logout.php">🚪 Cerrar Sesión</a>
         </div>

@@ -176,6 +176,7 @@ if (isset($_GET['ver_historial']) && is_numeric($_GET['ver_historial'])) {
                             <?php if (($user['rol'] ?? '') !== 'super_admin'): ?>
                                 <select name="rol" class="select-rol" onchange="this.form.submit()">
                                     <option value="">Cambiar rol</option>
+                                    <option value="super_admin">Super Administrador</option>
                                     <option value="admin">Admin</option>
                                     <option value="veterinario">Veterinario</option>
                                     <option value="asistente">Asistente</option>

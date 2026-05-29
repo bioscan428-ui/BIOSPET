@@ -145,6 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="form-group">
                     <label>Puesto *</label>
                     <select name="puesto" required>
+                        <option value="super_admin">Super Administrador</option>
                         <option value="admin">Administrador</option>
                         <option value="veterinario">Veterinario</option>
                         <option value="asistente">Asistente</option>

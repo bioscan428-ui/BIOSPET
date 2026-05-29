@@ -52,66 +52,82 @@ try {
     $stmt_serv->execute();
     $total_servicios = $stmt_serv->get_result()->fetch_assoc()['total_servicios'] ?? 0;
     
-    // Calcular total de productos
-    $sql_productos = "SELECT COALESCE(SUM(dv.subtotal), 0) as total_productos 
-                      FROM DETALLE_VENTA dv
-                      JOIN VENTA_CITA vc ON vc.id_venta = dv.id_venta
-                      WHERE vc.id_cita = ?";
-    $stmt_prod = $conn->prepare($sql_productos);
-    $stmt_prod->bind_param("i", $id_cita);
-    $stmt_prod->execute();
-    $total_productos = $stmt_prod->get_result()->fetch_assoc()['total_productos'] ?? 0;
-    
-    $total_general = $total_servicios + $total_productos;
-    
-    if ($total_general <= 0) {
-        echo json_encode(['success' => false, 'message' => 'No hay servicios o productos para pagar']);
-        exit;
-    }
+    // Verificar si ya existe una venta para esta cita
+    $sql_venta_existente = "SELECT vc.id_venta 
+                            FROM VENTA_CITA vc 
+                            WHERE vc.id_cita = ?";
+    $stmt_venta_exist = $conn->prepare($sql_venta_existente);
+    $stmt_venta_exist->bind_param("i", $id_cita);
+    $stmt_venta_exist->execute();
+    $venta_existente = $stmt_venta_exist->get_result()->fetch_assoc();
     
     $empleado_id = $_SESSION['empleado_id'] ?? null;
+    $ip_usuario = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
     
     $conn->begin_transaction();
     
-    // Crear venta
-    $sql_venta = "INSERT INTO VENTA (id_cliente, id_empleado, subtotal, iva, total, metodo_pago, estado, notas) 
-                  VALUES (?, ?, ?, 0, ?, ?, 'completada', ?)";
-    $stmt_venta = $conn->prepare($sql_venta);
-    $notas = "Pago de cita #" . $id_cita;
-    $stmt_venta->bind_param("iiddss", $cita['id_cliente'], $empleado_id, $total_general, $total_general, $metodo_pago, $notas);
-    $stmt_venta->execute();
-    $id_venta = $conn->insert_id;
+    $id_venta = null;
+    $total_productos = 0;
     
-    // Insertar productos en detalle (si hay)
-    $sql_productos_lista = "SELECT dv.id_producto, dv.cantidad, dv.precio_unitario, dv.subtotal
-                           FROM DETALLE_VENTA dv
-                           JOIN VENTA_CITA vc ON vc.id_venta = dv.id_venta
-                           WHERE vc.id_cita = ?";
-    $stmt_prod_lista = $conn->prepare($sql_productos_lista);
-    $stmt_prod_lista->bind_param("i", $id_cita);
-    $stmt_prod_lista->execute();
-    $productos = $stmt_prod_lista->get_result();
-    
-    while($prod = $productos->fetch_assoc()) {
-        $sql_detalle = "INSERT INTO DETALLE_VENTA (id_venta, id_producto, cantidad, precio_unitario, subtotal) 
-                        VALUES (?, ?, ?, ?, ?)";
-        $stmt_detalle = $conn->prepare($sql_detalle);
-        $stmt_detalle->bind_param("iiidd", $id_venta, $prod['id_producto'], $prod['cantidad'], $prod['precio_unitario'], $prod['subtotal']);
-        $stmt_detalle->execute();
+    if ($venta_existente) {
+        // ========== USAR VENTA EXISTENTE ==========
+        $id_venta = $venta_existente['id_venta'];
+        
+        // Calcular total de productos de la venta existente
+        $sql_productos = "SELECT COALESCE(SUM(subtotal), 0) as total_productos 
+                          FROM DETALLE_VENTA 
+                          WHERE id_venta = ?";
+        $stmt_prod = $conn->prepare($sql_productos);
+        $stmt_prod->bind_param("i", $id_venta);
+        $stmt_prod->execute();
+        $total_productos = $stmt_prod->get_result()->fetch_assoc()['total_productos'] ?? 0;
+        
+        $total_general = $total_servicios + $total_productos;
+        
+        // ACTUALIZAR la venta existente (NO crear nueva)
+        $sql_update_venta = "UPDATE VENTA SET 
+                            metodo_pago = ?, 
+                            estado = 'completada',
+                            subtotal = ?,
+                            total = ?
+                            WHERE id = ?";
+        $stmt_update_venta = $conn->prepare($sql_update_venta);
+        $stmt_update_venta->bind_param("sddi", $metodo_pago, $total_general, $total_general, $id_venta);
+        $stmt_update_venta->execute();
+        
+        error_log("Venta existente ACTUALIZADA ID: $id_venta, Total: $total_general");
+        
+    } else {
+        // ========== CREAR NUEVA VENTA (solo si no existe) ==========
+        $total_productos = 0;
+        $total_general = $total_servicios;
+        
+        $sql_venta = "INSERT INTO VENTA (id_cliente, id_empleado, subtotal, iva, total, metodo_pago, estado, notas) 
+                      VALUES (?, ?, ?, 0, ?, ?, 'completada', ?)";
+        $stmt_venta = $conn->prepare($sql_venta);
+        $notas = "Pago de cita #" . $id_cita;
+        $stmt_venta->bind_param("iiddss", $cita['id_cliente'], $empleado_id, $total_general, $total_general, $metodo_pago, $notas);
+        $stmt_venta->execute();
+        $id_venta = $conn->insert_id;
+        
+        // Relacionar venta con cita
+        $sql_relacion = "INSERT INTO VENTA_CITA (id_cita, id_venta) VALUES (?, ?)";
+        $stmt_rel = $conn->prepare($sql_relacion);
+        $stmt_rel->bind_param("ii", $id_cita, $id_venta);
+        $stmt_rel->execute();
+        
+        error_log("Nueva venta CREADA ID: $id_venta");
     }
     
-    // Relacionar venta con cita
-    $sql_relacion = "INSERT INTO VENTA_CITA (id_cita, id_venta) VALUES (?, ?)";
-    $stmt_rel = $conn->prepare($sql_relacion);
-    $stmt_rel->bind_param("ii", $id_cita, $id_venta);
-    $stmt_rel->execute();
+    // ⚠️ IMPORTANTE: NO volver a insertar productos en DETALLE_VENTA
+    // Los productos ya existen en DETALLE_VENTA desde que se agregaron a la cita
     
     // Registrar pago en auditoría
-    $ip_usuario = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
     $sql_auditoria = "INSERT INTO AUDITORIA_PAGOS (id_cita, monto, metodo_pago, referencia, id_empleado, ip_usuario, accion) 
                       VALUES (?, ?, ?, ?, ?, ?, 'pago')";
     $stmt_audit = $conn->prepare($sql_auditoria);
-    $stmt_audit->bind_param("idssis", $id_cita, $total_general, $metodo_pago, $referencia, $empleado_id, $ip_usuario);
+    $total_general_final = $total_servicios + $total_productos;
+    $stmt_audit->bind_param("idssis", $id_cita, $total_general_final, $metodo_pago, $referencia, $empleado_id, $ip_usuario);
     $stmt_audit->execute();
     
     // Actualizar cita como pagada
@@ -129,13 +145,14 @@ try {
         'message' => 'Pago registrado exitosamente',
         'id_venta' => $id_venta,
         'id_cita' => $id_cita,
-        'total' => $total_general,
+        'total' => $total_general_final,
         'recibido' => $recibido,
         'vuelto' => $vuelto
     ]);
     
 } catch (Exception $e) {
     $conn->rollback();
+    error_log("ERROR en actualizar_pago_cita: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
 }
 ?>

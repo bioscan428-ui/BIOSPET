@@ -22,6 +22,43 @@ if ($id_cliente > 0) {
     $cliente = $stmt->get_result()->fetch_assoc();
 }
 
+//----------DATOS DEL EMPLEADO QUE INICIO SESION
+$empleado_nombre = '';
+$empleado_puesto = '';
+$id_empleado = $_SESSION['empleado_id'] ?? 0;
+
+if ($id_empleado > 0) {
+    $sql_emp = "SELECT nombre, ape_pat, ape_mat, puesto FROM EMPLEADO WHERE id = ? AND activo = 1";
+    $stmt_emp = $conn->prepare($sql_emp);
+    $stmt_emp->bind_param("i", $id_empleado);
+    $stmt_emp->execute();
+    $empleado = $stmt_emp->get_result()->fetch_assoc();
+    
+    if ($empleado) {
+        $empleado_nombre = trim($empleado['nombre'] . ' ' . ($empleado['ape_pat'] ?? '') . ' ' . ($empleado['ape_mat'] ?? ''));
+        $empleado_puesto = $empleado['puesto'] ?? '';
+        
+        // Traducir puesto
+        $puestos_traduccion = [
+            'super_admin' => 'Administrador',
+            'admin' => 'Administrador',
+            'veterinario' => 'Médico Veterinario',
+            'asistente' => 'Asistente Veterinario',
+            'recepcionista' => 'Recepcionista',
+            'grooming' => 'Especialista en Estética',
+            'caja' => 'Cajero(a)'
+        ];
+        $empleado_puesto_traducido = $puestos_traduccion[$empleado_puesto] ?? $empleado_puesto;
+    }
+}
+
+if (empty($empleado_nombre)) {
+    $empleado_nombre = '_________________________';
+    $empleado_puesto_traducido = 'Responsable del Servicio';
+}
+//----------FIN DE DATOS DEL EMPLEADO QUE INICIO SESION
+
+
 // Obtener datos de la mascota
 $mascota = [];
 if ($id_mascota > 0) {
@@ -366,29 +403,17 @@ $nombre_mascota = $mascota ? htmlspecialchars($mascota['nombre_mascota']) : '';
                 <p>Nombre: <span id="firma_nombre">_________________________</span></p>
                 <p>CC: _________________________</p>
             </div>
+
             <div class="firma-caja">
                 <div class="firma-linea"></div>
                 <p><strong>Firma del responsable</strong></p>
+                <p><strong><?php echo htmlspecialchars($empleado_nombre); ?></strong></p>
+                <p><?php echo htmlspecialchars($empleado_puesto_traducido); ?></p>
                 <p>BIOSPET - Clínica Veterinaria</p>
                 <p>Sello</p>
             </div>
         </div>
         
-        <!-- Testigo (opcional) -->
-        <div style="margin-top: 30px;">
-            <div class="campo">
-                <span class="campo-label">Nombre del testigo:</span>
-                <span class="campo-linea">_________________________</span>
-            </div>
-            <div class="campo">
-                <span class="campo-label">Parentesco / Relación:</span>
-                <span class="campo-linea">_________________________</span>
-            </div>
-            <div class="campo">
-                <span class="campo-label">Teléfono del testigo:</span>
-                <span class="campo-linea">_________________________</span>
-            </div>
-        </div>
         
         <!-- Nota legal -->
         <div class="nota">
