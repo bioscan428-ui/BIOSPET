@@ -65,30 +65,46 @@ foreach ($productos as $item) {
     }
 }
 
-// Calcular totales
-$subtotal = 0;
-foreach ($productos as $item) {
-    $sql_precio = "SELECT precio_venta FROM PRODUCTO WHERE id = ?";
-    $stmt = $conn->prepare($sql_precio);
-    $stmt->bind_param("i", $item['id_producto']);
-    $stmt->execute();
-    $precio = $stmt->get_result()->fetch_assoc()['precio_venta'];
-    $subtotal += $item['cantidad'] * $precio;
-}
+// Verificar si ya existe una venta para esta cita
+$sql_venta_existente = "SELECT vc.id_venta 
+                        FROM VENTA_CITA vc 
+                        WHERE vc.id_cita = ?";
+$stmt_venta_exist = $conn->prepare($sql_venta_existente);
+$stmt_venta_exist->bind_param("i", $id_cita);
+$stmt_venta_exist->execute();
+$venta_existente = $stmt_venta_exist->get_result()->fetch_assoc();
 
 $conn->begin_transaction();
 
 try {
-    // Crear la venta (estado pendiente)
-    $sql_venta = "INSERT INTO VENTA (id_cliente, id_empleado, subtotal, iva, total, metodo_pago, estado, notas) 
-                  VALUES (?, ?, ?, 0, ?, 'pendiente', 'pendiente', ?)";
-    $stmt = $conn->prepare($sql_venta);
-    $notas = "Productos para cita #$id_cita (pendiente de pago)";
-    $stmt->bind_param("iidds", $cliente['id'], $_SESSION['empleado_id'], $subtotal, $subtotal, $notas);
-    $stmt->execute();
-    $id_venta = $conn->insert_id;
+    $id_venta = null;
     
-    // Insertar detalles (el trigger se encargará del stock)
+    // Si ya existe una venta, usarla; si no, crear una nueva
+    if ($venta_existente) {
+        $id_venta = $venta_existente['id_venta'];
+        error_log("Usando venta existente ID: $id_venta");
+    } else {
+        // Crear una nueva venta (estado pendiente)
+        $sql_venta = "INSERT INTO VENTA (id_cliente, id_empleado, subtotal, iva, total, metodo_pago, estado, notas) 
+                      VALUES (?, ?, ?, 0, ?, 'pendiente', 'pendiente', ?)";
+        $stmt = $conn->prepare($sql_venta);
+        $notas = "Productos para cita #$id_cita (pendiente de pago)";
+        $subtotal_temp = 0;
+        $stmt->bind_param("iidds", $cliente['id'], $_SESSION['empleado_id'], $subtotal_temp, $subtotal_temp, $notas);
+        $stmt->execute();
+        $id_venta = $conn->insert_id;
+        error_log("Nueva venta creada ID: $id_venta");
+        
+        // Relacionar venta con cita
+        $sql_relacion = "INSERT INTO VENTA_CITA (id_cita, id_venta) VALUES (?, ?)";
+        $stmt = $conn->prepare($sql_relacion);
+        $stmt->bind_param("ii", $id_cita, $id_venta);
+        $stmt->execute();
+    }
+    
+    // Calcular subtotales y verificar productos existentes
+    $subtotal_total = 0;
+    
     foreach ($productos as $item) {
         $sql_precio = "SELECT precio_venta FROM PRODUCTO WHERE id = ?";
         $stmt = $conn->prepare($sql_precio);
@@ -96,25 +112,63 @@ try {
         $stmt->execute();
         $precio = $stmt->get_result()->fetch_assoc()['precio_venta'];
         $subtotal_item = $item['cantidad'] * $precio;
+        $subtotal_total += $subtotal_item;
+
+        //DEPURACION
+        // Dentro del foreach, antes de verificar existencia
+error_log("=== Procesando producto ID: " . $item['id_producto'] . " ===");
+error_log("Buscando en DETALLE_VENTA con id_venta: $id_venta y id_producto: " . $item['id_producto']);
+
+$sql_check_existente = "SELECT id, cantidad FROM DETALLE_VENTA WHERE id_venta = ? AND id_producto = ?";
+$stmt_check = $conn->prepare($sql_check_existente);
+$stmt_check->bind_param("ii", $id_venta, $item['id_producto']);
+$stmt_check->execute();
+$existente = $stmt_check->get_result()->fetch_assoc();
+
+if ($existente) {
+    error_log("Producto EXISTE en DETALLE_VENTA. ID: " . $existente['id'] . ", Cantidad actual: " . $existente['cantidad']);
+    // ... actualizar
+} else {
+    error_log("Producto NO EXISTE en DETALLE_VENTA. Se insertará nuevo.");
+    // ... insertar
+}
+        //FIN DEPURACION
         
-        $sql_detalle = "INSERT INTO DETALLE_VENTA (id_venta, id_producto, cantidad, precio_unitario, descuento, subtotal) 
-                        VALUES (?, ?, ?, ?, 0, ?)";
-        $stmt = $conn->prepare($sql_detalle);
-        $stmt->bind_param("iiidd", $id_venta, $item['id_producto'], $item['cantidad'], $precio, $subtotal_item);
-        $stmt->execute();
+        // Verificar si el producto ya existe en DETALLE_VENTA para esta venta
+        $sql_check_existente = "SELECT id, cantidad FROM DETALLE_VENTA WHERE id_venta = ? AND id_producto = ?";
+        $stmt_check = $conn->prepare($sql_check_existente);
+        $stmt_check->bind_param("ii", $id_venta, $item['id_producto']);
+        $stmt_check->execute();
+        $existente = $stmt_check->get_result()->fetch_assoc();
         
-        // ⚠️ NO actualices el stock aquí - el trigger after_insert_detalle_venta lo hará
-        // $sql_update = "UPDATE PRODUCTO SET stock_actual = stock_actual - ? WHERE id = ?";
-        // $stmt = $conn->prepare($sql_update);
-        // $stmt->bind_param("ii", $item['cantidad'], $item['id_producto']);
-        // $stmt->execute();
+        if ($existente) {
+            // ACTUALIZAR cantidad existente (NO insertar nuevo)
+            $nueva_cantidad = $existente['cantidad'] + $item['cantidad'];
+            $nuevo_subtotal = $nueva_cantidad * $precio;
+            
+            $sql_update = "UPDATE DETALLE_VENTA 
+                          SET cantidad = ?, subtotal = ? 
+                          WHERE id = ?";
+            $stmt_update = $conn->prepare($sql_update);
+            $stmt_update->bind_param("idi", $nueva_cantidad, $nuevo_subtotal, $existente['id']);
+            $stmt_update->execute();
+            error_log("Producto " . $item['id_producto'] . " actualizado. Nueva cantidad: $nueva_cantidad");
+        } else {
+            // INSERTAR nuevo producto
+            $sql_detalle = "INSERT INTO DETALLE_VENTA (id_venta, id_producto, cantidad, precio_unitario, descuento, subtotal) 
+                            VALUES (?, ?, ?, ?, 0, ?)";
+            $stmt = $conn->prepare($sql_detalle);
+            $stmt->bind_param("iiidd", $id_venta, $item['id_producto'], $item['cantidad'], $precio, $subtotal_item);
+            $stmt->execute();
+            error_log("Producto " . $item['id_producto'] . " insertado. Cantidad: " . $item['cantidad']);
+        }
     }
     
-    // Relacionar venta con cita
-    $sql_relacion = "INSERT INTO VENTA_CITA (id_cita, id_venta) VALUES (?, ?)";
-    $stmt = $conn->prepare($sql_relacion);
-    $stmt->bind_param("ii", $id_cita, $id_venta);
-    $stmt->execute();
+    // Actualizar el total de la venta
+    $sql_update_venta = "UPDATE VENTA SET subtotal = ?, total = ? WHERE id = ?";
+    $stmt_update_venta = $conn->prepare($sql_update_venta);
+    $stmt_update_venta->bind_param("ddi", $subtotal_total, $subtotal_total, $id_venta);
+    $stmt_update_venta->execute();
     
     $conn->commit();
     
@@ -122,6 +176,7 @@ try {
     
 } catch (Exception $e) {
     $conn->rollback();
+    error_log("ERROR en transacción: " . $e->getMessage());
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }
 ?>
