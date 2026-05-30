@@ -70,115 +70,118 @@ $vuelto = $_GET['vuelto'] ?? null;
     <title>Ticket #<?php echo str_pad($id_venta, 8, '0', STR_PAD_LEFT); ?></title>
     <style>
         * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            width: 300px;
-            margin: 0 auto;
-            padding: 10px 8px;
-            background: white;
-            color: #000;
-        }
-        
-        /* Ajustes de texto */
-        .center { text-align: center; }
-        .bold { font-weight: bold; }
-        .right { text-align: right; }
-        .left { text-align: left; }
-        
-        /* Líneas divisorias */
-        .line { 
-            border-top: 1px dashed #000; 
-            margin: 6px 0; 
-        }
-        .line-doble { 
-            border-top: 2px solid #000; 
-            margin: 8px 0; 
-        }
-        
-        /* Tamaños de fuente */
-        .titulo { font-size: 14px; font-weight: bold; }
-        .total { font-size: 14px; font-weight: bold; }
-        .pequeño { font-size: 10px; }
-        
-        /* Tabla de productos */
-        .producto-tabla {
-            width: 100%;
-            margin: 5px 0;
-        }
-        .producto-tabla th {
-            text-align: left;
-            font-weight: bold;
-            border-bottom: 1px dashed #000;
-            padding-bottom: 3px;
-        }
-        .producto-tabla td {
-            padding: 2px 0;
-        }
-        .col-nombre { width: 55%; text-align: left; }
-        .col-cant { width: 15%; text-align: center; }
-        .col-precio { width: 30%; text-align: right; }
-        
-        /* Filas de información */
-        .info-row { 
-            display: flex; 
-            justify-content: space-between; 
-            margin: 4px 0; 
-        }
-        .info-label { 
-            font-weight: bold; 
-        }
-        
-        /* QR */
-        .qr-code {
-            text-align: center;
-            margin: 10px 0;
-        }
-        .qr-code img {
-            width: 80px;
-            height: 80px;
-        }
-        
-        /* Botones solo para pantalla */
-        .no-print {
-            text-align: center;
-            margin-top: 15px;
-        }
-        .btn-print {
-            background: #4caf50;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            margin: 5px;
-            cursor: pointer;
-            border-radius: 5px;
-            font-family: monospace;
-            font-size: 12px;
-        }
-        .btn-close {
-            background: #666;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            margin: 5px;
-            cursor: pointer;
-            border-radius: 5px;
-            font-family: monospace;
-            font-size: 12px;
-        }
-        
-        @media print {
-            body { 
-                padding: 5px; 
-            }
-            .no-print { 
-                display: none; 
-            }
-        }
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+body {
+    font-family: 'Courier New', monospace;
+    font-size: 15px; /* Subimos a 15px para darle el grosor y tamaño del ticket derecho */
+    width: 100%;     /* Quitamos los 300px para que ocupe todo el ancho real del papel */
+    margin: 0;
+    padding: 10px 0px; /* Cero margen a los lados (izq y der) para estirar al máximo */
+    background: white;
+    color: #000;
+    letter-spacing: -0.3px; /* Compacta un poco las letras para que quepan más caracteres por línea */
+}
+
+/* Ajustes de texto */
+.center { text-align: center; }
+.bold { font-weight: bold; }
+.right { text-align: right; }
+.left { text-align: left; }
+
+/* Líneas divisorias */
+.line { 
+    border-top: 1px dashed #000; 
+    margin: 6px 0; 
+}
+.line-doble { 
+    border-top: 2px solid #000; 
+    margin: 8px 0; 
+}
+
+/* Tamaños de fuente */
+.titulo { font-size: 16px; font-weight: bold; } /* Un toque más grande para encabezados */
+.total { font-size: 15px; font-weight: bold; }
+.pequeño { font-size: 13px; } /* Para textos secundarios si los necesitas */
+
+/* Tabla de productos */
+.producto-tabla {
+    width: 100%;
+    margin: 5px 0;
+    border-collapse: collapse;
+}
+.producto-tabla th {
+    text-align: left;
+    font-weight: bold;
+    border-bottom: 1px dashed #000;
+    padding-bottom: 4px;
+}
+.producto-tabla td {
+    padding: 3px 0;
+}
+/* Distribución de columnas optimizada para el nuevo ancho */
+.col-nombre { width: 60%; text-align: left; }
+.col-cant { width: 12%; text-align: center; }
+.col-precio { width: 28%; text-align: right; }
+
+/* Filas de información (Subtotal, Total, etc.) */
+.info-row { 
+    display: flex; 
+    justify-content: space-between; 
+    margin: 5px 0; 
+}
+.info-label { 
+    font-weight: bold; 
+}
+
+/* QR */
+.qr-code {
+    text-align: center;
+    margin: 12px 0;
+}
+.qr-code img {
+    width: 90px;  /* Un poco más grande para que sea fácil de escanear */
+    height: 90px;
+}
+
+/* Botones solo para pantalla */
+.no-print {
+    text-align: center;
+    margin-top: 20px;
+}
+.btn-print {
+    background: #4caf50;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    margin: 5px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-family: monospace;
+    font-size: 14px;
+}
+.btn-close {
+    background: #666;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    margin: 5px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-family: monospace;
+    font-size: 14px;
+}
+
+@media print {
+    body { 
+        padding: 2px 0px; /* Máximo aprovechamiento en la impresión física */
+    }
+    .no-print { 
+        display: none; 
+    }
+}
     </style>
 </head>
 <body>
