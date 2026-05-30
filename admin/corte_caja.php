@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Verificar rol para acceso
-if (!in_array($_SESSION['rol'], ['super_admin', 'admin', 'recepcionista'])) {
+if (!in_array($_SESSION['rol'], ['super_admin', 'admin', 'recepcionista', 'caja'])) {
     header('Location: login.php');
     exit;
 }
@@ -26,7 +26,6 @@ $fecha_corte = $_GET['fecha'] ?? date('Y-m-d');
 // Para vista mensual, establecer fechas si no vienen
 if ($tipo_vista === 'mensual') {
     if (empty($fecha_inicio) && empty($fecha_fin)) {
-        // Por defecto, mes actual
         $fecha_inicio = date('Y-m-01');
         $fecha_fin = date('Y-m-t');
     }
@@ -45,7 +44,7 @@ $efectivo_total = 0;
 $electronico_total = 0;
 
 if ($tipo_vista === 'diario') {
-    // VISTA DIARIA - usar procedimiento existente
+    // VISTA DIARIA
     $stmt = $conn->prepare("CALL caja_diaria(?)");
     $stmt->bind_param("s", $fecha_corte);
     $stmt->execute();
@@ -54,12 +53,10 @@ if ($tipo_vista === 'diario') {
     $stmt->close();
     $conn->next_result();
     
-    // Calcular total general
     $total_general = ($caja['total_ventas'] ?? 0) + ($caja['total_servicios'] ?? 0);
     $efectivo_total = $caja['efectivo'] ?? 0;
     $electronico_total = $caja['electronico'] ?? 0;
     
-    // Verificar si ya se hizo corte para esta fecha
     $sql_verificar = "SELECT rc.*, e.nombre as empleado_nombre 
                       FROM REGISTRO_CORTE rc
                       LEFT JOIN EMPLEADO e ON rc.id_empleado = e.id
@@ -70,8 +67,7 @@ if ($tipo_vista === 'diario') {
     $corte_existente = $stmt_verificar->get_result()->fetch_assoc();
     
 } else {
-    // VISTA MENSUAL - consulta entre fechas
-     // 1. Obtener resumen de ventas
+    // VISTA MENSUAL
     $stmt_ventas = $conn->prepare("CALL obtener_resumen_ventas(?, ?)");
     $stmt_ventas->bind_param("ss", $fecha_inicio, $fecha_fin);
     $stmt_ventas->execute();
@@ -79,7 +75,6 @@ if ($tipo_vista === 'diario') {
     $stmt_ventas->close();
     $conn->next_result();
     
-    // 2. Obtener resumen de servicios
     $stmt_servicios = $conn->prepare("CALL obtener_resumen_servicios(?, ?)");
     $stmt_servicios->bind_param("ss", $fecha_inicio, $fecha_fin);
     $stmt_servicios->execute();
@@ -87,17 +82,15 @@ if ($tipo_vista === 'diario') {
     $stmt_servicios->close();
     $conn->next_result();
 
-    // Combinar resultados
     $caja = [
-        'total_ventas' => $ventas_data['total_ventas'],
-        'numero_ventas' => $ventas_data['numero_ventas'],
-        'efectivo_ventas' => $ventas_data['efectivo_ventas'],
-        'total_servicios' => $servicios_data['total_servicios'],
-        'numero_servicios' => $servicios_data['numero_servicios'],
-        'efectivo_servicios' => $servicios_data['efectivo_servicios']
+        'total_ventas' => $ventas_data['total_ventas'] ?? 0,
+        'numero_ventas' => $ventas_data['numero_ventas'] ?? 0,
+        'efectivo_ventas' => $ventas_data['efectivo_ventas'] ?? 0,
+        'total_servicios' => $servicios_data['total_servicios'] ?? 0,
+        'numero_servicios' => $servicios_data['numero_servicios'] ?? 0,
+        'efectivo_servicios' => $servicios_data['efectivo_servicios'] ?? 0
     ];
     
-    // Obtener transacciones detalladas del período (CORREGIDO)
     $sql_transacciones = "SELECT 
                             'venta' as tipo,
                             v.id as referencia,
@@ -134,7 +127,6 @@ if ($tipo_vista === 'diario') {
     $transacciones = $stmt2->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt2->close();
     
-    // Calcular totales
     $total_general = ($caja['total_ventas'] ?? 0) + ($caja['total_servicios'] ?? 0);
     $efectivo_total = ($caja['efectivo_ventas'] ?? 0) + ($caja['efectivo_servicios'] ?? 0);
     $electronico_total = $total_general - $efectivo_total;
@@ -143,7 +135,7 @@ if ($tipo_vista === 'diario') {
 $mensaje = '';
 $error = '';
 
-// Procesar cierre de caja (solo para vista diaria)
+// ========== PROCESAR CIERRE DE CAJA Y REDIRIGIR A TICKET ==========
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['accion'] === 'cerrar_caja' && $tipo_vista === 'diario') {
     if ($corte_existente) {
         $error = "⚠️ Ya se realizó un corte para esta fecha. No se puede volver a cerrar.";
@@ -156,8 +148,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
         $stmt_insert->bind_param("siddddds", $fecha_corte, $empleado_id, $caja['total_ventas'], $caja['total_servicios'], $efectivo_total, $electronico_total, $total_general, $observaciones);
         
         if ($stmt_insert->execute()) {
-            $mensaje = "✅ Corte de caja cerrado exitosamente a las " . date('H:i:s');
-            header("Location: corte_caja.php?fecha=$fecha_corte&tipo=diario&mensaje=" . urlencode($mensaje));
+            $id_corte = $conn->insert_id;
+            // Redirigir a ticket_corte.php para imprimir
+            header("Location: ticket_corte.php?id=$id_corte&fecha=$fecha_corte");
             exit;
         } else {
             $error = "❌ Error al cerrar el corte: " . $conn->error;
@@ -165,7 +158,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
     }
 }
 
-// Mostrar mensajes
 if (isset($_GET['mensaje'])) {
     $mensaje = $_GET['mensaje'];
 }
@@ -210,7 +202,6 @@ if (isset($_GET['mensaje'])) {
         .tabla-transacciones { width: 100%; border-collapse: collapse; margin-top: 15px; }
         .tabla-transacciones th, .tabla-transacciones td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
         .tabla-transacciones th { background: #f8f9fa; font-weight: bold; color: #666; }
-        .tabla-transacciones tr:hover { background: #f8f9fa; }
         .footer { background: #f8f9fa; text-align: center; padding: 20px; color: #666; font-size: 12px; border-top: 1px solid #eee; }
         .tipo-selector { display: flex; gap: 10px; margin-bottom: 15px; }
         .tipo-btn { padding: 8px 20px; border: 1px solid #E68D0B; background: white; color: #E68D0B; border-radius: 8px; cursor: pointer; text-decoration: none; display: inline-block; }
@@ -278,7 +269,7 @@ if (isset($_GET['mensaje'])) {
             <?php endif; ?>
             
             <div>
-                <button onclick="window.print()" class="btn-imprimir">🖨️ Imprimir Corte</button>
+                <button onclick="window.print()" class="btn-imprimir">🖨️ Imprimir Vista</button>
                 <a href="dashboard.php" class="btn-volver" style="margin-left: 10px;">⬅️ Volver</a>
             </div>
         </div>
@@ -371,7 +362,7 @@ if (isset($_GET['mensaje'])) {
         <?php if ($tipo_vista === 'diario' && !$corte_existente): ?>
         <div class="seccion-cerrar">
             <h3 style="margin-bottom: 15px;">🔒 Cerrar Corte de Caja</h3>
-            <form method="POST" onsubmit="return confirm('¿Estás seguro de cerrar el corte de caja? Una vez cerrado, no se podrán modificar las ventas de esta fecha.')">
+            <form method="POST" onsubmit="return confirmarCierre()">
                 <input type="hidden" name="accion" value="cerrar_caja">
                 <div class="form-group">
                     <label>Observaciones (opcional)</label>
@@ -387,5 +378,11 @@ if (isset($_GET['mensaje'])) {
             <p>Fecha y hora de emisión: <?php echo date('d/m/Y H:i:s'); ?></p>
         </div>
     </div>
+
+    <script>
+        function confirmarCierre() {
+            return confirm('⚠️ ¿Estás seguro de cerrar el corte de caja?\n\nUna vez cerrado, NO se podrán modificar las ventas de esta fecha.\n\nSe abrirá el ticket de corte para imprimir.\n\n¿Deseas continuar?');
+        }
+    </script>
 </body>
 </html>

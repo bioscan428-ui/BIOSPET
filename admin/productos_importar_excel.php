@@ -2,7 +2,7 @@
 // admin/productos_importar_excel.php
 session_start();
 error_reporting(E_ALL);
-ini_set('display_errors', 0);
+ini_set('display_errors', 1);
 
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
@@ -29,6 +29,20 @@ function limpiarString($valor) {
 function obtenerFloat($valor) {
     if ($valor === null || $valor === '') {
         return 0;
+    }
+    if (is_string($valor)) {
+        // Eliminar signos de moneda
+        $valor = str_replace(['$', '€', '£', '¥', 'MXN', ' '], '', $valor);
+        
+        // Detectar si la coma es separador decimal o de miles
+        // Si tiene una coma seguida de 1 o 2 dígitos al FINAL, es decimal (ej: 3,50)
+        if (preg_match('/,\d{1,2}$/', $valor)) {
+            // Es decimal: reemplazar coma por punto
+            $valor = str_replace(',', '.', $valor);
+        } else {
+            // Es separador de miles: eliminar todas las comas
+            $valor = str_replace(',', '', $valor);
+        }
     }
     return (float)$valor;
 }
@@ -68,18 +82,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['archivo_excel'])) {
         $importados = 0;
         $actualizados = 0;
         $errores = [];
-        $depuracion = []; // Array para mensajes de depuración
-        
-        $productos_ejemplo = [
-            'Croqueta Premium para Perros',
-            'Juguete Pelota de Goma',
-            'Correa Nylon Resistente',
-            'Vacuna Triple Felina'
-        ];
         
         foreach ($filas as $indice => $fila) {
             $numero_fila = $indice + 2;
             
+            // Verificar fila vacía
             $fila_vacia = true;
             for ($i = 0; $i < count($fila); $i++) {
                 $celda = isset($fila[$i]) ? limpiarString($fila[$i]) : '';
@@ -93,89 +100,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['archivo_excel'])) {
                 continue;
             }
             
-            $nombre = isset($fila[0]) ? limpiarString($fila[0]) : '';
-            $descripcion = isset($fila[1]) ? limpiarString($fila[1]) : '';
-            $codigo_barras = isset($fila[2]) ? limpiarString($fila[2]) : '';
-            $id_categoria = isset($fila[3]) ? limpiarString($fila[3]) : '';
-            $id_proveedor = isset($fila[4]) ? limpiarString($fila[4]) : '';
-            $precio_compra = isset($fila[5]) ? obtenerFloat($fila[5]) : 0;
-            $precio_venta = isset($fila[6]) ? obtenerFloat($fila[6]) : 0;
-            $stock_actual = isset($fila[7]) ? obtenerInt($fila[7]) : 0;
-            $stock_minimo = isset($fila[8]) ? obtenerInt($fila[8]) : 5;
-            $unidad_medida = isset($fila[9]) ? limpiarString($fila[9]) : 'pieza';
-            $ubicacion = isset($fila[10]) ? limpiarString($fila[10]) : '';
-            $fecha_vencimiento = isset($fila[11]) && !empty($fila[11]) ? $fila[11] : null;
-            
-            // ========== DEPURACIÓN DEL PROVEEDOR ==========
-            $depuracion[] = "--- FILA $numero_fila: $nombre ---";
-            $depuracion[] = "Valor crudo de id_proveedor: '" . var_export($id_proveedor, true) . "'";
-            $depuracion[] = "¿id_proveedor está vacío? " . (empty($id_proveedor) ? 'SÍ' : 'NO');
-            $depuracion[] = "¿id_proveedor es numérico? " . (is_numeric($id_proveedor) ? 'SÍ : ' . gettype($id_proveedor) : 'NO');
-            // ==============================================
-            
-            if (in_array($nombre, $productos_ejemplo)) {
-                $depuracion[] = "➡️ Saltando producto de ejemplo: $nombre";
-                continue;
-            }
+            // MAPEO DE COLUMNAS
+            $codigo_barras = isset($fila[0]) ? limpiarString($fila[0]) : '';
+            $nombre = isset($fila[1]) ? limpiarString($fila[1]) : '';
+            $precio_compra = isset($fila[2]) ? obtenerFloat($fila[2]) : 0;
+            $precio_venta = isset($fila[3]) ? obtenerFloat($fila[3]) : 0;
+            $stock_actual = isset($fila[5]) ? obtenerInt($fila[5]) : 0;
+            $stock_minimo = isset($fila[6]) ? obtenerInt($fila[6]) : 5;
+            $departamento = isset($fila[7]) ? limpiarString($fila[7]) : '';
             
             if (empty($nombre)) {
-                $depuracion[] = "➡️ Saltando fila sin nombre";
+                $errores[] = "Fila $numero_fila: Nombre vacío";
                 continue;
             }
             
-            if (empty($id_categoria) || !is_numeric($id_categoria)) {
-                $errores[] = "Fila $numero_fila: Categoría inválida para '$nombre'";
+            if ($precio_venta <= 0) {
+                $valor_original = isset($fila[3]) ? $fila[3] : 'null';
+                $errores[] = "Fila $numero_fila: Precio venta inválido para '$nombre'. Valor original: '$valor_original'";
                 continue;
             }
             
-            if (empty($precio_venta) || $precio_venta <= 0) {
-                $errores[] = "Fila $numero_fila: Precio venta inválido para '$nombre'";
+            if (empty($departamento)) {
+                $errores[] = "Fila $numero_fila: Departamento vacío para '$nombre'";
                 continue;
             }
             
-            $check_cat = $conn->prepare("SELECT id FROM CATEGORIA_PRODUCTO WHERE id = ? AND activo = 1");
-            $check_cat->bind_param("i", $id_categoria);
-            $check_cat->execute();
-            $cat_result = $check_cat->get_result();
+            // Buscar o crear categoría
+            $id_categoria = null;
+            $sql_cat = "SELECT id FROM CATEGORIA_PRODUCTO WHERE nombre = ? AND activo = 1";
+            $stmt_cat = $conn->prepare($sql_cat);
+            $stmt_cat->bind_param("s", $departamento);
+            $stmt_cat->execute();
+            $cat_result = $stmt_cat->get_result();
             
-            if ($cat_result->num_rows === 0) {
-                $errores[] = "Fila $numero_fila: Categoría ID $id_categoria no existe para '$nombre'";
-                continue;
-            }
-            
-            // ========== VERIFICACIÓN DE PROVEEDOR CON DEPURACIÓN ==========
-            $id_proveedor_valor = null;
-            
-            $depuracion[] = "--- Validando proveedor para: $nombre ---";
-            
-            if (!empty($id_proveedor) && is_numeric($id_proveedor)) {
-                $depuracion[] = "✅ Proveedor tiene valor numérico: $id_proveedor";
-                
-                $check_prov = $conn->prepare("SELECT id FROM PROVEEDOR WHERE id = ? AND activo = 1");
-                $check_prov->bind_param("i", $id_proveedor);
-                $check_prov->execute();
-                $prov_result = $check_prov->get_result();
-                
-                $depuracion[] = "Resultado de búsqueda en BD: " . $prov_result->num_rows . " fila(s) encontrada(s)";
-                
-                if ($prov_result->num_rows > 0) {
-                    $id_proveedor_valor = (int)$id_proveedor;
-                    $depuracion[] = "✅✅ PROVEEDOR ASIGNADO CORRECTAMENTE: ID $id_proveedor_valor";
+            if ($cat_result->num_rows > 0) {
+                $id_categoria = $cat_result->fetch_assoc()['id'];
+            } else {
+                $sql_insert_cat = "INSERT INTO CATEGORIA_PRODUCTO (nombre, activo) VALUES (?, 1)";
+                $stmt_insert_cat = $conn->prepare($sql_insert_cat);
+                $stmt_insert_cat->bind_param("s", $departamento);
+                if ($stmt_insert_cat->execute()) {
+                    $id_categoria = $conn->insert_id;
                 } else {
-                    $depuracion[] = "❌ ERROR: Proveedor ID $id_proveedor NO existe en la base de datos";
-                    $errores[] = "Fila $numero_fila: Proveedor ID $id_proveedor no existe para '$nombre'";
+                    $errores[] = "Fila $numero_fila: Error al crear categoría '$departamento'";
                     continue;
                 }
-            } else {
-                $depuracion[] = "⚠️ ADVERTENCIA: No se cumplió condición para asignar proveedor";
-                $depuracion[] = "   - empty(id_proveedor): " . (empty($id_proveedor) ? 'true' : 'false');
-                $depuracion[] = "   - is_numeric(id_proveedor): " . (is_numeric($id_proveedor) ? 'true' : 'false');
-                $depuracion[] = "   - Valor de id_proveedor: '" . $id_proveedor . "'";
             }
             
-            $depuracion[] = "Valor final de \$id_proveedor_valor: " . ($id_proveedor_valor ?? 'NULL');
-            // ==============================================================
-            
+            // Verificar si el producto existe por código de barras
             $existe = false;
             if (!empty($codigo_barras)) {
                 $check = $conn->prepare("SELECT id FROM PRODUCTO WHERE codigo_barras = ?");
@@ -184,100 +156,89 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['archivo_excel'])) {
                 $existe = $check->get_result()->num_rows > 0;
             }
             
+            $descripcion = $nombre;
+            $unidad_medida = 'pieza';
+            $ubicacion = '';
+            $activo = 1;
+            $maneja_stock = 1;
+            
             if ($existe) {
+                // ========== UPDATE - 11 parámetros (11 ?) ==========
                 $sql = "UPDATE PRODUCTO SET 
                             nombre = ?, 
                             descripcion = ?, 
+                            codigo_barras = ?,
                             id_categoria = ?, 
-                            id_proveedor = ?,
                             precio_compra = ?, 
                             precio_venta = ?, 
                             stock_actual = ?,
                             stock_minimo = ?, 
                             unidad_medida = ?, 
                             ubicacion = ?,
-                            fecha_vencimiento = ?, 
                             activo = 1
                         WHERE codigo_barras = ?";
-
+                
                 $stmt = $conn->prepare($sql);
-                $stmt->bind_param("ssiiiddiissss", 
-                    $nombre, 
-                    $descripcion, 
-                    $id_categoria, 
-                    $id_proveedor_valor,
-                    $precio_compra, 
-                    $precio_venta, 
-                    $stock_actual,
-                    $stock_minimo, 
-                    $unidad_medida, 
-                    $ubicacion,
-                    $fecha_vencimiento, 
-                    $codigo_barras
+                // 11 parámetros + 1 (WHERE) = 12? NO: Los SET son 11, el WHERE es 1, TOTAL 12
+                $stmt->bind_param("sssiiddissss", 
+                    $nombre,           // 1
+                    $descripcion,      // 2
+                    $codigo_barras,    // 3
+                    $id_categoria,     // 4
+                    $precio_compra,    // 5
+                    $precio_venta,     // 6
+                    $stock_actual,     // 7
+                    $stock_minimo,     // 8
+                    $unidad_medida,    // 9
+                    $ubicacion,        // 10
+                    $codigo_barras     // 11 - WHERE
                 );
                 
                 if ($stmt->execute()) {
                     $actualizados++;
-                    $depuracion[] = "✅ Producto ACTUALIZADO con proveedor ID: " . ($id_proveedor_valor ?? 'NULL');
                 } else {
-                    $errores[] = "Fila $numero_fila: Error actualizando '$nombre': " . $conn->error;
+                    $errores[] = "Fila $numero_fila: Error actualizando '$nombre': " . $stmt->error;
                 }
                 $stmt->close();
             } else {
+                // ========== INSERT - 10 parámetros (10 ?) ==========
                 $sql = "INSERT INTO PRODUCTO (
-                            nombre, 
-                            descripcion, 
-                            codigo_barras, 
-                            id_categoria,
-                            id_proveedor, 
-                            precio_compra, 
-                            precio_venta, 
-                            stock_actual, 
-                            stock_minimo, 
-                            unidad_medida, 
-                            ubicacion, 
-                            fecha_vencimiento, 
-                            activo
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)";
+                            nombre, descripcion, codigo_barras, id_categoria,
+                            precio_compra, precio_venta, stock_actual, stock_minimo,
+                            unidad_medida, ubicacion, activo, maneja_stock
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 
                 $stmt = $conn->prepare($sql);
-                $stmt->bind_param("sssiiddiisss", 
-                    $nombre, 
-                    $descripcion, 
-                    $codigo_barras, 
-                    $id_categoria,
-                    $id_proveedor_valor,
-                    $precio_compra, 
-                    $precio_venta, 
-                    $stock_actual, 
-                    $stock_minimo,
-                    $unidad_medida, 
-                    $ubicacion, 
-                    $fecha_vencimiento
+                // 12 parámetros en total
+                $stmt->bind_param("sssiddiisssi", 
+                    $nombre,           // 1
+                    $descripcion,      // 2
+                    $codigo_barras,    // 3
+                    $id_categoria,     // 4
+                    $precio_compra,    // 5
+                    $precio_venta,     // 6
+                    $stock_actual,     // 7
+                    $stock_minimo,     // 8
+                    $unidad_medida,    // 9
+                    $ubicacion,        // 10
+                    $activo,           // 11
+                    $maneja_stock      // 12
                 );
                 
                 if ($stmt->execute()) {
                     $importados++;
-                    $depuracion[] = "✅✅ Producto INSERTADO con proveedor ID: " . ($id_proveedor_valor ?? 'NULL');
                 } else {
-                    $errores[] = "Fila $numero_fila: Error insertando '$nombre': " . $conn->error;
+                    $errores[] = "Fila $numero_fila: Error insertando '$nombre': " . $stmt->error;
                 }
                 $stmt->close();
             }
-            
-            $depuracion[] = "--- FIN PROCESO FILA $numero_fila ---";
-        }
-        
-        // Guardar mensajes de depuración en sesión para mostrarlos
-        if (count($depuracion) > 0) {
-            $_SESSION['importacion_depuracion'] = $depuracion;
         }
         
         $mensaje = "📊 Importación: $importados nuevos, $actualizados actualizados";
         if (count($errores) > 0) {
             $mensaje .= " ⚠️ " . count($errores) . " errores";
             $_SESSION['importacion_detalle_errores'] = $errores;
-            $primeros_errores = array_slice($errores, 0, 5);
+            $primeros_errores = array_slice($errores, 0, 10);
             $_SESSION['importacion_errores_muestra'] = $primeros_errores;
         } else {
             $mensaje .= " ✅ Completado con éxito!";
