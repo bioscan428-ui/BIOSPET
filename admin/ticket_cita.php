@@ -38,44 +38,73 @@ $vuelto = $_GET['vuelto'] ?? null;
     <meta charset="UTF-8">
     <title>Ticket Cita #<?php echo str_pad($id_venta, 8, '0', STR_PAD_LEFT); ?> - BIOSPET</title>
     <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-        font-family: 'Courier New', monospace;
-        font-size: 14px;  /* ← Cambiado de 13px a 14px */
-        width: 280px;
-        margin: 0 auto;
-        padding: 10px;
-        background: white;
-        color: #000;
-    }
-    .center { text-align: center; }
-    .bold { font-weight: bold; }
-    .line { border-top: 1px dashed #000; margin: 6px 0; }
-    .line-doble { border-top: 1px double #000; margin: 10px 0; }
-    .total { font-size: 18px; font-weight: bold; }  /* ← Cambiado de 16px a 18px */
-    .producto { margin: 8px 0; display: flex; justify-content: space-between; align-items: flex-start; }  /* ← margin de 6px a 8px */
-    .producto-nombre { width: 55%; word-wrap: break-word; font-size: 14px; }  /* ← agregado font-size */
-    .producto-cantidad { width: 15%; text-align: center; font-size: 14px; }  /* ← agregado font-size */
-    .producto-precio { width: 30%; text-align: right; font-size: 14px; }  /* ← agregado font-size */
-    .info-row { display: flex; justify-content: space-between; margin: 5px 0; }  /* ← margin de 4px a 5px */
-    .info-label { font-weight: bold; font-size: 14px; }  /* ← agregado font-size */
-    .gracias { margin-top: 20px; text-align: center; font-size: 14px; }  /* ← agregado font-size */
-    .text-muted { font-size: 12px; }  /* ← cambiado de 11px a 12px */
-    .servicio-item { color: #2c7da0; }
-    .producto-item { color: #2e7d32; }
-    .btn-print {
-        background: #4caf50;
-        color: white;
-        border: none;
-        padding: 10px 15px;
-        margin-top: 15px;
-        cursor: pointer;
-        border-radius: 5px;
-        width: 100%;
-        font-family: monospace;
-        font-size: 14px;
-    }
-    @media print { body { margin: 0; padding: 5px; } .no-print { display: none; } }
+    * { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+}
+body {
+    font-family: 'Courier New', monospace;
+    font-size: 15px;  /* Subido a 15px para igualar el ticket de la derecha */
+    width: 100%;      /* Cambiado de 280px a 100% para ocupar todo el papel */
+    margin: 0 auto;
+    padding: 10px 0px; /* Cero margen a la izquierda y derecha para estirar al máximo */
+    background: white;
+    color: #000;
+    letter-spacing: -0.3px; /* Compacta un poco el texto para evitar cortes de línea */
+}
+.center { text-align: center; }
+.bold { font-weight: bold; }
+.line { border-top: 1px dashed #000; margin: 6px 0; }
+.line-doble { border-top: 1px double #000; margin: 10px 0; }
+
+.total { font-size: 18px; font-weight: bold; } /* Mantenemos el total destacado */
+
+/* Estilos de productos */
+.producto { 
+    margin: 8px 0; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: flex-start; 
+} 
+.producto-nombre { width: 58%; word-wrap: break-word; font-size: 15px; }   /* Ajustado a 15px */
+.producto-cantidad { width: 12%; text-align: center; font-size: 15px; }  /* Ajustado a 15px */
+.producto-precio { width: 30%; text-align: right; font-size: 15px; }     /* Ajustado a 15px */
+
+/* Filas de información */
+.info-row { display: flex; justify-content: space-between; margin: 5px 0; } 
+.info-label { font-weight: bold; font-size: 15px; } /* Ajustado a 15px */
+.gracias { margin-top: 20px; text-align: center; font-size: 15px; } /* Ajustado a 15px */
+.text-muted { font-size: 13px; } /* Un punto más pequeño para aclaraciones al pie */
+
+/* Colores de categorías */
+.servicio-item { color: #2c7da0; }
+.producto-item { color: #2e7d32; }
+
+/* Botón visible solo en pantalla */
+.btn-print {
+    background: #4caf50;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    margin-top: 15px;
+    cursor: pointer;
+    border-radius: 5px;
+    width: 100%;
+    font-family: monospace;
+    font-size: 15px;
+}
+
+/* Configuración optimizada para la impresora térmica */
+@media print { 
+    body { 
+        margin: 0; 
+        padding: 5px 0px; /* Asegura 0px a los lados al imprimir físicamente */
+    } 
+    .no-print, .btn-print { 
+        display: none; 
+    } 
+}
 </style>
 </head>
 <body>
