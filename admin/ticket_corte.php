@@ -46,13 +46,13 @@ $empleado_completo = trim($corte['empleado_nombre'] . ' ' . ($corte['ape_pat'] ?
         }
         body {
             font-family: 'Courier New', monospace;
-            font-size: 14px;
-            width: 100%;
+            font-size: 15px; /* Subido a 15px para igualar la fuerza del punto de venta */
+            width: 100%;     /* Cambiado a 100% para expandir a los lados del papel */
             margin: 0;
-            padding: 10px 0px;
+            padding: 10px 0px; /* 0px a los costados para eliminar márgenes blancos */
             background: white;
             color: #000;
-            letter-spacing: -0.3px;
+            letter-spacing: -0.3px; /* Espaciado compacto para evitar saltos de línea molestos */
         }
         .center { text-align: center; }
         .bold { font-weight: bold; }
@@ -72,7 +72,7 @@ $empleado_completo = trim($corte['empleado_nombre'] . ' ' . ($corte['ape_pat'] ?
             margin: 5px 0; 
         }
         .total { 
-            font-size: 16px; 
+            font-size: 18px; /* Total destacado proporcionalmente */
             font-weight: bold; 
         }
         .no-print {
@@ -83,27 +83,29 @@ $empleado_completo = trim($corte['empleado_nombre'] . ' ' . ($corte['ape_pat'] ?
             background: #4caf50;
             color: white;
             border: none;
-            padding: 8px 16px;
+            padding: 10px 16px;
             margin: 5px;
             cursor: pointer;
             border-radius: 5px;
             font-family: monospace;
-            font-size: 14px;
+            font-size: 15px; /* Botones proporcionales a 15px */
+            width: 45%;
         }
         .btn-close {
             background: #666;
             color: white;
             border: none;
-            padding: 8px 16px;
+            padding: 10px 16px;
             margin: 5px;
             cursor: pointer;
             border-radius: 5px;
             font-family: monospace;
-            font-size: 14px;
+            font-size: 15px; /* Botones proporcionales a 15px */
+            width: 45%;
         }
         @media print {
             body { 
-                padding: 2px 0px;
+                padding: 2px 0px; /* Clave para la impresión física real */
             }
             .no-print { 
                 display: none; 
@@ -130,7 +132,6 @@ $empleado_completo = trim($corte['empleado_nombre'] . ' ' . ($corte['ape_pat'] ?
 
     <div class="line"></div>
 
-    <!-- Totales -->
     <div class="info-row">
         <span>🛒 VENTAS PRODUCTOS:</span>
         <span>$<?php echo number_format($corte['total_ventas'], 2); ?></span>
@@ -147,7 +148,7 @@ $empleado_completo = trim($corte['empleado_nombre'] . ' ' . ($corte['ape_pat'] ?
         <span>$<?php echo number_format($corte['total_efectivo'], 2); ?></span>
     </div>
     <div class="info-row">
-        <span>💳 TARJETA/TRANSFERENCIA:</span>
+        <span>💳 TARJETA/TRANSF:</span>
         <span>$<?php echo number_format($corte['total_electronico'], 2); ?></span>
     </div>
     
@@ -165,7 +166,7 @@ $empleado_completo = trim($corte['empleado_nombre'] . ' ' . ($corte['ape_pat'] ?
         <span>Observaciones:</span>
     </div>
     <div class="info-row">
-        <span style="font-size: 11px;"><?php echo htmlspecialchars($corte['observaciones']); ?></span>
+        <span style="font-size: 13px; word-wrap: break-word; width: 100%;"><?php echo htmlspecialchars($corte['observaciones']); ?></span>
     </div>
     <div class="line"></div>
     <?php endif; ?>
@@ -179,9 +180,9 @@ $empleado_completo = trim($corte['empleado_nombre'] . ' ' . ($corte['ape_pat'] ?
 
     <div class="no-print">
         <button onclick="window.print()" class="btn-print">
-            🖨️ Imprimir Corte
+            🖨️ Imprimir
         </button>
-        <button onclick="window.close()" class="btn-close" style="background: #666;">
+        <button onclick="window.close()" class="btn-close">
             ❌ Cerrar
         </button>
     </div>

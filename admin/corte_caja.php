@@ -361,12 +361,18 @@ if (isset($_GET['mensaje'])) {
         <!-- Formulario para cerrar caja (solo vista diaria y sin corte existente) -->
         <?php if ($tipo_vista === 'diario' && !$corte_existente): ?>
         <div class="seccion-cerrar">
-            <h3 style="margin-bottom: 15px;">🔒 Cerrar Corte de Caja</h3>
-            <form method="POST" onsubmit="return confirmarCierre()">
+            <h3 style="margin-bottom: 15px;">🔒 Cierre de Caja</h3>
+
+            <!-- Botón para imprimir ticket (sin cerrar) -->
+            <button type="button" class="btn-imprimir-ticket" onclick="imprimirTicketCorte()" style="background: #17a2b8; margin-right: 10px;">
+                🖨️ Imprimir Ticket de Corte (Previsualización)
+            </button>
+            <!-- Botón para cerrar corte -->
+            <form method="POST" onsubmit="return confirmarCierre()" style="display: inline-block;">
                 <input type="hidden" name="accion" value="cerrar_caja">
                 <div class="form-group">
                     <label>Observaciones (opcional)</label>
-                    <textarea name="observaciones" rows="2" placeholder="Notas sobre el corte, diferencias, etc."></textarea>
+                    <textarea name="observaciones" rows="2" placeholder="Notas sobre el corte, diferencias, etc." style="width: 100%; margin-bottom: 10px;"></textarea>
                 </div>
                 <button type="submit" class="btn-cerrar">🔒 Cerrar Corte de Caja</button>
             </form>
@@ -381,8 +387,14 @@ if (isset($_GET['mensaje'])) {
 
     <script>
         function confirmarCierre() {
-            return confirm('⚠️ ¿Estás seguro de cerrar el corte de caja?\n\nUna vez cerrado, NO se podrán modificar las ventas de esta fecha.\n\nSe abrirá el ticket de corte para imprimir.\n\n¿Deseas continuar?');
-        }
+        return confirm('⚠️ ¿Estás seguro de cerrar el corte de caja?\n\nUna vez cerrado, NO se podrán modificar las ventas de esta fecha.\n\nSe abrirá el ticket de corte para imprimir.\n\n¿Deseas continuar?');
+    }
+    
+    function imprimirTicketCorte() {
+        // Generar un ticket de corte temporal sin cerrar
+        const fecha = document.querySelector('input[name="fecha"]')?.value || '<?php echo $fecha_corte; ?>';
+        window.open(`ticket_corte_temp.php?fecha=${fecha}`, '_blank', 'width=350,height=600,toolbar=no,menubar=no,scrollbars=yes');
+    }
     </script>
 </body>
 </html>
