@@ -240,11 +240,18 @@ require_once __DIR__ . '/detalle_cita_back.php';
         <div class="section">
             <h3>🛒 Productos de la Cita</h3>
             <?php
+            //-------NO SE QUITAN PRODUCTOS UNA VEZ PAGADA LA CITA
+            if ($pago_existente): ?>
+                <div class="alert-info" style="background: #e3f2fd; color: #0d3c5e; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                    ⚠️ Esta cita ya está pagada. No se pueden modificar los productos.
+                </div>
+            <?php endif; 
+            //-------FIN
             $sql_productos_lista = "SELECT dv.*, p.nombre, p.precio_venta 
-                       FROM DETALLE_VENTA dv
-                       JOIN PRODUCTO p ON dv.id_producto = p.id
-                       JOIN VENTA_CITA vc ON vc.id_venta = dv.id_venta
-                       WHERE vc.id_cita = ?";
+                        FROM DETALLE_VENTA dv
+                        JOIN PRODUCTO p ON dv.id_producto = p.id
+                        JOIN VENTA_CITA vc ON vc.id_venta = dv.id_venta
+                        WHERE vc.id_cita = ?";
             $stmt_lista = $conn->prepare($sql_productos_lista);
             $stmt_lista->bind_param("i", $id_cita);
             $stmt_lista->execute();

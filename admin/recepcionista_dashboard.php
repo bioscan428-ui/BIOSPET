@@ -119,7 +119,7 @@ $clientes_nuevos = $result->fetch_row()[0];
         <h1>🐾 BIOSPET - Recepción</h1>
         <div>
             <a href="recepcionista_dashboard.php">📋 Inicio</a>
-            <a href="citas.php">➕ Nueva Cita</a>
+            <a href="../citas.php">➕ Nueva Cita</a>
             <!------
             <a href="clientes.php">👥 Clientes</a>
             ------->

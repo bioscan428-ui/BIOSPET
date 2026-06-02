@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Verificar rol
-if (!in_array($_SESSION['rol'], ['super_admin', 'admin', 'recepcionista'])) {
+if (!in_array($_SESSION['rol'], ['super_admin', 'admin', 'recepcionista', 'caja'])) {
     header('Location: login.php');
     exit;
 }

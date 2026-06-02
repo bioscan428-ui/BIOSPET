@@ -115,9 +115,12 @@ WHERE m.activo = 1
 GROUP BY m.id;
 
 -- 3. VISTAS DE EMPLEADOS
+DROP VIEW IF EXISTS vista_empleados_activos;
+
 CREATE OR REPLACE VIEW vista_empleados_activos AS
 SELECT 
-    e.id,
+    u.id AS usuario_id,
+    e.id AS empleado_id,
     e.nombre,
     e.ape_pat,
     e.ape_mat,
@@ -129,13 +132,12 @@ SELECT
     u.nombre_usuario,
     u.rol,
     u.ultimo_acceso,
-    COUNT(DISTINCT ac.id_cita) AS citas_asignadas
+    u.activo AS usuario_activo,
+    (SELECT COUNT(*) FROM ASIGNACION_CITA ac WHERE ac.id_empleado = e.id) AS citas_asignadas
 FROM EMPLEADO e
-LEFT JOIN USUARIO u ON e.id = u.id_empleado AND u.activo = 1
-LEFT JOIN ASIGNACION_CITA ac ON e.id = ac.id_empleado
-WHERE e.activo = 1
-GROUP BY e.id
-ORDER BY e.puesto, e.nombre;
+JOIN USUARIO u ON e.id = u.id_empleado
+WHERE e.activo = 1 AND u.activo = 1
+ORDER BY e.nombre, u.rol;
 
 CREATE OR REPLACE VIEW vista_citas_por_empleado AS
 SELECT 
