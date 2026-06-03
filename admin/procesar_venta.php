@@ -49,7 +49,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Verificar rol
-$roles_permitidos = ['super_admin', 'admin', 'recepcionista', 'veterinario', 'asistente'];
+$roles_permitidos = ['super_admin', 'admin', 'recepcionista', 'veterinario', 'asistente', 'caja'];
 if (!in_array($_SESSION['rol'], $roles_permitidos)) {
     escribirLog("ERROR: Permiso denegado - rol: " . $_SESSION['rol']);
     echo json_encode([
