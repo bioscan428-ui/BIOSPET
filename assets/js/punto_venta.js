@@ -170,6 +170,7 @@ async function finalizarVenta() {
     
     const id_cliente = idClienteSelect.value;
     const metodo_pago = metodoPagoSelect.value;
+    const fecha_venta = document.getElementById('fecha_venta').value;
     
     if (!id_cliente || !metodo_pago) {
         alert('Seleccione cliente y método de pago');
@@ -192,6 +193,7 @@ async function finalizarVenta() {
             body: JSON.stringify({
                 id_cliente: parseInt(id_cliente),
                 metodo_pago: metodo_pago,
+                fecha_venta: fecha_venta,
                 productos: carrito.map(item => ({
                     id: item.id,
                     cantidad: item.cantidad,
