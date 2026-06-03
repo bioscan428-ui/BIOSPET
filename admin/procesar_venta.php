@@ -106,10 +106,12 @@ escribirLog("Datos decodificados", $data);
 // MANEJO DE CLIENTE "VENTA AL PÚBLICO" (ID 0)
 $id_cliente = $data['id_cliente'] ?? 0;
 $metodo_pago = $data['metodo_pago'] ?? '';
+$fecha_venta = $data['fecha_venta'] ?? date('Y-m-d');
 $productos = $data['productos'] ?? [];
 $total = $data['total'] ?? 0;
 $recibido = $data['recibido'] ?? 0;
 $empleado_id = $_SESSION['empleado_id'] ?? null;
+$notas = "Venta realizada en punto de venta el " . date('Y-m-d H:i:s');
 
 // ============================================
 // MANEJO DE CLIENTE "VENTA AL PÚBLICO" (ID 0)
@@ -196,10 +198,10 @@ try {
     $subtotal = $total;
     $iva = 0;
     
-    $sql_venta = "INSERT INTO VENTA (id_cliente, id_empleado, subtotal, iva, total, metodo_pago, estado, fecha_venta) 
-                  VALUES (?, ?, ?, ?, ?, ?, 'completada', NOW())";
-    $stmt_venta = $conn->prepare($sql_venta);
-    $stmt_venta->bind_param("iiddds", $id_cliente, $empleado_id, $subtotal, $iva, $total, $metodo_pago);
+    $sql_venta = "INSERT INTO VENTA (id_cliente, id_empleado, fecha_venta, subtotal, iva, total, metodo_pago, estado, notas)
+                VALUES (?, ?, ?, ?, 0, ?, ?, 'completada', ?)";
+    $stmt = $conn->prepare($sql_venta);
+    $stmt->bind_param("iisddss", $id_cliente, $empleado_id, $fecha_venta, $total, $total, $metodo_pago, $notas);
     $stmt_venta->execute();
     $id_venta = $conn->insert_id;
     

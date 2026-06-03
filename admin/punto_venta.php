@@ -44,16 +44,8 @@ $empleado_id = $_SESSION['empleado_id'] ?? null;
     <link rel="stylesheet" href="../assets/css/punto_venta.css">
     <style>
         /* Estilos adicionales para el buscador de código */
-        .buscador-codigo input {
-            font-family: monospace;
-            font-size: 18px !important;
-            letter-spacing: 1px;
-        }
-        .buscador-codigo input:focus {
-            border-color: #4caf50;
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
-        }
+        .buscador-codigo input { font-family: monospace; font-size: 18px !important; letter-spacing: 1px; }
+        .buscador-codigo input:focus { border-color: #4caf50; outline: none; box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1); }
     </style>
 </head>
 <body>
@@ -124,7 +116,15 @@ $empleado_id = $_SESSION['empleado_id'] ?? null;
                         <span id="subtotal">$0.00</span>
                     </div>
                 </div>
-                
+
+                <!-----SELECTOR DE FECHA------->
+                <div class="fecha-venta" style="margin-bottom: 15px;">
+                    <label>📅 Fecha de venta</label>
+                    <input type="date" id="fecha_venta" value="<?php echo date('Y-m-d'); ?>" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                    <small style="color: #666; display: block; margin-top: 5px;">⚠️ Si es una venta de ayer, cambia la fecha</small>
+                </div>
+                <!-----FIN DE SELECTOR DE FECHA-------->
+
                 <div class="cliente-selector">
                     <label>👤 Cliente *</label>
                     <select id="id_cliente">
