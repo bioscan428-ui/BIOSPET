@@ -143,11 +143,11 @@ if (!$conn) {
                         <input type="text" name="raza">
                     </div>
 
-                    <!-- ELIMINADO: Campo Fecha de Nacimiento -->
-                    <!-- <div class="form-group">
+                    
+                    <div class="form-group">
                         <label>Fecha de Nacimiento</label>
                         <input type="date" name="fecha_nacimiento" max="<?php echo date('Y-m-d'); ?>">
-                    </div> -->
+                    </div>
 
                     <div class="form-group">
                         <label>Género</label>

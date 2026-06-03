@@ -43,6 +43,11 @@ $total_general = 0;
 $efectivo_total = 0;
 $electronico_total = 0;
 
+// Variables para desglose
+$detalle_productos = null;
+$detalle_servicios_citas = null;      // Servicios agendados (vienen de DETALLE_CITA)
+$detalle_servicios_productos = null;   // Servicios vendidos como productos (maneja_stock = 0)
+
 if ($tipo_vista === 'diario') {
     // VISTA DIARIA
     $stmt = $conn->prepare("CALL caja_diaria(?)");
@@ -65,6 +70,65 @@ if ($tipo_vista === 'diario') {
     $stmt_verificar->bind_param("s", $fecha_corte);
     $stmt_verificar->execute();
     $corte_existente = $stmt_verificar->get_result()->fetch_assoc();
+    
+    // ========== 1. PRODUCTOS FÍSICOS (manejan stock) ==========
+    $sql_detalle_productos = "SELECT 
+                                p.nombre as producto_nombre,
+                                SUM(dv.cantidad) as total_cantidad,
+                                SUM(dv.subtotal) as total_monto
+                            FROM DETALLE_VENTA dv
+                            JOIN VENTA v ON dv.id_venta = v.id
+                            JOIN PRODUCTO p ON dv.id_producto = p.id
+                            WHERE DATE(v.fecha_venta) = ?
+                              AND v.estado = 'completada'
+                              AND p.maneja_stock = 1
+                            GROUP BY dv.id_producto, p.nombre
+                            ORDER BY total_monto DESC";
+    $stmt_detalle = $conn->prepare($sql_detalle_productos);
+    $stmt_detalle->bind_param("s", $fecha_corte);
+    $stmt_detalle->execute();
+    $detalle_productos = $stmt_detalle->get_result();
+    $stmt_detalle->close();
+    
+    // ========== 2. SERVICIOS DE CITAS AGENDADOS (vienen de DETALLE_CITA) ==========
+    $sql_detalle_servicios_citas = "SELECT 
+                                s.nombre_servicio,
+                                COUNT(DISTINCT c.id) as numero_servicios,
+                                SUM(dc.precio_fijado) as total_monto
+                            FROM DETALLE_CITA dc
+                            JOIN CITA c ON dc.id_cita = c.id
+                            JOIN SERVICIO s ON dc.id_servicio = s.id
+                            WHERE DATE(c.fecha_cita) = ?
+                              AND c.pagada = 1
+                              AND c.estado IN ('completada', 'confirmada')
+                            GROUP BY s.id, s.nombre_servicio
+                            ORDER BY total_monto DESC";
+    $stmt_detalle_serv_citas = $conn->prepare($sql_detalle_servicios_citas);
+    $stmt_detalle_serv_citas->bind_param("s", $fecha_corte);
+    $stmt_detalle_serv_citas->execute();
+    $detalle_servicios_citas = $stmt_detalle_serv_citas->get_result();
+    $stmt_detalle_serv_citas->close();
+    
+    // ========== 3. SERVICIOS VENDIDOS COMO PRODUCTOS (baños, estética, etc.) ==========
+    $sql_detalle_servicios_productos = "SELECT 
+                                p.nombre as servicio_nombre,
+                                SUM(dv.cantidad) as total_cantidad,
+                                SUM(dv.subtotal) as total_monto
+                            FROM DETALLE_VENTA dv
+                            JOIN VENTA v ON dv.id_venta = v.id
+                            JOIN PRODUCTO p ON dv.id_producto = p.id
+                            WHERE DATE(v.fecha_venta) = ?
+                              AND v.estado = 'completada'
+                              AND p.maneja_stock = 0
+                            GROUP BY dv.id_producto, p.nombre
+                            ORDER BY total_monto DESC";
+    $stmt_detalle_serv_prod = $conn->prepare($sql_detalle_servicios_productos);
+    $stmt_detalle_serv_prod->bind_param("s", $fecha_corte);
+    $stmt_detalle_serv_prod->execute();
+    $detalle_servicios_productos = $stmt_detalle_serv_prod->get_result();
+    $stmt_detalle_serv_prod->close();
+
+    
     
 } else {
     // VISTA MENSUAL
@@ -149,7 +213,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
         
         if ($stmt_insert->execute()) {
             $id_corte = $conn->insert_id;
-            // Redirigir a ticket_corte.php para imprimir
             header("Location: ticket_corte.php?id=$id_corte&fecha=$fecha_corte");
             exit;
         } else {
@@ -207,7 +270,26 @@ if (isset($_GET['mensaje'])) {
         .tipo-btn { padding: 8px 20px; border: 1px solid #E68D0B; background: white; color: #E68D0B; border-radius: 8px; cursor: pointer; text-decoration: none; display: inline-block; }
         .tipo-btn.active { background: #E68D0B; color: white; }
         .no-print { print: none; }
-        @media print { .no-print { display: none; } body { background: white; } .corte-container { margin: 0; box-shadow: none; } .admin-header { display: none; } .total-card { box-shadow: none; } }
+        /* Estilos para el desglose */
+        .desglose-section { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 8px; }
+        .desglose-section h3 { color: #E68D0B; margin-bottom: 10px; font-size: 16px; }
+        .desglose-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dotted #ddd; font-size: 13px; }
+        .desglose-nombre { flex: 2; }
+        .desglose-cantidad { flex: 0.5; text-align: center; }
+        .desglose-monto { flex: 1; text-align: right; }
+        .desglose-total { font-weight: bold; margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd; }
+        
+        @media print { 
+            .no-print { display: none; } 
+            body { background: white; } 
+            .corte-container { margin: 0; box-shadow: none; } 
+            .admin-header { display: none; } 
+            .total-card { box-shadow: none; }
+            .desglose-section {
+                background: none;
+                padding: 5px 0;
+            }
+        }
     </style>
 </head>
 <body>
@@ -296,9 +378,72 @@ if (isset($_GET['mensaje'])) {
             </div>
         </div>
 
-        <!-- Resumen detallado -->
+        <!-- DESGLOSE DE PRODUCTOS FÍSICOS -->
+        <?php if ($tipo_vista === 'diario' && $detalle_productos && $detalle_productos->num_rows > 0): ?>
+        <div class="desglose-section">
+            <h3>📦 Productos Vendidos</h3>
+            <?php while($prod = $detalle_productos->fetch_assoc()): ?>
+            <div class="desglose-item">
+                <span class="desglose-nombre"><?php echo htmlspecialchars($prod['producto_nombre']); ?></span>
+                <span class="desglose-cantidad"><?php echo $prod['total_cantidad']; ?></span>
+                <span class="desglose-monto">$<?php echo number_format($prod['total_monto'], 2); ?></span>
+            </div>
+            <?php endwhile; ?>
+            <div class="desglose-total">
+                <div class="desglose-item">
+                    <span class="desglose-nombre"><strong>TOTAL PRODUCTOS</strong></span>
+                    <span class="desglose-cantidad"></span>
+                    <span class="desglose-monto"><strong>$<?php echo number_format($caja['total_ventas'] ?? 0, 2); ?></strong></span>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- DESGLOSE DE SERVICIOS DE CITAS AGENDADOS -->
+        <?php if ($tipo_vista === 'diario' && $detalle_servicios_citas && $detalle_servicios_citas->num_rows > 0): ?>
+        <div class="desglose-section">
+            <h3>🏥 Servicios de Citas</h3>
+            <?php while($serv = $detalle_servicios_citas->fetch_assoc()): ?>
+            <div class="desglose-item">
+                <span class="desglose-nombre"><?php echo htmlspecialchars($serv['nombre_servicio']); ?></span>
+                <span class="desglose-cantidad"><?php echo $serv['numero_servicios']; ?></span>
+                <span class="desglose-monto">$<?php echo number_format($serv['total_monto'], 2); ?></span>
+            </div>
+            <?php endwhile; ?>
+            <div class="desglose-total">
+                <div class="desglose-item">
+                    <span class="desglose-nombre"><strong>TOTAL SERVICIOS CITAS</strong></span>
+                    <span class="desglose-cantidad"></span>
+                    <span class="desglose-monto"><strong>$<?php echo number_format($caja['total_servicios'] ?? 0, 2); ?></strong></span>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- DESGLOSE DE SERVICIOS VENDIDOS EN PUNTO DE VENTA (baños, estética, etc.) -->
+        <?php if ($tipo_vista === 'diario' && $detalle_servicios_productos && $detalle_servicios_productos->num_rows > 0): ?>
+        <div class="desglose-section">
+            <h3>✂️ Servicios (Punto de Venta)</h3>
+            <?php while($serv = $detalle_servicios_productos->fetch_assoc()): ?>
+            <div class="desglose-item">
+                <span class="desglose-nombre"><?php echo htmlspecialchars($serv['servicio_nombre']); ?></span>
+                <span class="desglose-cantidad"><?php echo $serv['total_cantidad']; ?></span>
+                <span class="desglose-monto">$<?php echo number_format($serv['total_monto'], 2); ?></span>
+            </div>
+            <?php endwhile; ?>
+            <div class="desglose-total">
+                <div class="desglose-item">
+                    <span class="desglose-nombre"><strong>TOTAL SERVICIOS PDV</strong></span>
+                    <span class="desglose-cantidad"></span>
+                    <span class="desglose-monto"><strong>$<?php echo number_format($caja['total_ventas'] ?? 0, 2); ?></strong></span>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Resumen detallado de ingresos por método de pago -->
         <div class="resumen-detalle">
-            <h3 style="margin-bottom: 15px;">📋 Detalle de Ingresos</h3>
+            <h3 style="margin-bottom: 15px;">📋 Resumen de Ingresos</h3>
             
             <div class="resumen-item">
                 <span class="label">💵 Efectivo:</span>
@@ -315,6 +460,9 @@ if (isset($_GET['mensaje'])) {
                 <span class="label">📊 Número de transacciones (ventas):</span>
                 <span><?php echo $caja['numero_ventas'] ?? 0; ?></span>
             </div>
+
+            
+
             <div class="resumen-item">
                 <span class="label">📊 Número de servicios (citas):</span>
                 <span><?php echo $caja['numero_servicios'] ?? 0; ?></span>
@@ -387,14 +535,13 @@ if (isset($_GET['mensaje'])) {
 
     <script>
         function confirmarCierre() {
-        return confirm('⚠️ ¿Estás seguro de cerrar el corte de caja?\n\nUna vez cerrado, NO se podrán modificar las ventas de esta fecha.\n\nSe abrirá el ticket de corte para imprimir.\n\n¿Deseas continuar?');
-    }
-    
-    function imprimirTicketCorte() {
-        // Generar un ticket de corte temporal sin cerrar
-        const fecha = document.querySelector('input[name="fecha"]')?.value || '<?php echo $fecha_corte; ?>';
-        window.open(`ticket_corte_temp.php?fecha=${fecha}`, '_blank', 'width=350,height=600,toolbar=no,menubar=no,scrollbars=yes');
-    }
+            return confirm('⚠️ ¿Estás seguro de cerrar el corte de caja?\n\nUna vez cerrado, NO se podrán modificar las ventas de esta fecha.\n\nSe abrirá el ticket de corte para imprimir.\n\n¿Deseas continuar?');
+        }
+        
+        function imprimirTicketCorte() {
+            const fecha = document.querySelector('input[name="fecha"]')?.value || '<?php echo $fecha_corte; ?>';
+            window.open(`ticket_corte_temp.php?fecha=${fecha}`, '_blank', 'width=380,height=600,toolbar=no,menubar=no,scrollbars=yes');
+        }
     </script>
 </body>
 </html>

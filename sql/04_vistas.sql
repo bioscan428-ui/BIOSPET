@@ -169,17 +169,19 @@ SELECT
     p.codigo_barras,
     c.nombre AS categoria,
     p.id_categoria,
-    p.id_proveedor,  -- ← AGREGAR esta línea
+    p.id_proveedor,
     p.stock_actual,
     p.stock_minimo,
     p.precio_compra,
     p.precio_venta,
     p.ubicacion,
     p.fecha_vencimiento,
+    p.maneja_stock,
     DATEDIFF(p.fecha_vencimiento, CURDATE()) AS dias_vencimiento
 FROM PRODUCTO p
 JOIN CATEGORIA_PRODUCTO c ON p.id_categoria = c.id
 WHERE p.activo = 1 
+  AND p.maneja_stock = 1  -- 👈 Solo productos que manejan stock
   AND (p.stock_actual <= p.stock_minimo 
        OR p.fecha_vencimiento <= DATE_ADD(CURDATE(), INTERVAL 30 DAY))
 ORDER BY p.stock_actual ASC, p.fecha_vencimiento ASC;

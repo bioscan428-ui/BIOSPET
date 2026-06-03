@@ -32,6 +32,44 @@ if (!$corte) {
 }
 
 $empleado_completo = trim($corte['empleado_nombre'] . ' ' . ($corte['ape_pat'] ?? '') . ' ' . ($corte['ape_mat'] ?? ''));
+
+// ========== OBTENER DETALLE DE PRODUCTOS VENDIDOS ==========
+$sql_detalle_productos = "SELECT 
+                            p.nombre as producto_nombre,
+                            SUM(dv.cantidad) as total_cantidad,
+                            SUM(dv.subtotal) as total_monto
+                        FROM DETALLE_VENTA dv
+                        JOIN VENTA v ON dv.id_venta = v.id
+                        JOIN PRODUCTO p ON dv.id_producto = p.id
+                        WHERE DATE(v.fecha_venta) = ?
+                          AND v.estado = 'completada'
+                          AND p.maneja_stock = 1
+                        GROUP BY dv.id_producto, p.nombre
+                        ORDER BY total_monto DESC";
+$stmt_detalle = $conn->prepare($sql_detalle_productos);
+$stmt_detalle->bind_param("s", $fecha_corte);
+$stmt_detalle->execute();
+$detalle_productos = $stmt_detalle->get_result();
+$stmt_detalle->close();
+
+// ========== OBTENER DETALLE DE SERVICIOS VENDIDOS ==========
+$sql_detalle_servicios = "SELECT 
+                            s.nombre_servicio,
+                            COUNT(DISTINCT c.id) as numero_servicios,
+                            SUM(dc.precio_fijado) as total_monto
+                        FROM DETALLE_CITA dc
+                        JOIN CITA c ON dc.id_cita = c.id
+                        JOIN SERVICIO s ON dc.id_servicio = s.id
+                        WHERE DATE(c.fecha_cita) = ?
+                          AND c.pagada = 1
+                          AND c.estado IN ('completada', 'confirmada')
+                        GROUP BY s.id, s.nombre_servicio
+                        ORDER BY total_monto DESC";
+$stmt_detalle_serv = $conn->prepare($sql_detalle_servicios);
+$stmt_detalle_serv->bind_param("s", $fecha_corte);
+$stmt_detalle_serv->execute();
+$detalle_servicios = $stmt_detalle_serv->get_result();
+$stmt_detalle_serv->close();
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -46,13 +84,13 @@ $empleado_completo = trim($corte['empleado_nombre'] . ' ' . ($corte['ape_pat'] ?
         }
         body {
             font-family: 'Courier New', monospace;
-            font-size: 15px; /* Subido a 15px para igualar la fuerza del punto de venta */
-            width: 100%;     /* Cambiado a 100% para expandir a los lados del papel */
+            font-size: 12px;
+            width: 100%;
             margin: 0;
-            padding: 10px 0px; /* 0px a los costados para eliminar márgenes blancos */
+            padding: 10px 5px;
             background: white;
             color: #000;
-            letter-spacing: -0.3px; /* Espaciado compacto para evitar saltos de línea molestos */
+            letter-spacing: -0.3px;
         }
         .center { text-align: center; }
         .bold { font-weight: bold; }
@@ -60,52 +98,77 @@ $empleado_completo = trim($corte['empleado_nombre'] . ' ' . ($corte['ape_pat'] ?
         .left { text-align: left; }
         .line { 
             border-top: 1px dashed #000; 
-            margin: 6px 0; 
+            margin: 4px 0; 
         }
         .line-doble { 
             border-top: 2px solid #000; 
-            margin: 8px 0; 
+            margin: 6px 0; 
         }
         .info-row { 
             display: flex; 
             justify-content: space-between; 
-            margin: 5px 0; 
+            margin: 3px 0; 
         }
         .total { 
-            font-size: 18px; /* Total destacado proporcionalmente */
+            font-size: 14px; 
             font-weight: bold; 
+        }
+        .subtitulo { 
+            font-weight: bold; 
+            margin: 6px 0 3px 0; 
+            text-decoration: underline;
+        }
+        .producto-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 2px 0;
+            font-size: 11px;
+        }
+        .producto-nombre {
+            width: 65%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .producto-cantidad {
+            width: 15%;
+            text-align: center;
+        }
+        .producto-monto {
+            width: 20%;
+            text-align: right;
         }
         .no-print {
             text-align: center;
-            margin-top: 20px;
+            margin-top: 15px;
         }
         .btn-print {
             background: #4caf50;
             color: white;
             border: none;
-            padding: 10px 16px;
+            padding: 8px 16px;
             margin: 5px;
             cursor: pointer;
             border-radius: 5px;
             font-family: monospace;
-            font-size: 15px; /* Botones proporcionales a 15px */
+            font-size: 13px;
             width: 45%;
         }
         .btn-close {
             background: #666;
             color: white;
             border: none;
-            padding: 10px 16px;
+            padding: 8px 16px;
             margin: 5px;
             cursor: pointer;
             border-radius: 5px;
             font-family: monospace;
-            font-size: 15px; /* Botones proporcionales a 15px */
+            font-size: 13px;
             width: 45%;
         }
         @media print {
             body { 
-                padding: 2px 0px; /* Clave para la impresión física real */
+                padding: 5px 3px;
             }
             .no-print { 
                 display: none; 
@@ -115,7 +178,7 @@ $empleado_completo = trim($corte['empleado_nombre'] . ' ' . ($corte['ape_pat'] ?
 </head>
 <body>
     <div class="center">
-        <img src="/assets/images/logo_biospet_inverso.png" alt="BIOSPET" style="max-width: 160px; margin-bottom: 8px;">
+        <img src="/assets/images/logo_biospet_inverso.png" alt="BIOSPET" style="max-width: 130px; margin-bottom: 5px;">
         <p><strong>BIOSPET</strong><br>
         CORTE DE CAJA<br>
         <?php echo date('d/m/Y', strtotime($corte['fecha_corte'])); ?></p>
@@ -132,6 +195,33 @@ $empleado_completo = trim($corte['empleado_nombre'] . ' ' . ($corte['ape_pat'] ?
 
     <div class="line"></div>
 
+    <!-- DESGLOSE DE PRODUCTOS VENDIDOS -->
+    <?php if ($detalle_productos && $detalle_productos->num_rows > 0): ?>
+        <div class="subtitulo">📦 PRODUCTOS VENDIDOS</div>
+        <?php while($prod = $detalle_productos->fetch_assoc()): ?>
+            <div class="producto-item">
+                <span class="producto-nombre"><?php echo htmlspecialchars(substr($prod['producto_nombre'], 0, 35)); ?></span>
+                <span class="producto-cantidad"><?php echo $prod['total_cantidad']; ?></span>
+                <span class="producto-monto">$<?php echo number_format($prod['total_monto'], 2); ?></span>
+            </div>
+        <?php endwhile; ?>
+        <div class="line"></div>
+    <?php endif; ?>
+
+    <!-- DESGLOSE DE SERVICIOS VENDIDOS -->
+    <?php if ($detalle_servicios && $detalle_servicios->num_rows > 0): ?>
+        <div class="subtitulo">🏥 SERVICIOS VENDIDOS</div>
+        <?php while($serv = $detalle_servicios->fetch_assoc()): ?>
+            <div class="producto-item">
+                <span class="producto-nombre"><?php echo htmlspecialchars(substr($serv['nombre_servicio'], 0, 35)); ?></span>
+                <span class="producto-cantidad"><?php echo $serv['numero_servicios']; ?></span>
+                <span class="producto-monto">$<?php echo number_format($serv['total_monto'], 2); ?></span>
+            </div>
+        <?php endwhile; ?>
+        <div class="line"></div>
+    <?php endif; ?>
+
+    <!-- TOTALES -->
     <div class="info-row">
         <span>🛒 VENTAS PRODUCTOS:</span>
         <span>$<?php echo number_format($corte['total_ventas'], 2); ?></span>
@@ -148,7 +238,7 @@ $empleado_completo = trim($corte['empleado_nombre'] . ' ' . ($corte['ape_pat'] ?
         <span>$<?php echo number_format($corte['total_efectivo'], 2); ?></span>
     </div>
     <div class="info-row">
-        <span>💳 TARJETA/TRANSF:</span>
+        <span>💳 TARJETA/TRANSFERENCIA:</span>
         <span>$<?php echo number_format($corte['total_electronico'], 2); ?></span>
     </div>
     
@@ -166,7 +256,7 @@ $empleado_completo = trim($corte['empleado_nombre'] . ' ' . ($corte['ape_pat'] ?
         <span>Observaciones:</span>
     </div>
     <div class="info-row">
-        <span style="font-size: 13px; word-wrap: break-word; width: 100%;"><?php echo htmlspecialchars($corte['observaciones']); ?></span>
+        <span style="font-size: 10px; word-wrap: break-word;"><?php echo htmlspecialchars($corte['observaciones']); ?></span>
     </div>
     <div class="line"></div>
     <?php endif; ?>

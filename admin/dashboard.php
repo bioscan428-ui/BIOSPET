@@ -461,6 +461,7 @@ if ($resumen_sql) {
                         </span>
                         <td class="acciones">
                             <a href="detalle_cita.php?id=<?php echo $row['cita_id']; ?>" class="btn-small">Ver</a>
+                            <a href="editar_cita.php?id=<?php echo $row['cita_id']; ?>" class="btn-small" style="background: #ff9800; color: white;">✏️ Editar</a>
                             <?php if ($row['estado'] == 'pendiente'): ?>
                                 <a href="actualizar_estado.php?id=<?php echo $row['cita_id']; ?>&estado=confirmada" class="btn-small">Confirmar</a>
                             <?php endif; ?>

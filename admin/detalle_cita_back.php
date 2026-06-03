@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Verificar rol para acceso
-if (!in_array($_SESSION['rol'], ['super_admin', 'admin', 'veterinario', 'asistente', 'recepcionista'])) {
+if (!in_array($_SESSION['rol'], ['super_admin', 'admin', 'veterinario', 'asistente', 'recepcionista','caja'])) {
     header('Location: login.php');
     exit;
 }
@@ -130,7 +130,7 @@ foreach ($servicios_estetica as $keyword) {
         break;
     }
 }
-if (in_array($_SESSION['rol'], ['super_admin', 'admin']) && $tiene_servicios_estetica) {
+if (in_array($_SESSION['rol'], ['super_admin', 'admin','caja']) && $tiene_servicios_estetica) {
     // Groomer actualmente asignado
     $sql_asignado_groomer = "SELECT e.id, e.nombre, e.ape_pat 
                             FROM ASIGNACION_CITA ac
@@ -145,7 +145,7 @@ if (in_array($_SESSION['rol'], ['super_admin', 'admin']) && $tiene_servicios_est
     $sql_groomers = "SELECT e.id, e.nombre, e.ape_pat
                     FROM EMPLEADO e
                     JOIN USUARIO u ON e.id = u.id_empleado
-                    WHERE e.puesto = 'grooming' AND e.activo = 1 AND u.activo = 1
+                    WHERE u.rol = 'grooming' AND e.activo = 1 AND u.activo = 1
                     ORDER BY e.nombre";
     $groomers = $conn->query($sql_groomers);
 }

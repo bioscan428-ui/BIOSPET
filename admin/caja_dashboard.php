@@ -94,19 +94,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
 // Obtener productos con stock bajo
 $sql_stock_bajo = "SELECT p.id, p.nombre, p.stock_actual, p.stock_minimo, c.nombre as categoria
-                   FROM PRODUCTO p
-                   JOIN CATEGORIA_PRODUCTO c ON p.id_categoria = c.id
-                   WHERE p.activo = 1 AND p.stock_actual <= p.stock_minimo
-                   ORDER BY p.stock_actual ASC
-                   LIMIT 50";
+                    FROM PRODUCTO p
+                    JOIN CATEGORIA_PRODUCTO c ON p.id_categoria = c.id
+                    WHERE p.activo = 1 
+                        AND p.maneja_stock = 1
+                        AND p.stock_actual <= p.stock_minimo
+                    ORDER BY p.stock_actual ASC
+                    LIMIT 50";
 $productos_stock_bajo = $conn->query($sql_stock_bajo);
 
 // Obtener todos los productos
 $sql_productos = "SELECT p.id, p.nombre, p.stock_actual, p.stock_minimo, c.nombre as categoria
-                  FROM PRODUCTO p
-                  JOIN CATEGORIA_PRODUCTO c ON p.id_categoria = c.id
-                  WHERE p.activo = 1
-                  ORDER BY p.nombre ASC";
+                    FROM PRODUCTO p
+                    JOIN CATEGORIA_PRODUCTO c ON p.id_categoria = c.id
+                    WHERE p.activo = 1
+                    ORDER BY p.nombre ASC";
 $todos_productos = $conn->query($sql_productos);
 
 // Obtener movimientos recientes
@@ -120,9 +122,9 @@ $movimientos_recientes = $conn->query($sql_movimientos);
 
 // Estadísticas
 $total_productos = $conn->query("SELECT COUNT(*) as total FROM PRODUCTO WHERE activo = 1")->fetch_assoc()['total'];
-$stock_bajo_total = $conn->query("SELECT COUNT(*) as total FROM PRODUCTO WHERE activo = 1 AND stock_actual <= stock_minimo")->fetch_assoc()['total'];
-$agotados = $conn->query("SELECT COUNT(*) as total FROM PRODUCTO WHERE activo = 1 AND stock_actual = 0")->fetch_assoc()['total'];
-$valor_inventario = $conn->query("SELECT SUM(stock_actual * precio_compra) as total FROM PRODUCTO WHERE activo = 1")->fetch_assoc()['total'];
+$stock_bajo_total = $conn->query("SELECT COUNT(*) as total FROM PRODUCTO WHERE activo = 1 AND maneja_stock = 1 AND stock_actual <= stock_minimo")->fetch_assoc()['total'];
+$agotados = $conn->query("SELECT COUNT(*) as total FROM PRODUCTO WHERE activo = 1 AND maneja_stock = 1 AND stock_actual = 0")->fetch_assoc()['total'];
+$valor_inventario = $conn->query("SELECT SUM(stock_actual * precio_compra) as total FROM PRODUCTO WHERE activo = 1 AND maneja_stock = 1")->fetch_assoc()['total'];
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -241,6 +243,7 @@ $valor_inventario = $conn->query("SELECT SUM(stock_actual * precio_compra) as to
                 <div style="display: flex; gap: 10px;">
                     <a href="../citas.php" target="_blank" class="btn-small" style="background: #4caf50;">📝 Nueva Cita</a>
                     <a href="cita_cliente_registrado.php" target="_blank" class="btn-small" style="background: #2196f3;">👥 Cita con Cliente Registrado</a>
+                    <button onclick="abrirModalMascotas()" class="btn-small" style="background: #9c27b0;">🐾 Ver Historial de Mascotas</button>
                 </div>
             </div>
             
@@ -320,6 +323,7 @@ $valor_inventario = $conn->query("SELECT SUM(stock_actual * precio_compra) as to
                                 </td>
                                 <td>
                                     <a href="detalle_cita.php?id=<?php echo $row['cita_id']; ?>" class="btn-small">Ver</a>
+                                    <a href="editar_cita.php?id=<?php echo $row['cita_id']; ?>" class="btn-small" style="background: #ff9800; color: white;">✏️ Editar</a>
                                     <?php if ($row['estado'] == 'pendiente'): ?>
                                         <a href="actualizar_estado.php?id=<?php echo $row['cita_id']; ?>&estado=confirmada" class="btn-small" style="background:#4caf50;">Confirmar</a>
                                     <?php endif; ?>
@@ -511,6 +515,21 @@ $valor_inventario = $conn->query("SELECT SUM(stock_actual * precio_compra) as to
         </div>
     </div>
 
+    <!-- Modal de Historial de Mascotas -->
+    <div id="modalMascotas" class="modal">
+        <div class="modal-content modal-grande" style="max-width: 900px; width: 90%;">
+            <div class="modal-header" style="background: #9c27b0; padding: 15px; display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="color: white; margin: 0;">🐾 Historial de Mascotas</h2>
+                <span class="close-mascotas" style="color: white; font-size: 28px; cursor: pointer;">&times;</span>
+            </div>
+            <div class="modal-body" id="modalMascotasBody" style="padding: 20px; max-height: 500px; overflow-y: auto;">
+                <div style="text-align: center; padding: 40px;">
+                    Cargando...
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Buscador de productos
         const buscador = document.getElementById('buscadorProductos');
@@ -551,6 +570,36 @@ $valor_inventario = $conn->query("SELECT SUM(stock_actual * precio_compra) as to
                 cerrarModalStock();
             }
         });
+
+        // Modal de Historial de Mascotas
+    const modalMascotas = document.getElementById('modalMascotas');
+    const closeMascotas = document.getElementsByClassName('close-mascotas')[0];
+    
+    function abrirModalMascotas() {
+        modalMascotas.style.display = 'flex';
+        document.getElementById('modalMascotasBody').innerHTML = '<div style="text-align: center; padding: 40px;">Cargando...</div>';
+        
+        fetch('get_historial_mascotas.php')
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('modalMascotasBody').innerHTML = html;
+            })
+            .catch(error => {
+                document.getElementById('modalMascotasBody').innerHTML = '<div style="color: red; text-align: center; padding: 40px;">Error al cargar los datos</div>';
+            });
+    }
+    
+    if (closeMascotas) {
+        closeMascotas.onclick = function() {
+            modalMascotas.style.display = 'none';
+        }
+    }
+    
+    window.onclick = function(event) {
+        if (event.target == modalMascotas) {
+            modalMascotas.style.display = 'none';
+        }
+    }
     </script>
 </body>
 </html>

@@ -6,7 +6,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Verificar rol para cambiar estado o registrar pago
-if (!in_array($_SESSION['rol'], ['super_admin', 'admin', 'recepcionista'])) {
+if (!in_array($_SESSION['rol'], ['super_admin', 'admin', 'recepcionista', 'caja', 'groomer'])) {
     header('Location: dashboard.php');
     exit;
 }

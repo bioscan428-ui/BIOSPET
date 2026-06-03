@@ -1,5 +1,8 @@
 <?php
 session_start();
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 header('Content-Type: application/json');
 
 // ============================================
@@ -170,7 +173,7 @@ try {
     // 1. Verificar stock de todos los productos
     escribirLog("=== VERIFICANDO STOCK ===");
     foreach ($productos as $prod) {
-        $sql_stock = "SELECT stock_actual, nombre, id FROM PRODUCTO WHERE id = ?";
+        $sql_stock = "SELECT stock_actual, nombre, id, maneja_stock FROM PRODUCTO WHERE id = ?";
         $stmt_stock = $conn->prepare($sql_stock);
         $stmt_stock->bind_param("i", $prod['id']);
         $stmt_stock->execute();
@@ -179,6 +182,10 @@ try {
         
         if (!$producto) {
             throw new Exception("Producto no encontrado (ID: {$prod['id']})");
+        }
+        if ($producto['maneja_stock'] == 0) {
+        escribirLog("Producto sin manejo de stock (servicio): {$producto['nombre']} - omitiendo validación");
+        continue;  // Saltar este producto, no verificar stock
         }
         
         escribirLog("Stock verificado", [
@@ -202,7 +209,7 @@ try {
                 VALUES (?, ?, ?, ?, 0, ?, ?, 'completada', ?)";
     $stmt = $conn->prepare($sql_venta);
     $stmt->bind_param("iisddss", $id_cliente, $empleado_id, $fecha_venta, $total, $total, $metodo_pago, $notas);
-    $stmt_venta->execute();
+    $stmt->execute();
     $id_venta = $conn->insert_id;
     
     if (!$id_venta) {
