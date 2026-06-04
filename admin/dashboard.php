@@ -129,6 +129,7 @@ if ($resumen_sql) {
                     <a href="producto_nuevo.php">➕ Nuevo Producto</a>
                     <hr style="margin: 5px 0; border-color: #eee;">
                     <a href="proveedores.php">🏭 Proveedores</a>
+                    <a href="promociones.php"> Promociones</a>
                 </div>
             </div>
             <!-- Dropdown Productos -->

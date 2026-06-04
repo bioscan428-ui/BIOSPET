@@ -244,6 +244,7 @@ $valor_inventario = $conn->query("SELECT SUM(stock_actual * precio_compra) as to
                     <a href="../citas.php" target="_blank" class="btn-small" style="background: #4caf50;">📝 Nueva Cita</a>
                     <a href="cita_cliente_registrado.php" target="_blank" class="btn-small" style="background: #2196f3;">👥 Cita con Cliente Registrado</a>
                     <button onclick="abrirModalMascotas()" class="btn-small" style="background: #9c27b0;">🐾 Ver Historial de Mascotas</button>
+                    <button onclick="eliminarCitasCanceladas()" class="btn-small" style="background: #f44336;">🗑️ Eliminar Citas Canceladas</button>
                 </div>
             </div>
             
@@ -600,6 +601,31 @@ $valor_inventario = $conn->query("SELECT SUM(stock_actual * precio_compra) as to
             modalMascotas.style.display = 'none';
         }
     }
+
+    //Funcion de eliminar citas canceladas
+    function eliminarCitasCanceladas() {
+    if (confirm('⚠️ ¿Estás seguro de eliminar TODAS las citas canceladas?\n\nEsta acción NO se puede deshacer.\n\n¿Deseas continuar?')) {
+        fetch('eliminar_citas_canceladas.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: 'confirmar=1'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ ' + data.message);
+                location.reload();
+            } else {
+                alert('❌ Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('❌ Error al conectar con el servidor');
+        });
+    }
+}
     </script>
 </body>
 </html>

@@ -5,22 +5,16 @@
 -- Procedimiento: Registrar nuevo cliente con mascota - ✅ YA SE ESTA USANDO (citas.php)
 DELIMITER $$
 
-DROP PROCEDURE IF EXISTS registrar_cliente_mascota$$
+DROP PROCEDURE IF EXISTS registrar_cliente$$
 
-CREATE PROCEDURE registrar_cliente_mascota(
+CREATE PROCEDURE registrar_cliente(
     IN p_nombre_cliente VARCHAR(100),
     IN p_ape_pat VARCHAR(50),
     IN p_ape_mat VARCHAR(50),
     IN p_telefono VARCHAR(15),
     IN p_email VARCHAR(100),
     IN p_direccion TEXT,
-    IN p_nombre_mascota VARCHAR(100),
-    IN p_especie ENUM('Canino', 'Felino', 'Otro'),
-    IN p_raza VARCHAR(50),
-    IN p_genero ENUM('MACHO', 'HEMBRA'),
-    IN p_foto VARCHAR(500),
-    OUT p_id_cliente INT,
-    OUT p_id_mascota INT
+    OUT p_id_cliente INT
 )
 BEGIN
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
@@ -31,15 +25,19 @@ BEGIN
     
     START TRANSACTION;
     
-    -- Insertar cliente
-    INSERT INTO CLIENTE (nombre, ape_pat, ape_mat, telefono, email, direccion)
-    VALUES (p_nombre_cliente, p_ape_pat, p_ape_mat, p_telefono, p_email, p_direccion);
-    SET p_id_cliente = LAST_INSERT_ID();
+    -- Buscar si el cliente ya existe por teléfono o email
+    SELECT id INTO p_id_cliente 
+    FROM CLIENTE 
+    WHERE telefono = p_telefono 
+       OR (p_email IS NOT NULL AND email = p_email)
+    LIMIT 1;
     
-    -- Insertar mascota
-    INSERT INTO MASCOTA (id_cliente, nombre_mascota, especie, raza, genero, foto)
-    VALUES (p_id_cliente, p_nombre_mascota, p_especie, p_raza, p_genero, p_foto);
-    SET p_id_mascota = LAST_INSERT_ID();
+    -- Si no existe, insertar nuevo cliente
+    IF p_id_cliente IS NULL THEN
+        INSERT INTO CLIENTE (nombre, ape_pat, ape_mat, telefono, email, direccion)
+        VALUES (p_nombre_cliente, p_ape_pat, p_ape_mat, p_telefono, p_email, p_direccion);
+        SET p_id_cliente = LAST_INSERT_ID();
+    END IF;
     
     COMMIT;
 END$$

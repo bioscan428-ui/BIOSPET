@@ -17,8 +17,14 @@ if (!in_array($_SESSION['rol'], ['super_admin', 'admin', 'recepcionista', 'caja'
 
 require_once __DIR__ . '/../includes/conexion.php';
 
-// Obtener productos activos con stock
-$sql_productos = "SELECT p.*, c.nombre as categoria
+// Obtener productos activos con stock y su información de promoción
+$sql_productos = "SELECT p.*, c.nombre as categoria,
+                        c.promocion_activa, c.porcentaje_promocion,
+                        CASE
+                            WHEN c.promocion_activa = 1 AND p.maneja_stock = 0
+                            THEN p.precio_venta * (1 - c.porcentaje_promocion / 100)
+                            ELSE p.precio_venta
+                        END as precio_promocion
                 FROM PRODUCTO p
                 JOIN CATEGORIA_PRODUCTO c ON p.id_categoria = c.id
                 WHERE p.activo = 1
@@ -28,7 +34,7 @@ $productos = $conn->query($sql_productos);
 
 // Obtener clientes para seleccionar
 $sql_clientes = "SELECT id, CONCAT(nombre, ' ', IFNULL(ape_pat, '')) as nombre 
-                 FROM CLIENTE WHERE activo = 1 ORDER BY nombre ASC";
+                FROM CLIENTE WHERE activo = 1 ORDER BY nombre ASC";
 $clientes = $conn->query($sql_clientes);
 
 // Obtener empleado actual (para registro de venta)
@@ -66,8 +72,8 @@ $empleado_id = $_SESSION['empleado_id'] ?? null;
                 <!-- ====== CÓDIGO DE BARRAS ====== -->
                 <div class="buscador-codigo" style="margin-bottom: 15px;">
                     <input type="text" id="buscadorCodigo" 
-                           placeholder="📷 Escanea código de barras o ingresa número" 
-                           style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;">
+                            placeholder="📷 Escanea código de barras o ingresa número" 
+                            style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;">
                 </div>
                 
                 <!-- Buscador por nombre -->
@@ -76,15 +82,35 @@ $empleado_id = $_SESSION['empleado_id'] ?? null;
                 </div>
                 
                 <div class="productos-grid" id="productosGrid">
-                    <?php while($prod = $productos->fetch_assoc()): ?>
+                    <?php while($prod = $productos->fetch_assoc()):
+                        $tiene_promocion = ($prod['promocion_activa'] == 1 && $prod['maneja_stock'] == 0);
+                        $precio_mostrar = $tiene_promocion ? $prod['precio_final'] : $prod['precio_venta'];
+                    ?>
                         <div class="producto-card" data-id="<?php echo $prod['id']; ?>"
                             data-nombre="<?php echo htmlspecialchars($prod['nombre']); ?>"
-                            data-precio="<?php echo $prod['precio_venta']; ?>"
+                            data-precio="<?php echo $precio_mostrar; ?>"
+                            data-precio-original="<?php echo $prod['precio_venta']; ?>"
                             data-stock="<?php echo $prod['stock_actual']; ?>"
                             data-codigo="<?php echo $prod['codigo_barras'] ?? ''; ?>"
-                            data-maneja-stock="<?php echo $prod['maneja_stock'] ?? 1; ?>">
+                            data-maneja-stock="<?php echo $prod['maneja_stock'] ?? 1; ?>"
+                            data-promocion="<?php echo $tiene_promocion ? '1' : '0'; ?>"
+                            data-descuento="<?php echo $prod['porcentaje_promocion'] ?? 0; ?>">
                             <div class="nombre"><?php echo htmlspecialchars($prod['nombre']); ?></div>
-                            <div class="precio">$<?php echo number_format($prod['precio_venta'], 2); ?></div>
+                            <div class="precio">
+                                <?php if ($tiene_promocion): ?>
+                                    <span style="text-decoration: line-through; color: #999; font-size: 12px;">
+                                        $<?php echo number_format($prod['precio_venta'], 2); ?>
+                                    </span>
+                                    <span style="color: #4caf50; font-weight: bold;">
+                                        $<?php echo number_format($precio_mostrar, 2); ?>
+                                    </span>
+                                    <span style="background: #4caf50; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px;">
+                                        -<?php echo $prod['porcentaje_promocion']; ?>%
+                                    </span>
+                                <?php else: ?>
+                                    $<?php echo number_format($prod['precio_venta'], 2); ?>
+                                <?php endif; ?>
+                            </div>
                             <div class="stock <?php echo $prod['stock_actual'] < 10 ? 'stock-bajo' : ''; ?>">
                                 📦 Stock: <?php echo $prod['stock_actual']; ?>
                             </div>

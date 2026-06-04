@@ -29,6 +29,7 @@ $sql = "SELECT
             c.notas,
             c.origen,
             c.estado,
+            c.pagada,
             m.id as mascota_id,
             m.nombre_mascota,
             m.especie,
@@ -41,7 +42,8 @@ $sql = "SELECT
             cl.ape_mat,
             cl.telefono,
             cl.email,
-            cl.direccion
+            cl.direccion,
+            (SELECT COALESCE(SUM(dc.precio_fijado), 0) FROM DETALLE_CITA dc WHERE dc.id_cita = c.id) as total_servicios
         FROM CITA c
         JOIN MASCOTA m ON c.id_mascota = m.id
         JOIN CLIENTE cl ON m.id_cliente = cl.id
@@ -55,27 +57,36 @@ if (!$cita) {
     die("Cita no encontrada");
 }
 
-// ========== VALIDACIÓN: No editar citas canceladas o completadas ==========
-$estados_no_editables = ['cancelada', 'completada'];
-$cita_editable = !in_array($cita['estado'], $estados_no_editables);
+// Obtener todas las mascotas del cliente (para poder cambiar de mascota)
+$sql_mascotas_cliente = "SELECT id, nombre_mascota, especie, raza FROM MASCOTA WHERE id_cliente = ? AND activo = 1";
+$stmt_masc = $conn->prepare($sql_mascotas_cliente);
+$stmt_masc->bind_param("i", $cita['cliente_id']);
+$stmt_masc->execute();
+$mascotas_cliente = $stmt_masc->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// Obtener servicios de la cita
-$sql_servicios_cita = "SELECT id_servicio FROM DETALLE_CITA WHERE id_cita = ?";
+// Obtener servicios de la cita con sus precios actuales (fijados)
+$sql_servicios_cita = "SELECT 
+                            dc.id_servicio,
+                            dc.precio_fijado,
+                            s.nombre_servicio,
+                            s.precio as precio_actual_oficial
+                        FROM DETALLE_CITA dc
+                        JOIN SERVICIO s ON dc.id_servicio = s.id
+                        WHERE dc.id_cita = ?";
 $stmt_serv = $conn->prepare($sql_servicios_cita);
 $stmt_serv->bind_param("i", $id_cita);
 $stmt_serv->execute();
 $servicios_cita = $stmt_serv->get_result()->fetch_all(MYSQLI_ASSOC);
-$servicios_seleccionados = array_column($servicios_cita, 'id_servicio');
 
-// Obtener todos los servicios para el checkbox
-$sql_servicios = "SELECT id, nombre_servicio, precio FROM SERVICIO WHERE activo = 1 ORDER BY nombre_servicio";
-$servicios = $conn->query($sql_servicios);
+// Obtener todos los servicios disponibles (para agregar nuevos)
+$sql_servicios_disponibles = "SELECT id, nombre_servicio, precio FROM SERVICIO WHERE activo = 1 ORDER BY nombre_servicio";
+$servicios_disponibles = $conn->query($sql_servicios_disponibles);
 
-// Procesar actualización (solo si la cita es editable)
+// Procesar actualización
 $mensaje = '';
 $error = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $cita_editable) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Datos del dueño
     $nombre_dueno = trim($_POST['nombre_dueno']);
     $ape_pat = trim($_POST['ape_pat'] ?? '');
@@ -84,9 +95,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $cita_editable) {
     $email = trim($_POST['email'] ?? '');
     $direccion = trim($_POST['direccion'] ?? '');
     
-    // Datos de la mascota
+    // Datos de la mascota (puede ser la misma u otra)
+    $id_mascota = (int)($_POST['id_mascota'] ?? 0);
     $nombre_mascota = trim($_POST['nombre_mascota']);
-    $especie = $_POST['especie'];
+    $especie = $_POST['especie'] ?? '';
     $raza = trim($_POST['raza'] ?? '');
     $genero = $_POST['genero'] ?? null;
     
@@ -95,7 +107,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $cita_editable) {
     $hora_cita = $_POST['hora_cita'];
     $notas = trim($_POST['notas'] ?? '');
     $origen = $_POST['origen'];
-    $servicios_seleccionados_post = $_POST['servicios'] ?? [];
+    
+    // Servicios: array con id_servicio => precio_modificado
+    $servicios_precios = $_POST['servicios_precios'] ?? [];
     
     // Validaciones básicas
     if (empty($nombre_dueno) || empty($telefono) || empty($nombre_mascota) || empty($fecha_cita) || empty($hora_cita)) {
@@ -114,11 +128,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $cita_editable) {
             $stmt_cli->bind_param("ssssssi", $nombre_dueno, $ape_pat, $ape_mat, $telefono, $email, $direccion, $cita['cliente_id']);
             $stmt_cli->execute();
             
-            // 2. Actualizar MASCOTA
-            $sql_update_mascota = "UPDATE MASCOTA SET nombre_mascota = ?, especie = ?, raza = ?, genero = ? WHERE id = ?";
-            $stmt_masc = $conn->prepare($sql_update_mascota);
-            $stmt_masc->bind_param("ssssi", $nombre_mascota, $especie, $raza, $genero, $cita['mascota_id']);
-            $stmt_masc->execute();
+            // 2. Si la mascota cambió o se actualizó
+            if ($id_mascota > 0 && $id_mascota != $cita['mascota_id']) {
+                // Cambiar a una mascota existente del mismo cliente
+                $sql_update_cita_mascota = "UPDATE CITA SET id_mascota = ? WHERE id = ?";
+                $stmt_update_masc = $conn->prepare($sql_update_cita_mascota);
+                $stmt_update_masc->bind_param("ii", $id_mascota, $id_cita);
+                $stmt_update_masc->execute();
+            } else {
+                // Actualizar datos de la mascota actual
+                $sql_update_mascota = "UPDATE MASCOTA SET nombre_mascota = ?, especie = ?, raza = ?, genero = ? WHERE id = ?";
+                $stmt_masc = $conn->prepare($sql_update_mascota);
+                $stmt_masc->bind_param("ssssi", $nombre_mascota, $especie, $raza, $genero, $cita['mascota_id']);
+                $stmt_masc->execute();
+            }
             
             // 3. Actualizar CITA
             $sql_update_cita = "UPDATE CITA SET fecha_cita = ?, hora_cita = ?, notas = ?, origen = ? WHERE id = ?";
@@ -126,25 +149,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $cita_editable) {
             $stmt_cita->bind_param("ssssi", $fecha_cita, $hora_cita, $notas, $origen, $id_cita);
             $stmt_cita->execute();
             
-            // 4. Actualizar servicios (eliminar y volver a insertar)
+            // 4. Actualizar servicios con precios personalizados
+            // Eliminar servicios que ya no están seleccionados
             $sql_delete_servicios = "DELETE FROM DETALLE_CITA WHERE id_cita = ?";
             $stmt_del = $conn->prepare($sql_delete_servicios);
             $stmt_del->bind_param("i", $id_cita);
             $stmt_del->execute();
             
-            if (!empty($servicios_seleccionados_post)) {
-                foreach ($servicios_seleccionados_post as $id_servicio) {
-                    $sql_precio = "SELECT precio FROM SERVICIO WHERE id = ?";
-                    $stmt_precio = $conn->prepare($sql_precio);
-                    $stmt_precio->bind_param("i", $id_servicio);
-                    $stmt_precio->execute();
-                    $precio = $stmt_precio->get_result()->fetch_assoc()['precio'];
-                    
-                    $sql_detalle = "INSERT INTO DETALLE_CITA (id_cita, id_servicio, precio_fijado) VALUES (?, ?, ?)";
-                    $stmt_det = $conn->prepare($sql_detalle);
-                    $stmt_det->bind_param("iid", $id_cita, $id_servicio, $precio);
-                    $stmt_det->execute();
-                }
+            // Insertar los servicios con los precios modificados
+            foreach ($servicios_precios as $id_servicio => $precio_fijado) {
+                $precio = floatval(str_replace(['$', ','], '', $precio_fijado));
+                $sql_detalle = "INSERT INTO DETALLE_CITA (id_cita, id_servicio, precio_fijado) VALUES (?, ?, ?)";
+                $stmt_det = $conn->prepare($sql_detalle);
+                $stmt_det->bind_param("iid", $id_cita, $id_servicio, $precio);
+                $stmt_det->execute();
             }
             
             $conn->commit();
@@ -155,6 +173,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $cita_editable) {
             $stmt2->bind_param("i", $id_cita);
             $stmt2->execute();
             $cita = $stmt2->get_result()->fetch_assoc();
+            
+            // Recargar servicios de la cita
+            $stmt_serv2 = $conn->prepare($sql_servicios_cita);
+            $stmt_serv2->bind_param("i", $id_cita);
+            $stmt_serv2->execute();
+            $servicios_cita = $stmt_serv2->get_result()->fetch_all(MYSQLI_ASSOC);
+            
+            // Recargar mascotas del cliente
+            $stmt_masc2 = $conn->prepare($sql_mascotas_cliente);
+            $stmt_masc2->bind_param("i", $cita['cliente_id']);
+            $stmt_masc2->execute();
+            $mascotas_cliente = $stmt_masc2->get_result()->fetch_all(MYSQLI_ASSOC);
             
         } catch (Exception $e) {
             $conn->rollback();
@@ -171,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $cita_editable) {
     <link rel="stylesheet" href="../assets/css/global.css">
     <style>
         .form-cita {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 30px auto;
             padding: 30px;
             background: white;
@@ -225,23 +255,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $cita_editable) {
         }
         .mensaje-exito { background: #d4edda; color: #155724; padding: 12px; border-radius: 8px; margin-bottom: 20px; }
         .mensaje-error { background: #f8d7da; color: #721c24; padding: 12px; border-radius: 8px; margin-bottom: 20px; }
-        .servicios-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 10px;
-            border: 1px solid #ddd;
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
             padding: 15px;
             border-radius: 8px;
-            background: #f9f9f9;
+            margin-bottom: 20px;
+            border-left: 4px solid #ffc107;
         }
-        .servicio-checkbox {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            cursor: pointer;
+        .servicios-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
         }
-        .servicio-checkbox input {
-            width: auto;
+        .servicios-table th, .servicios-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .servicios-table th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+        .servicios-table input[type="number"] {
+            width: 120px;
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .precio-actual {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
         }
         .estado-cita {
             background: #e8f0fe;
@@ -250,15 +295,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $cita_editable) {
             margin-bottom: 20px;
             text-align: center;
         }
-        .estado-no-editable {
-            background: #f8d7da;
-            padding: 20px;
+        .info-pago {
+            background: #e3f2fd;
+            padding: 10px;
             border-radius: 8px;
+            margin-bottom: 20px;
             text-align: center;
-            color: #721c24;
+        }
+        .badge-pagada {
+            background: #28a745;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-left: 10px;
         }
         h2, h3 { color: #E68D0B; margin-bottom: 15px; }
         hr { margin: 20px 0; }
+        .alert-info {
+            background: #e8f0fe;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #004085;
+        }
     </style>
 </head>
 <body>
@@ -280,21 +340,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $cita_editable) {
             <div class="mensaje-error"><?php echo $error; ?></div>
         <?php endif; ?>
 
-        <?php if (!$cita_editable): ?>
-            <div class="estado-no-editable">
-                <strong>⚠️ No se puede editar esta cita</strong><br><br>
-                La cita se encuentra en estado <strong><?php echo strtoupper($cita['estado']); ?></strong>.<br>
-                Las citas <?php echo implode(' o ', $estados_no_editables); ?> no pueden ser modificadas.
-                <br><br>
-                <a href="dashboard.php" class="btn-cancelar" style="display: inline-block; width: auto; padding: 10px 25px;">← Volver al Dashboard</a>
+        <!-- ADVERTENCIA PARA CITAS CONFIRMADAS/PAGADAS -->
+        <?php if ($cita['estado'] == 'confirmada' || $cita['estado'] == 'completada' || $cita['pagada'] == 1): ?>
+            <div class="alert-warning">
+                <strong>⚠️ ¡EDITANDO CITA <?php echo strtoupper($cita['estado']); ?>!</strong><br><br>
+                <?php if ($cita['pagada']): ?>
+                    Esta cita ya fue pagada por <strong>$<?php echo number_format($cita['total_servicios'] ?? 0, 2); ?></strong>.
+                    <br><br>
+                    <strong>Los precios que modifiques aquí solo afectarán a ESTA cita</strong> y no modificarán los precios oficiales de los servicios.
+                <?php endif; ?>
             </div>
-        <?php else: ?>
+        <?php endif; ?>
 
         <div class="estado-cita">
             <strong>Estado actual:</strong> 
             <span style="background: <?php echo $cita['estado'] == 'pendiente' ? '#ff9800' : ($cita['estado'] == 'confirmada' ? '#4caf50' : '#2196f3'); ?>; color: white; padding: 4px 12px; border-radius: 20px;">
                 <?php echo ucfirst($cita['estado']); ?>
             </span>
+            <?php if ($cita['pagada']): ?>
+                <span class="badge-pagada">✅ Pagada</span>
+            <?php endif; ?>
         </div>
 
         <form method="POST">
@@ -333,14 +398,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $cita_editable) {
 
                 <h3 style="grid-column: span 2; color: var(--primary); margin-top: 20px;">🐕 Datos de la Mascota</h3>
                 
+                <!-- Selector para cambiar de mascota (si tiene más de una) -->
+                <?php if (count($mascotas_cliente) > 1): ?>
+                <div class="form-group full-width">
+                    <div class="alert-info">
+                        <strong>📋 Este cliente tiene <?php echo count($mascotas_cliente); ?> mascota(s).</strong>
+                        <br>Puedes cambiar la mascota de esta cita si es necesario.
+                    </div>
+                </div>
+                
+                <div class="form-group full-width">
+                    <label>Cambiar a otra mascota del mismo dueño:</label>
+                    <select name="id_mascota" id="select_mascota" onchange="cargarDatosMascota(this.value)">
+                        <option value="<?php echo $cita['mascota_id']; ?>" selected>
+                            🔄 Mantener mascota actual: <?php echo htmlspecialchars($cita['nombre_mascota']); ?>
+                        </option>
+                        <?php foreach ($mascotas_cliente as $m): ?>
+                            <?php if ($m['id'] != $cita['mascota_id']): ?>
+                            <option value="<?php echo $m['id']; ?>" 
+                                    data-nombre="<?php echo htmlspecialchars($m['nombre_mascota']); ?>"
+                                    data-especie="<?php echo $m['especie']; ?>"
+                                    data-raza="<?php echo htmlspecialchars($m['raza']); ?>">
+                                📋 <?php echo htmlspecialchars($m['nombre_mascota']); ?> (<?php echo $m['especie']; ?>)
+                            </option>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <?php else: ?>
+                    <input type="hidden" name="id_mascota" value="<?php echo $cita['mascota_id']; ?>">
+                <?php endif; ?>
+                
                 <div class="form-group full-width">
                     <label>Nombre de la Mascota *</label>
-                    <input type="text" name="nombre_mascota" value="<?php echo htmlspecialchars($cita['nombre_mascota']); ?>" required>
+                    <input type="text" name="nombre_mascota" id="nombre_mascota" value="<?php echo htmlspecialchars($cita['nombre_mascota']); ?>" required>
                 </div>
                 
                 <div class="form-group">
                     <label>Especie *</label>
-                    <select name="especie" required>
+                    <select name="especie" id="especie" required>
                         <option value="Canino" <?php echo $cita['especie'] == 'Canino' ? 'selected' : ''; ?>>Perro</option>
                         <option value="Felino" <?php echo $cita['especie'] == 'Felino' ? 'selected' : ''; ?>>Gato</option>
                         <option value="Otro" <?php echo $cita['especie'] == 'Otro' ? 'selected' : ''; ?>>Otro</option>
@@ -349,12 +445,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $cita_editable) {
                 
                 <div class="form-group">
                     <label>Raza</label>
-                    <input type="text" name="raza" value="<?php echo htmlspecialchars($cita['raza'] ?? ''); ?>">
+                    <input type="text" name="raza" id="raza" value="<?php echo htmlspecialchars($cita['raza'] ?? ''); ?>">
                 </div>
 
                 <div class="form-group">
                     <label>Género</label>
-                    <select name="genero">
+                    <select name="genero" id="genero">
                         <option value="">Seleccione...</option>
                         <option value="MACHO" <?php echo $cita['genero'] == 'MACHO' ? 'selected' : ''; ?>>Macho</option>
                         <option value="HEMBRA" <?php echo $cita['genero'] == 'HEMBRA' ? 'selected' : ''; ?>>Hembra</option>
@@ -388,20 +484,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $cita_editable) {
                 </div>
 
                 <div class="form-group full-width">
-                    <label>🩺 Servicios</label>
-                    <div class="servicios-grid">
-                        <?php 
-                        $servicios->data_seek(0);
-                        while($servicio = $servicios->fetch_assoc()): 
-                            $checked = in_array($servicio['id'], $servicios_seleccionados) ? 'checked' : '';
-                        ?>
-                            <label class="servicio-checkbox">
-                                <input type="checkbox" name="servicios[]" value="<?php echo $servicio['id']; ?>" <?php echo $checked; ?>>
-                                <span><?php echo htmlspecialchars($servicio['nombre_servicio']); ?></span>
-                                <strong>$<?php echo number_format($servicio['precio'], 2); ?></strong>
-                            </label>
-                        <?php endwhile; ?>
-                    </div>
+                    <label>🩺 Servicios y Precios</label>
+                    
+                    <?php if (empty($servicios_cita)): ?>
+                        <p style="color: #999; padding: 20px; text-align: center;">No hay servicios seleccionados</p>
+                    <?php else: ?>
+                        <table class="servicios-table">
+                            <thead>
+                                <tr>
+                                    <th>Servicio</th>
+                                    <th>Precio oficial actual</th>
+                                    <th>Precio en esta cita (puedes modificarlo)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($servicios_cita as $servicio): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($servicio['nombre_servicio']); ?></td>
+                                        <td>
+                                            $<?php echo number_format($servicio['precio_actual_oficial'], 2); ?>
+                                            <?php if ($servicio['precio_actual_oficial'] != $servicio['precio_fijado']): ?>
+                                                <br><small style="color: #ff9800;">(Original: $<?php echo number_format($servicio['precio_fijado'], 2); ?>)</small>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <input type="number" 
+                                                   name="servicios_precios[<?php echo $servicio['id_servicio']; ?>]" 
+                                                   value="<?php echo $servicio['precio_fijado']; ?>"
+                                                   step="0.01"
+                                                   min="0"
+                                                   style="width: 150px; padding: 8px;">
+                                            <div class="precio-actual">
+                                                💡 Modifica este precio si necesitas ajustarlo
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    <?php endif; ?>
                 </div>
 
                 <div class="form-group full-width">
@@ -418,7 +539,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $cita_editable) {
             <button type="submit" class="btn-guardar">💾 Guardar Cambios</button>
             <a href="dashboard.php" class="btn-cancelar">❌ Cancelar</a>
         </form>
-        <?php endif; ?>
     </div>
+
+    <script>
+    function cargarDatosMascota(mascotaId) {
+        if (!mascotaId) return;
+        
+        const select = document.getElementById('select_mascota');
+        const option = select.querySelector(`option[value="${mascotaId}"]`);
+        
+        if (option && option !== select.selectedOptions[0]) {
+            // Cargar datos de la mascota seleccionada
+            const nombre = option.getAttribute('data-nombre') || '';
+            const especie = option.getAttribute('data-especie') || 'Canino';
+            const raza = option.getAttribute('data-raza') || '';
+            
+            document.getElementById('nombre_mascota').value = nombre;
+            document.getElementById('especie').value = especie;
+            document.getElementById('raza').value = raza;
+            
+            // Limpiar género porque no lo tenemos en el select
+            document.getElementById('genero').value = '';
+            
+            // Pequeña confirmación
+            if (confirm('¿Cambiar la mascota de esta cita?\n\nSe actualizarán los datos de la mascota.')) {
+                // El formulario se enviará con el nuevo id_mascota
+            } else {
+                // Revertir selección
+                select.value = '<?php echo $cita['mascota_id']; ?>';
+                location.reload();
+            }
+        }
+    }
+    </script>
 </body>
 </html>

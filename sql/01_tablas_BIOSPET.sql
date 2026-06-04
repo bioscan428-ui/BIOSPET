@@ -132,7 +132,9 @@ CREATE TABLE CATEGORIA_PRODUCTO (
     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
     descripcion TEXT,
-    activo BOOLEAN DEFAULT TRUE
+    activo BOOLEAN DEFAULT TRUE,
+    promocion_activa TINYINT(1) DEFAULT 0,
+    porcentaje_promocion DECIMAL(5,2) DEFAULT 0
 );
 
 -- 11. PROVEEDOR
