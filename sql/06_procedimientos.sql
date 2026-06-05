@@ -25,15 +25,33 @@ BEGIN
     
     START TRANSACTION;
     
-    -- Buscar si el cliente ya existe por teléfono o email
-    SELECT id INTO p_id_cliente 
-    FROM CLIENTE 
-    WHERE telefono = p_telefono 
-       OR (p_email IS NOT NULL AND email = p_email)
-    LIMIT 1;
+    -- Buscar por teléfono (solo si no es teléfono genérico)
+    IF p_telefono IS NOT NULL AND p_telefono != '' AND p_telefono != '0000000000' THEN
+        SELECT id INTO p_id_cliente 
+        FROM CLIENTE 
+        WHERE telefono = p_telefono 
+        LIMIT 1;
+    END IF;
     
-    -- Si no existe, insertar nuevo cliente
-    IF p_id_cliente IS NULL THEN
+    -- Si no por teléfono, buscar por email
+    IF p_id_cliente IS NULL AND p_email IS NOT NULL AND p_email != '' THEN
+        SELECT id INTO p_id_cliente 
+        FROM CLIENTE 
+        WHERE email = p_email 
+        LIMIT 1;
+    END IF;
+    
+    -- Si existe, actualizar datos (pero mantener el ID)
+    IF p_id_cliente IS NOT NULL THEN
+        UPDATE CLIENTE 
+        SET 
+            nombre = p_nombre_cliente,
+            ape_pat = p_ape_pat,
+            ape_mat = p_ape_mat,
+            direccion = p_direccion
+        WHERE id = p_id_cliente;
+    ELSE
+        -- Crear nuevo cliente
         INSERT INTO CLIENTE (nombre, ape_pat, ape_mat, telefono, email, direccion)
         VALUES (p_nombre_cliente, p_ape_pat, p_ape_mat, p_telefono, p_email, p_direccion);
         SET p_id_cliente = LAST_INSERT_ID();

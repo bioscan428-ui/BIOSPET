@@ -97,26 +97,38 @@ class CitaController {
         $conn->begin_transaction();
 
         try {
-            // 1. Registrar o obtener CLIENTE
-            $sql_cliente = "CALL registrar_cliente(?, ?, ?, ?, ?, ?, @id_cliente)";
-            $stmt_cliente = $conn->prepare($sql_cliente);
-            $stmt_cliente->bind_param("ssssss", 
-                $nombre_dueno,
-                $ape_pat,
-                $ape_mat,
-                $telefono,
-                $email,
-                $direccion
-            );
-            $stmt_cliente->execute();
-            $stmt_cliente->close();
+            // 1. Registrar o obtener CLIENTE (SIN procedimiento)
+            $sql_verificar = "SELECT id FROM CLIENTE WHERE telefono = ? LIMIT 1";
+            $stmt_verificar = $conn->prepare($sql_verificar);
+            $stmt_verificar->bind_param("s", $telefono);
+            $stmt_verificar->execute();
+            $result_verificar = $stmt_verificar->get_result();
             
-            $result = $conn->query("SELECT @id_cliente as id_cliente");
-            $id_cliente = $result->fetch_assoc()['id_cliente'];
-            $conn->next_result(); // Limpiar resultados pendientes
-            
-            $ids_citas = [];
-            $mascotas_registradas = [];
+            if ($row = $result_verificar->fetch_assoc()) {
+                // Cliente ya existe
+                $id_cliente = $row['id'];
+                
+                // Actualizar datos por si cambiaron
+                $sql_update = "UPDATE CLIENTE SET nombre = ?, ape_pat = ?, ape_mat = ?, email = ?, direccion = ? WHERE id = ?";
+                $stmt_update = $conn->prepare($sql_update);
+                $stmt_update->bind_param("sssssi", $nombre_dueno, $ape_pat, $ape_mat, $email, $direccion, $id_cliente);
+                $stmt_update->execute();
+                $stmt_update->close();
+                
+                error_log("Cliente existente reutilizado - ID: {$id_cliente}, Teléfono: {$telefono}");
+            } else {
+                // Crear nuevo cliente
+                $sql_insert = "INSERT INTO CLIENTE (nombre, ape_pat, ape_mat, telefono, email, direccion) 
+                                VALUES (?, ?, ?, ?, ?, ?)";
+                $stmt_insert = $conn->prepare($sql_insert);
+                $stmt_insert->bind_param("ssssss", $nombre_dueno, $ape_pat, $ape_mat, $telefono, $email, $direccion);
+                $stmt_insert->execute();
+                $id_cliente = $conn->insert_id;
+                $stmt_insert->close();
+                
+                error_log("Cliente nuevo creado - ID: {$id_cliente}, Nombre: {$nombre_dueno}, Teléfono: {$telefono}");
+            }
+            $stmt_verificar->close();
             
             // 2. Procesar cada mascota y crear su cita
             foreach($mascotas_tipo as $idx => $tipo) {

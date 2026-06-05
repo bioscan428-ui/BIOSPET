@@ -78,15 +78,12 @@ $stmt_serv->bind_param("i", $id_cita);
 $stmt_serv->execute();
 $servicios_cita = $stmt_serv->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// Obtener todos los servicios disponibles (para agregar nuevos)
-$sql_servicios_disponibles = "SELECT id, nombre_servicio, precio FROM SERVICIO WHERE activo = 1 ORDER BY nombre_servicio";
-$servicios_disponibles = $conn->query($sql_servicios_disponibles);
-
 // Procesar actualización
 $mensaje = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
     // Datos del dueño
     $nombre_dueno = trim($_POST['nombre_dueno']);
     $ape_pat = trim($_POST['ape_pat'] ?? '');
@@ -108,8 +105,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $notas = trim($_POST['notas'] ?? '');
     $origen = $_POST['origen'];
     
-    // Servicios: array con id_servicio => precio_modificado
+    // Servicios seleccionados y precios
+    $servicios_seleccionados = $_POST['servicios_seleccionados'] ?? [];
     $servicios_precios = $_POST['servicios_precios'] ?? [];
+
+    //DIAGNOSTICO
+    echo "<pre>";
+echo "CITA ID: " . $id_cita . "<br>";
+echo "Cliente ID en BD: " . $cita['cliente_id'] . "<br>";
+echo "Nombre actual en BD: " . $cita['cliente_nombre'] . "<br>";
+echo "Mascota ID: " . $cita['mascota_id'] . "<br>";
+echo "Dueño según la consulta: " . $cita['cliente_nombre'] . "<br>";
+echo "</pre>";
+    //FIN DIAGNOSTICO
     
     // Validaciones básicas
     if (empty($nombre_dueno) || empty($telefono) || empty($nombre_mascota) || empty($fecha_cita) || empty($hora_cita)) {
@@ -149,20 +157,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt_cita->bind_param("ssssi", $fecha_cita, $hora_cita, $notas, $origen, $id_cita);
             $stmt_cita->execute();
             
-            // 4. Actualizar servicios con precios personalizados
-            // Eliminar servicios que ya no están seleccionados
+            // 4. Actualizar servicios
+            // Eliminar todos los servicios actuales
             $sql_delete_servicios = "DELETE FROM DETALLE_CITA WHERE id_cita = ?";
             $stmt_del = $conn->prepare($sql_delete_servicios);
             $stmt_del->bind_param("i", $id_cita);
             $stmt_del->execute();
+            $stmt_del->close();
             
-            // Insertar los servicios con los precios modificados
-            foreach ($servicios_precios as $id_servicio => $precio_fijado) {
-                $precio = floatval(str_replace(['$', ','], '', $precio_fijado));
+            // Insertar los servicios seleccionados
+            if (!empty($servicios_seleccionados)) {
                 $sql_detalle = "INSERT INTO DETALLE_CITA (id_cita, id_servicio, precio_fijado) VALUES (?, ?, ?)";
                 $stmt_det = $conn->prepare($sql_detalle);
-                $stmt_det->bind_param("iid", $id_cita, $id_servicio, $precio);
-                $stmt_det->execute();
+                
+                foreach ($servicios_seleccionados as $id_servicio) {
+                    // Obtener precio (personalizado o el oficial)
+                    if (isset($servicios_precios[$id_servicio]) && !empty($servicios_precios[$id_servicio])) {
+                        $precio = floatval($servicios_precios[$id_servicio]);
+                    } else {
+                        $sql_precio = "SELECT precio FROM SERVICIO WHERE id = ?";
+                        $stmt_precio = $conn->prepare($sql_precio);
+                        $stmt_precio->bind_param("i", $id_servicio);
+                        $stmt_precio->execute();
+                        $precio = $stmt_precio->get_result()->fetch_assoc()['precio'];
+                        $stmt_precio->close();
+                    }
+                    
+                    $stmt_det->bind_param("iid", $id_cita, $id_servicio, $precio);
+                    $stmt_det->execute();
+                }
+                $stmt_det->close();
             }
             
             $conn->commit();
@@ -263,40 +287,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-bottom: 20px;
             border-left: 4px solid #ffc107;
         }
-        .servicios-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        .servicios-table th, .servicios-table td {
-            border: 1px solid #ddd;
-            padding: 12px;
-            text-align: left;
-        }
-        .servicios-table th {
-            background: #f5f5f5;
-            font-weight: 600;
-        }
-        .servicios-table input[type="number"] {
-            width: 120px;
-            padding: 5px 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-        .precio-actual {
-            font-size: 12px;
-            color: #666;
-            margin-top: 5px;
-        }
         .estado-cita {
             background: #e8f0fe;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .info-pago {
-            background: #e3f2fd;
             padding: 10px;
             border-radius: 8px;
             margin-bottom: 20px;
@@ -318,6 +310,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-bottom: 15px;
             font-size: 14px;
             color: #004085;
+        }
+        /* Estilo igual a citas.php */
+        .servicios-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+            background: #f9f9f9;
+            margin-bottom: 20px;
+        }
+        .servicio-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .servicio-checkbox:hover {
+            background: #f0f0f0;
+        }
+        .servicio-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            margin: 0;
+        }
+        .servicio-info {
+            flex: 1;
+        }
+        .servicio-nombre {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .servicio-precio-oficial {
+            font-size: 12px;
+            color: #666;
+        }
+        .precio-personalizado {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            min-width: 110px;
+        }
+        .precio-personalizado input {
+            width: 100px;
+            padding: 5px 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            text-align: right;
+        }
+        .precio-personalizado small {
+            font-size: 10px;
+            color: #999;
+            margin-top: 3px;
+        }
+        .total-preview {
+            margin-top: 15px;
+            padding: 12px;
+            background: #e8f0fe;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 16px;
         }
     </style>
 </head>
@@ -364,7 +425,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <form method="POST">
             <div class="form-grid">
-                <h3 style="grid-column: span 2; color: var(--primary);">📋 Datos del Dueño</h3>
+                <h3 style="grid-column: span 2; color: #E68D0B;">📋 Datos del Dueño</h3>
                 
                 <div class="form-group">
                     <label>Nombre(s) *</label>
@@ -396,9 +457,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <input type="text" name="direccion" value="<?php echo htmlspecialchars($cita['direccion'] ?? ''); ?>">
                 </div>
 
-                <h3 style="grid-column: span 2; color: var(--primary); margin-top: 20px;">🐕 Datos de la Mascota</h3>
+                <h3 style="grid-column: span 2; color: #E68D0B; margin-top: 20px;">🐕 Datos de la Mascota</h3>
                 
-                <!-- Selector para cambiar de mascota (si tiene más de una) -->
                 <?php if (count($mascotas_cliente) > 1): ?>
                 <div class="form-group full-width">
                     <div class="alert-info">
@@ -466,7 +526,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <?php endif; ?>
 
-                <h3 style="grid-column: span 2; color: var(--primary); margin-top: 20px;">📅 Detalles de la Cita</h3>
+                <h3 style="grid-column: span 2; color: #E68D0B; margin-top: 20px;">📅 Detalles de la Cita</h3>
                 
                 <div class="form-group">
                     <label>Fecha *</label>
@@ -483,48 +543,94 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <textarea name="notas" rows="4"><?php echo htmlspecialchars($cita['notas'] ?? ''); ?></textarea>
                 </div>
 
+                <!-- SECCIÓN DE SERVICIOS - ESTILO IGUAL A citas.php -->
+                <!-- SECCIÓN DE SERVICIOS - MODIFICADA -->
                 <div class="form-group full-width">
-                    <label>🩺 Servicios y Precios</label>
-                    
-                    <?php if (empty($servicios_cita)): ?>
-                        <p style="color: #999; padding: 20px; text-align: center;">No hay servicios seleccionados</p>
-                    <?php else: ?>
-                        <table class="servicios-table">
-                            <thead>
-                                <tr>
-                                    <th>Servicio</th>
-                                    <th>Precio oficial actual</th>
-                                    <th>Precio en esta cita (puedes modificarlo)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($servicios_cita as $servicio): ?>
-                                    <tr>
-                                        <td><?php echo htmlspecialchars($servicio['nombre_servicio']); ?></td>
-                                        <td>
-                                            $<?php echo number_format($servicio['precio_actual_oficial'], 2); ?>
-                                            <?php if ($servicio['precio_actual_oficial'] != $servicio['precio_fijado']): ?>
-                                                <br><small style="color: #ff9800;">(Original: $<?php echo number_format($servicio['precio_fijado'], 2); ?>)</small>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <input type="number" 
-                                                   name="servicios_precios[<?php echo $servicio['id_servicio']; ?>]" 
-                                                   value="<?php echo $servicio['precio_fijado']; ?>"
-                                                   step="0.01"
-                                                   min="0"
-                                                   style="width: 150px; padding: 8px;">
-                                            <div class="precio-actual">
-                                                💡 Modifica este precio si necesitas ajustarlo
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                    <label>🩺 Servicios de la cita</label>
+    
+                    <?php
+                    $servicios_ids_seleccionados = array_column($servicios_cita, 'id_servicio');
+                    $sql_todos_servicios = "SELECT id, nombre_servicio, precio FROM SERVICIO WHERE activo = 1 ORDER BY nombre_servicio";
+                    $todos_servicios = $conn->query($sql_todos_servicios);
+                    ?>
+    
+                    <!-- Mostrar advertencia según el estado -->
+                    <?php if ($cita['estado'] == 'pendiente'): ?>
+                        <div class="alert-info" style="background: #e8f0fe; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+                            <strong>📝 Cita pendiente:</strong> Puedes modificar libremente los servicios y precios. El cliente recibirá la actualización.
+                        </div>
+                    <?php elseif ($cita['estado'] == 'confirmada' && !$cita['pagada']): ?>
+                        <div class="alert-warning" style="background: #fff3cd; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+                            <strong>⚠️ Cita confirmada:</strong> Los cambios se notificarán al cliente. Si modificas precios, el total se actualizará.
+                        </div>
+                    <?php elseif ($cita['pagada']): ?>
+                        <div class="alert-warning" style="background: #f8d7da; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+                            <strong>💰 CITA YA PAGADA:</strong> Modificar servicios o precios afectará el ticket y el corte de caja.
+                            <br><small>Solo modifica si es absolutamente necesario y con autorización.</small>
+                        </div>
                     <?php endif; ?>
+    
+                    <div class="servicios-grid">
+                        <?php while($servicio = $todos_servicios->fetch_assoc()): 
+                            $checked = in_array($servicio['id'], $servicios_ids_seleccionados);
+                            $precio_actual = $servicio['precio'];
+                            if ($checked) {
+                                foreach($servicios_cita as $sc) {
+                                    if ($sc['id_servicio'] == $servicio['id']) {
+                                        $precio_actual = $sc['precio_fijado'];
+                                        break;
+                                    }
+                                }
+                            }
+                        ?>
+                            <div class="servicio-item" style="display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 8px; background: white; border: 1px solid #eee;">
+                                <input type="checkbox" 
+                                        name="servicios_seleccionados[]" 
+                                        value="<?php echo $servicio['id']; ?>"
+                                        data-precio-oficial="<?php echo $servicio['precio']; ?>"
+                                        data-precio-actual="<?php echo $precio_actual; ?>"
+                                        onchange="togglePrecioInput(this, <?php echo $servicio['id']; ?>)"
+                                        <?php echo $checked ? 'checked' : ''; ?>
+                                        style="width: 18px; height: 18px; cursor: pointer; margin: 0;">
+                
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; font-size: 14px;"><?php echo htmlspecialchars($servicio['nombre_servicio']); ?></div>
+                                    <div style="font-size: 12px; color: #666;">Oficial: $<?php echo number_format($servicio['precio'], 2); ?></div>
+                                </div>
+                
+                                <div id="precio-input-<?php echo $servicio['id']; ?>" style="min-width: 110px; <?php echo $checked ? '' : 'display:none;' ?>">
+                                    <input type="number" 
+                                            name="servicios_precios[<?php echo $servicio['id']; ?>]" 
+                                            value="<?php echo $precio_actual; ?>"
+                                            step="0.01"
+                                            min="0"
+                                            class="precio-input"
+                                            style="width: 100px; padding: 6px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; text-align: right;"
+                                            placeholder="$0.00"
+                                            onclick="event.stopPropagation()"
+                                            <?php echo ($cita['pagada']) ? 'onchange="confirmarCambioPrecio(this)"' : ''; ?>>
+                                    <div style="font-size: 10px; color: #999; text-align: center;">Personalizar</div>
+                            </div>
+                    </div>
+                <?php endwhile; ?>
+            </div>
+    
+            <div class="total-preview" style="margin-top: 15px; padding: 12px; background: #e8f0fe; border-radius: 8px; text-align: center; font-weight: bold; font-size: 16px;">
+                💰 Total: $<span id="total-monto">0.00</span>
+            </div>
+    
+            <?php if ($cita['pagada']): ?>
+                <div class="alert-warning" style="margin-top: 15px; background: #f8d7da; padding: 12px; border-radius: 8px;">
+                    <strong>⚠️ ADVERTENCIA PARA CITAS PAGADAS:</strong>
+                    <ul style="margin: 10px 0 0 20px; color: #721c24;">
+                        <li>Al modificar servicios, el ticket se actualizará</li>
+                        <li>El corte de caja mostrará los nuevos montos</li>
+                        <li>Se recomienda documentar el cambio en observaciones</li>
+                    </ul>
                 </div>
-
+            <?php endif; ?>
+    </div>
+                
                 <div class="form-group full-width">
                     <label>📱 Origen de la cita</label>
                     <select name="origen">
@@ -544,33 +650,104 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script>
     function cargarDatosMascota(mascotaId) {
         if (!mascotaId) return;
-        
         const select = document.getElementById('select_mascota');
+        if (!select) return;
         const option = select.querySelector(`option[value="${mascotaId}"]`);
-        
         if (option && option !== select.selectedOptions[0]) {
-            // Cargar datos de la mascota seleccionada
-            const nombre = option.getAttribute('data-nombre') || '';
-            const especie = option.getAttribute('data-especie') || 'Canino';
-            const raza = option.getAttribute('data-raza') || '';
-            
-            document.getElementById('nombre_mascota').value = nombre;
-            document.getElementById('especie').value = especie;
-            document.getElementById('raza').value = raza;
-            
-            // Limpiar género porque no lo tenemos en el select
+            document.getElementById('nombre_mascota').value = option.getAttribute('data-nombre') || '';
+            document.getElementById('especie').value = option.getAttribute('data-especie') || 'Canino';
+            document.getElementById('raza').value = option.getAttribute('data-raza') || '';
             document.getElementById('genero').value = '';
-            
-            // Pequeña confirmación
-            if (confirm('¿Cambiar la mascota de esta cita?\n\nSe actualizarán los datos de la mascota.')) {
-                // El formulario se enviará con el nuevo id_mascota
-            } else {
-                // Revertir selección
+            if (!confirm('¿Cambiar la mascota de esta cita?\n\nSe actualizarán los datos de la mascota.')) {
                 select.value = '<?php echo $cita['mascota_id']; ?>';
                 location.reload();
             }
         }
     }
+    
+    function togglePrecioInput(checkbox, servicioId) {
+        const div = document.getElementById(`precio-input-${servicioId}`);
+        if (checkbox.checked) {
+            div.style.display = 'flex';
+            const input = div.querySelector('input');
+            if (input && !input.value) {
+                input.value = checkbox.getAttribute('data-precio-actual') || checkbox.getAttribute('data-precio-oficial') || 0;
+            }
+        } else {
+            div.style.display = 'none';
+        }
+        calcularTotal();
+    }
+    
+    function calcularTotal() {
+        let total = 0;
+        document.querySelectorAll('input[name="servicios_seleccionados[]"]:checked').forEach(chk => {
+            const servicioId = chk.value;
+            const input = document.querySelector(`input[name="servicios_precios[${servicioId}]"]`);
+            let precio = parseFloat(chk.getAttribute('data-precio-oficial') || 0);
+            if (input && input.value && input.value !== '') {
+                precio = parseFloat(input.value);
+            }
+            if (!isNaN(precio)) total += precio;
+        });
+        const totalSpan = document.getElementById('total-monto');
+        if (totalSpan) totalSpan.textContent = total.toFixed(2);
+    }
+    
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.classList && e.target.classList.contains('precio-input')) {
+            calcularTotal();
+        }
+    });
+    
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.type === 'checkbox' && e.target.name === 'servicios_seleccionados[]') {
+            calcularTotal();
+        }
+    });
+    
+    document.addEventListener('DOMContentLoaded', calcularTotal);
+
+    function confirmarCambioPrecio(input) {
+    const valorAnterior = input.defaultValue;
+    const valorNuevo = input.value;
+    
+    if (valorAnterior !== valorNuevo) {
+        if (!confirm('⚠️ Esta cita YA FUE PAGADA.\n\n¿Estás seguro de modificar el precio?\n\nAnterior: $' + parseFloat(valorAnterior).toFixed(2) + '\nNuevo: $' + parseFloat(valorNuevo).toFixed(2) + '\n\nEsta acción afectará el ticket y el corte de caja.')) {
+            input.value = valorAnterior;
+        }
+    }
+    calcularTotal();
+}
+
+function togglePrecioInput(checkbox, servicioId) {
+    const div = document.getElementById(`precio-input-${servicioId}`);
+    const esPagada = <?php echo $cita['pagada'] ? 'true' : 'false'; ?>;
+    const estado = '<?php echo $cita['estado']; ?>';
+    
+    if (checkbox.checked) {
+        if (esPagada) {
+            if (!confirm('⚠️ ESTA CITA YA FUE PAGADA.\n\n¿Estás seguro de agregar este servicio?\n\nEl total se actualizará y afectará el ticket y corte de caja.')) {
+                checkbox.checked = false;
+                return;
+            }
+        }
+        div.style.display = 'flex';
+        const input = div.querySelector('input');
+        if (input && !input.value) {
+            input.value = checkbox.getAttribute('data-precio-actual') || checkbox.getAttribute('data-precio-oficial') || 0;
+        }
+    } else {
+        if (esPagada) {
+            if (!confirm('⚠️ ESTA CITA YA FUE PAGADA.\n\n¿Estás seguro de quitar este servicio?\n\nEl total se actualizará y afectará el ticket y corte de caja.')) {
+                checkbox.checked = true;
+                return;
+            }
+        }
+        div.style.display = 'none';
+    }
+    calcularTotal();
+}
     </script>
 </body>
 </html>
