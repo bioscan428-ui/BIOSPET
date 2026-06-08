@@ -93,66 +93,15 @@ if (isset($_SESSION['importacion_mensaje'])) {
     <link rel="stylesheet" href="../assets/css/productos.css">
     <style>
         /* Estilos para el modal de importación */
-        .modal-import {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-import.active {
-            display: flex;
-        }
-        .modal-import-content {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            width: 500px;
-            max-width: 90%;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        .modal-import-content h3 {
-            color: var(--primary);
-            margin-bottom: 20px;
-        }
-        .modal-import-content input[type="file"] {
-            width: 100%;
-            padding: 15px;
-            border: 2px dashed #ddd;
-            border-radius: 10px;
-            margin: 15px 0;
-            cursor: pointer;
-        }
-        .modal-import-content input[type="file"]:hover {
-            border-color: var(--primary);
-        }
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin-top: 20px;
-        }
-        .btn-importar {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-        .btn-cancelar-modal {
-            background: #ccc;
-            color: #333;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-        }
+        .modal-import { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;}
+        .modal-import.active { display: flex;}
+        .modal-import-content { background: white; padding: 30px; border-radius: 15px; width: 500px; max-width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.2);}
+        .modal-import-content h3 { color: var(--primary); margin-bottom: 20px;}
+        .modal-import-content input[type="file"] { width: 100%; padding: 15px; border: 2px dashed #ddd; border-radius: 10px; margin: 15px 0; cursor: pointer; }
+        .modal-import-content input[type="file"]:hover { border-color: var(--primary); }
+        .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .btn-importar { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
+        .btn-cancelar-modal { background: #ccc; color: #333; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
         .btn-excel {
             background: #1d7e3b;
             color: white;
@@ -387,7 +336,7 @@ if (isset($_SESSION['importacion_mensaje'])) {
                                 <?php else: ?>
                                     <span class="stock-normal"><?php echo $producto['stock_actual']; ?> unidades</span>
                                 <?php endif; ?>
-                             </span>
+                            </span>
                             <?php if ($tab === 'criticos'): ?>
                                 <td><?php echo $producto['stock_minimo']; ?> unidades</span></td>
                                 <td class="<?php echo ($producto['dias_vencimiento'] ?? 999) <= 30 ? 'vencimiento-critico' : 'vencimiento-normal'; ?>">
@@ -401,7 +350,7 @@ if (isset($_SESSION['importacion_mensaje'])) {
                                         echo '—';
                                     }
                                     ?>
-                                 </span>
+                                </span>
                             <?php endif; ?>
                             <td>
                                 <?php if ($producto['activo'] ?? 1): ?>

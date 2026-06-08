@@ -66,6 +66,7 @@ function agregarProducto(id, nombre, precio, stock, manejaStock) {
     
     actualizarCarrito();
     actualizarEstadoBoton();
+    actualizarStockVisual();
 }
 
 function actualizarCarrito() {
@@ -91,7 +92,7 @@ function actualizarCarrito() {
                 </div>
                 <div class="cantidad">
                     <input type="number" value="${item.cantidad}" min="1" 
-                           onchange="actualizarCantidad(${item.id}, parseInt(this.value))">
+                            onchange="actualizarCantidad(${item.id}, parseInt(this.value))">
                 </div>
                 <div class="subtotal">$${item.subtotal.toFixed(2)}</div>
                 <button class="btn-eliminar" onclick="eliminarProducto(${item.id})">✖</button>
@@ -121,12 +122,14 @@ function actualizarCantidad(id, nuevaCantidad) {
     item.subtotal = item.cantidad * item.precio;
     actualizarCarrito();
     actualizarEstadoBoton();
+    actualizarStockVisual();
 }
 
 function eliminarProducto(id) {
     carrito = carrito.filter(item => item.id !== id);
     actualizarCarrito();
     actualizarEstadoBoton();
+    actualizarStockVisual();
 }
 
 function getStockProducto(id) {
@@ -148,6 +151,7 @@ function vaciarCarrito() {
         carrito = [];
         actualizarCarrito();
         actualizarEstadoBoton();
+        actualizarStockVisual();
     }
 }
 
@@ -293,6 +297,7 @@ metodoPagoSelect.onchange = actualizarEstadoBoton;
 // Inicializar
 asignarEventosProductos();
 actualizarEstadoBoton();
+actualizarStockVisual();
 
 // Código de barras (opcional)
 const buscadorCodigo = document.getElementById('buscadorCodigo');
@@ -355,6 +360,54 @@ async function buscarProductoPorCodigo(codigo) {
         console.error('❌ Error en fetch:', error);
         alert('Error al buscar el producto: ' + error.message);
     }
+}
+//-------------------RECIEN AGREGADO-----------------
+// Actualizar el stock visual en cada producto
+function actualizarStockVisual() {
+    // Recorrer todos los productos
+    document.querySelectorAll('.producto-card').forEach(card => {
+        const id = parseInt(card.dataset.id);
+        const stockOriginal = parseInt(card.dataset.stock);
+        const manejaStock = parseInt(card.dataset.manejaStock);
+        
+        // Si no maneja stock (servicio), no mostrar stock o mostrar "Sin límite"
+        if (manejaStock === 0) {
+            const stockDiv = card.querySelector('.stock');
+            if (stockDiv) {
+                stockDiv.innerHTML = `✨ Servicio (sin límite)`;
+                stockDiv.style.color = "#4caf50";
+            }
+            return;
+        }
+        
+        // Calcular stock restante
+        const itemEnCarrito = carrito.find(item => item.id === id);
+        const cantidadEnCarrito = itemEnCarrito ? itemEnCarrito.cantidad : 0;
+        const stockRestante = stockOriginal - cantidadEnCarrito;
+        
+        // Actualizar el div de stock
+        const stockDiv = card.querySelector('.stock');
+        if (stockDiv) {
+            stockDiv.innerHTML = `📦 Stock: ${stockRestante} unidades`;
+            
+            // Cambiar color según el stock restante
+            if (stockRestante <= 0) {
+                stockDiv.style.color = "#f44336";
+                stockDiv.style.fontWeight = "bold";
+                // Opcional: deshabilitar visualmente el producto
+                card.style.opacity = "0.6";
+                card.style.cursor = "not-allowed";
+            } else if (stockRestante <= 5) {
+                stockDiv.style.color = "#ff9800";
+                card.style.opacity = "1";
+                card.style.cursor = "pointer";
+            } else {
+                stockDiv.style.color = "#4caf50";
+                card.style.opacity = "1";
+                card.style.cursor = "pointer";
+            }
+        }
+    });
 }
 
 
