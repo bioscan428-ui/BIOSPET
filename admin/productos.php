@@ -50,7 +50,8 @@ if (!empty($busqueda)) {
 } elseif ($categoria_id > 0) {
     // Filtrar por categoría
     $sql = "SELECT p.*, c.nombre AS categoria_nombre,
-                    prov.nombre AS proveedor_nombre
+                    prov.nombre AS proveedor_nombre,
+                    p.maneja_stock
             FROM PRODUCTO p
             JOIN CATEGORIA_PRODUCTO c ON p.id_categoria = c.id
             LEFT JOIN PROVEEDOR prov ON p.id_proveedor = prov.id
@@ -327,15 +328,20 @@ if (isset($_SESSION['importacion_mensaje'])) {
                                 ?>
                             </td>
                             <td>
-                                <?php 
-                                $stock_minimo = $producto['stock_minimo'] ?? 5;
-                                if ($producto['stock_actual'] <= 0): ?>
-                                    <span class="stock-critico">AGOTADO</span>
-                                <?php elseif ($producto['stock_actual'] <= $stock_minimo): ?>
-                                    <span class="stock-bajo"><?php echo $producto['stock_actual']; ?> unidades</span>
-                                <?php else: ?>
-                                    <span class="stock-normal"><?php echo $producto['stock_actual']; ?> unidades</span>
-                                <?php endif; ?>
+                                <?php
+                                if ($producto['maneja_stock'] == 0): ?>
+                                    <span class="stock-servicio">✨ Servicio (sin inventario)</span>
+                                <?php else:
+                                    $stock_minimo = $producto['stock_minimo'] ?? 5;
+                                    if ($producto['stock_actual'] <= 0): ?>
+                                        <span class="stock-critico">AGOTADO</span>
+                                    <?php elseif ($producto['stock_actual'] <= $stock_minimo): ?>
+                                        <span class="stock-bajo"><?php echo $producto['stock_actual']; ?> unidades</span>
+                                    <?php else: ?>
+                                        <span class="stock-normal"><?php echo $producto['stock_actual']; ?> unidades</span>
+                                    <?php endif;
+                                endif; ?>
+                            </td>
                             </span>
                             <?php if ($tab === 'criticos'): ?>
                                 <td><?php echo $producto['stock_minimo']; ?> unidades</span></td>

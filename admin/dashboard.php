@@ -164,8 +164,20 @@ if ($resumen_sql) {
             <?php if ($_SESSION['rol'] === 'super_admin'): ?>
                 <a href="usuarios.php">👥 Usuarios</a>
             <?php endif; ?>
-
-            <a href="imprimir_consentimiento_formato.php">📋 Formatos</a>
+            <!------Dropdown de formatos-------->
+            <div class="dropdown">
+                <a href="javascript:void(0)">📋 Formatos Digitales ▼</a>
+                <div class="dropdown-content">
+                    <a href="formatos_digitales/consentimiento_informado.php">📝 Consentimiento Informado</a>
+                    <a href="formatos_digitales/formato_ingreso_estetica.php">📝 Formato de Ingreso a estética/baño</a>
+                    <a href="formatos_digitales/acta_compromiso.php">📝 Acta Compromiso veterinaria</a>
+                    <a href="formatos_digitales/desparacitacion.php">📝 Desparacitación</a>
+                    <a href="formatos_digitales/autorizacion_estetica.php">📝 Formato de autorización</a>
+                    <hr style="margin: 5px 0; border-color: #eee;">
+                    <a href="formatos_lista.php">📁 Ver todos los formatos guardados</a>
+                </div>
+            </div>
+            <!------Fin de dropdown de formatos------->
             <a href="../index.php" target="_blank">🌐 Ver Sitio</a>
             <a href="logout.php">🚪 Cerrar Sesión</a>
         </div>
