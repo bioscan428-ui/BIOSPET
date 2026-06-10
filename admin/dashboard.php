@@ -168,7 +168,7 @@ if ($resumen_sql) {
             <div class="dropdown">
                 <a href="javascript:void(0)">📋 Formatos Digitales ▼</a>
                 <div class="dropdown-content">
-                    <a href="formatos_digitales/consentimiento_informado.php">📝 Consentimiento Informado</a>
+                    <a href="imprimir_consentimiento_formato.php">📝 Consentimiento Informado</a>
                     <a href="formatos_digitales/formato_ingreso_estetica.php">📝 Formato de Ingreso a estética/baño</a>
                     <a href="formatos_digitales/acta_compromiso.php">📝 Acta Compromiso veterinaria</a>
                     <a href="formatos_digitales/desparacitacion.php">📝 Desparacitación</a>

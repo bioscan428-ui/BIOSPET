@@ -425,3 +425,20 @@ CREATE TABLE EXPEDIENTE_EMPLEADO (
     CONSTRAINT fk_expediente_empleado FOREIGN KEY (id_empleado) REFERENCES EMPLEADO(id) ON DELETE CASCADE,
     CONSTRAINT fk_expediente_subido_por FOREIGN KEY (subido_por) REFERENCES EMPLEADO(id) ON DELETE SET NULL
 );
+
+----29. FORMATOS DE LAS MASCOTAS
+CREATE TABLE FORMATO_CLIENTE (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_cliente INT NOT NULL,
+    id_mascota INT NULL,
+    tipo_formato ENUM('consentimiento_informado', 'ingreso_estetica', 'acta_compromiso', 'desparacitacion', 'autorizacion_estetica') NOT NULL,
+    datos JSON NOT NULL,
+    firma_nombre VARCHAR(100) NOT NULL,
+    fecha_firma DATETIME DEFAULT CURRENT_TIMESTAMP,
+    ip_usuario VARCHAR(45),
+    id_empleado INT NULL,
+    -- Llaves foráneas
+    CONSTRAINT fk_formato_cliente FOREIGN KEY (id_cliente) REFERENCES CLIENTE(id) ON DELETE CASCADE,
+    CONSTRAINT fk_formato_mascota FOREIGN KEY (id_mascota) REFERENCES MASCOTA(id) ON DELETE SET NULL,
+    CONSTRAINT fk_formato_empleado FOREIGN KEY (id_empleado) REFERENCES EMPLEADO(id) ON DELETE SET NULL
+);

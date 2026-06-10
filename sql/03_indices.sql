@@ -112,3 +112,10 @@ CREATE INDEX idx_pago_metodo ON PAGO(metodo_pago);
 --TABLA 20. FACTURA--
 -- Índice para búsquedas por venta (ya es UNIQUE, pero ayuda)
 CREATE INDEX idx_factura_venta ON FACTURA(id_venta);
+
+----TABLA 29. FORMATOS_CLIENTES
+-- Índices para búsquedas rápidas
+    INDEX idx_cliente (id_cliente),
+    INDEX idx_mascota (id_mascota),
+    INDEX idx_fecha (fecha_firma),
+    INDEX idx_tipo (tipo_formato)

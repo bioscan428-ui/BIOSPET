@@ -106,8 +106,37 @@ if (!isset($_SESSION['user_id'])) {
                     <label><input type="checkbox" name="pañuelo"> Pañuelo</label>
                 </div>
                 <div class="form-row">
-                    <div class="form-group"><label>Estilo de corte</label><input type="text" name="estilo_corte"></div>
-                    <div class="form-group"><label>Tipo de Shampoo</label><select name="tipo_shampoo"><option value="Limpieza">Limpieza</option><option value="Medicado">Medicado</option><option value="Dermatológico">Dermatológico</option></select></div>
+                    <div class="form-group">
+                        <label>Estilo de corte</label>
+                        <select name="estilo_corte">
+                            <option value="">-- Seleccione un estilo --</option>
+                            <option value="Corte Completo">✂️ Corte Completo</option>
+                            <option value="Corte Higiénico">🧼 Corte Higiénico</option>
+                            <option value="Corte Raza">🐕 Corte de Raza</option>
+                            <option value="Corte León">🦁 Corte León (para gatos)</option>
+                            <option value="Corte Teddy">🧸 Corte Teddy</option>
+                            <option value="Corte Japonés">🇯🇵 Corte Japonés</option>
+                            <option value="Corte Militar">🎖️ Corte Militar</option>
+                            <option value="Corte de Verano">☀️ Corte de Verano</option>
+                            <option value="Recorte de puntas">✂️ Recorte de puntas</option>
+                            <option value="Afeitado completo">🪒 Afeitado completo</option>
+                            <option value="Sin corte">🚫 Sin corte (solo baño)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo de Shampoo</label>
+                        <select name="tipo_shampoo">
+                            <option value="Limpieza">🧴 Limpieza</option>
+                            <option value="Medicado">💊 Medicado</option>
+                            <option value="Dermatológico">🩺 Dermatológico</option>
+                            <option value="Antipulgas">🦟 Antipulgas</option>
+                            <option value="Hipoalergénico">🌸 Hipoalergénico</option>
+                            <option value="Aclarado">✨ Aclarado</option>
+                            <option value="Hidratante">💧 Hidratante</option>
+                            <option value="Blanqueador">⚪ Blanco para pelo blanco</option>
+                            <option value="Cepillo seco">🧽 Cepillo seco</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 

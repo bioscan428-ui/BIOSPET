@@ -8,7 +8,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 // Verificar rol para acceso
-if (!in_array($_SESSION['rol'], ['super_admin', 'admin', 'veterinario', 'asistente', 'recepcionista'])) {
+if (!in_array($_SESSION['rol'], ['super_admin', 'admin', 'veterinario', 'asistente', 'recepcionista', 'caja'])) {
     header('Location: login.php');
     exit;
 }
@@ -156,6 +156,70 @@ $total_clientes = $conn->query("SELECT COUNT(*) as total FROM CLIENTE WHERE acti
         .nivel-badge {
             font-weight: bold;
         }
+        /* Estilos para el modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+
+        .modal-grande {
+            max-width: 900px;
+        }
+
+        .modal-header {
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+        }
+
+        .modal-header .close-modal,
+        .modal-header .close-formatos {
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            background: none;
+            border: none;
+        }
+
+        .modal-header .close-modal:hover,
+        .modal-header .close-formatos:hover {
+            opacity: 0.7;
+        }
+
+        .modal-body {
+            padding: 20px;
+            max-height: calc(80vh - 70px);
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -279,6 +343,10 @@ $total_clientes = $conn->query("SELECT COUNT(*) as total FROM CLIENTE WHERE acti
                                 </form>
                             <?php endif; ?>
                             <a href="cliente_puntos.php?id=<?php echo $id_cliente; ?>" class="btn-puntos">⭐ Puntos</a>
+                            <button onclick="verFormatosCliente(<?php echo $id_cliente; ?>, '<?php echo addslashes(trim($nombre . ' ' . $ape_pat . ' ' . $ape_mat)); ?>')" 
+                            class="btn-formatos" style="background: #9c27b0; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; border: none; margin-top: 5px;">
+                            📋 Formatos
+                            </button>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -297,5 +365,90 @@ $total_clientes = $conn->query("SELECT COUNT(*) as total FROM CLIENTE WHERE acti
             </tbody>
         </table>
     </div>
+    <!-- Modal de Formatos del Cliente -->
+<div id="modalFormatos" class="modal">
+    <div class="modal-content modal-grande" style="max-width: 800px; width: 90%;">
+        <div class="modal-header" style="background: #9c27b0; padding: 15px; display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="color: white; margin: 0;">📋 Formatos Firmados</h2>
+            <span class="close-formatos" style="color: white; font-size: 28px; cursor: pointer;">&times;</span>
+        </div>
+        <div class="modal-body" id="modalFormatosBody" style="padding: 20px; max-height: 500px; overflow-y: auto;">
+            <div style="text-align: center; padding: 40px;">
+                Cargando...
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    // Modal de Formatos
+    const modalFormatos = document.getElementById('modalFormatos');
+    const closeFormatos = document.getElementsByClassName('close-formatos')[0];
+
+    function verFormatosCliente(clienteId, clienteNombre) {
+        modalFormatos.style.display = 'flex';
+        document.getElementById('modalFormatosBody').innerHTML = '<div style="text-align: center; padding: 40px;">Cargando formatos...</div>';
+        
+        fetch(`get_formatos_cliente.php?id_cliente=${clienteId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.length === 0) {
+                    document.getElementById('modalFormatosBody').innerHTML = `
+                        <div style="text-align: center; padding: 40px;">
+                            📄 No hay formatos firmados por <strong>${clienteNombre}</strong>
+                        </div>`;
+                    return;
+                }
+                
+                let html = `<h3 style="margin-bottom: 15px;">Cliente: ${clienteNombre}</h3>`;
+                html += '<div style="overflow-x: auto;">';
+                html += `<table class="clientes-table" style="width:100%;">
+                            <thead>
+                                <tr>
+                                    <th>Tipo</th>
+                                    <th>Mascota</th>
+                                    <th>Fecha</th>
+                                    <th>Firma</th>
+                                    <th>Empleado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                
+                data.forEach(formato => {
+                    html += `<td>
+                                <td><strong>${formato.tipo_formato.replace(/_/g, ' ').toUpperCase()}</strong></td>
+                                <td>${formato.nombre_mascota || 'N/A'}</td>
+                                <td>${new Date(formato.fecha_firma).toLocaleString()}</td>
+                                <td>${formato.firma_nombre}</td>
+                                <td>${formato.empleado_nombre || 'Sistema'}</td>
+                                <td><button onclick="verDetalleFormato(${formato.id})" class="btn-ver" style="background:#2196f3; color:white; padding:5px 10px; border-radius:5px; border:none; cursor:pointer;">Ver</button></td>
+                            </tr>`;
+                });
+                
+                html += `</tbody></table></div>`;
+                document.getElementById('modalFormatosBody').innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('modalFormatosBody').innerHTML = '<div style="color: red; text-align: center; padding: 40px;">❌ Error al cargar los formatos</div>';
+            });
+    }
+
+    function verDetalleFormato(id) {
+        window.open(`ver_formato.php?id=${id}`, '_blank', 'width=900,height=700,scrollbars=yes');
+    }
+
+    if (closeFormatos) {
+        closeFormatos.onclick = function() {
+            modalFormatos.style.display = 'none';
+        }
+    }
+
+    window.onclick = function(event) {
+        if (event.target == modalFormatos) {
+            modalFormatos.style.display = 'none';
+        }
+    }
+    </script>
 </body>
 </html>

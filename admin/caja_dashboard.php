@@ -1,5 +1,8 @@
 <?php
 session_start();
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
@@ -220,7 +223,7 @@ $valor_inventario = $conn->query("SELECT SUM(stock_actual * precio_compra) as to
             <div class="dropdown">
                 <a href="javascript:void(0)">📋 Formatos Digitales ▼</a>
                 <div class="dropdown-content">
-                    <a href="formatos_digitales/consentimiento_informado.php">📝 Consentimiento Informado</a>
+                    <a href="formatos_digitales/imprimir_consentimiento_formato.php">📝 Consentimiento Informado</a>
                     <a href="formatos_digitales/formato_ingreso_estetica.php">📝 Formato de Ingreso a estética/baño</a>
                     <a href="formatos_digitales/acta_compromiso.php">📝 Acta Compromiso veterinaria</a>
                     <a href="formatos_digitales/desparacitacion.php">📝 Desparacitación</a>
@@ -230,6 +233,7 @@ $valor_inventario = $conn->query("SELECT SUM(stock_actual * precio_compra) as to
                 </div>
             </div>
             <!------Fin de dropdown de formatos------->
+            <a href="clientes.php">📋 Lista de Clientes</a>
             
             <a href="../index.php" target="_blank">🌐 Ver Sitio</a>
             <a href="logout.php">🚪 Cerrar Sesión</a>
