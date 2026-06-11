@@ -4,6 +4,52 @@ if (!isset($_SESSION['user_id'])) {
     header('Location: ../login.php');
     exit;
 }
+
+require_once '../../includes/conexion.php';
+
+// Obtener parámetros de la URL
+$id_cliente = isset($_GET['id_cliente']) ? (int)$_GET['id_cliente'] : 0;
+$id_mascota = isset($_GET['id_mascota']) ? (int)$_GET['id_mascota'] : 0;
+
+// Variables para precargar
+$nombre_propietario = '';
+$telefono = '';
+$nombre_mascota = '';
+$especie = 'Canino';
+$raza = '';
+$color = '';
+$peso = '';
+$sexo = '';
+
+// Cargar datos del cliente si viene por URL
+if ($id_cliente > 0) {
+    $sql_cliente = "SELECT nombre, ape_pat, ape_mat, telefono FROM CLIENTE WHERE id = ?";
+    $stmt = $conn->prepare($sql_cliente);
+    $stmt->bind_param("i", $id_cliente);
+    $stmt->execute();
+    $cliente = $stmt->get_result()->fetch_assoc();
+    
+    if ($cliente) {
+        $nombre_propietario = trim($cliente['nombre'] . ' ' . ($cliente['ape_pat'] ?? '') . ' ' . ($cliente['ape_mat'] ?? ''));
+        $telefono = $cliente['telefono'] ?? '';
+    }
+}
+
+// Cargar datos de la mascota si viene por URL
+if ($id_mascota > 0) {
+    $sql_mascota = "SELECT nombre_mascota, especie, raza, genero FROM MASCOTA WHERE id = ?";
+    $stmt = $conn->prepare($sql_mascota);
+    $stmt->bind_param("i", $id_mascota);
+    $stmt->execute();
+    $mascota = $stmt->get_result()->fetch_assoc();
+    
+    if ($mascota) {
+        $nombre_mascota = $mascota['nombre_mascota'] ?? '';
+        $especie = $mascota['especie'] ?? 'Canino';
+        $raza = $mascota['raza'] ?? '';
+        $sexo = $mascota['genero'] ?? '';
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -31,6 +77,15 @@ if (!isset($_SESSION['user_id'])) {
         .signature-area { border: 2px dashed #ddd; border-radius: 12px; padding: 20px; text-align: center; margin-top: 15px; }
         .btn-submit { background: #E68D0B; color: white; border: none; padding: 14px 25px; border-radius: 10px; font-size: 1.1rem; cursor: pointer; width: 100%; margin-top: 20px; }
         .btn-submit:hover { background: #d47a0a; }
+        .info-box {
+            background: #e3f2fd;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            color: #1565c0;
+            font-size: 13px;
+            text-align: center;
+        }
         @media (max-width: 600px) { .form-container { padding: 15px; } .form-row { flex-direction: column; } .form-group { min-width: 100%; } }
     </style>
 </head>
@@ -41,16 +96,24 @@ if (!isset($_SESSION['user_id'])) {
             <p>Completa todos los campos. Al finalizar, firma en la pantalla.</p>
         </div>
 
+        <?php if ($id_cliente > 0): ?>
+        <div class="info-box">
+            📋 Datos precargados desde la cita del cliente. Verifica que sean correctos.
+        </div>
+        <?php endif; ?>
+
         <form action="guardar_formato.php" method="POST">
             <input type="hidden" name="tipo_formato" value="ingreso_estetica">
             <input type="hidden" name="return_url" value="ingreso_estetica.php">
+            <input type="hidden" name="id_cliente" value="<?php echo $id_cliente; ?>">
+            <input type="hidden" name="id_mascota" value="<?php echo $id_mascota; ?>">
 
             <!-- DATOS DEL PROPIETARIO -->
             <div class="form-section">
                 <h3>📋 Datos del Propietario</h3>
                 <div class="form-row">
-                    <div class="form-group"><label>Nombre completo *</label><input type="text" name="propietario_nombre" required></div>
-                    <div class="form-group"><label>Teléfono *</label><input type="tel" name="propietario_telefono" required></div>
+                    <div class="form-group"><label>Nombre completo *</label><input type="text" name="propietario_nombre" value="<?php echo htmlspecialchars($nombre_propietario); ?>" required></div>
+                    <div class="form-group"><label>Teléfono *</label><input type="tel" name="propietario_telefono" value="<?php echo htmlspecialchars($telefono); ?>" required></div>
                 </div>
             </div>
 
@@ -58,14 +121,24 @@ if (!isset($_SESSION['user_id'])) {
             <div class="form-section">
                 <h3>🐕 Datos de la Mascota</h3>
                 <div class="form-row">
-                    <div class="form-group"><label>Nombre de la mascota *</label><input type="text" name="mascota_nombre" required></div>
-                    <div class="form-group"><label>Especie *</label><select name="mascota_especie" required><option value="Canino">Perro (Canino)</option><option value="Felino">Gato (Felino)</option></select></div>
+                    <div class="form-group"><label>Nombre de la mascota *</label><input type="text" name="mascota_nombre" value="<?php echo htmlspecialchars($nombre_mascota); ?>" required></div>
+                    <div class="form-group"><label>Especie *</label>
+                        <select name="mascota_especie" required>
+                            <option value="Canino" <?php echo $especie == 'Canino' ? 'selected' : ''; ?>>Perro (Canino)</option>
+                            <option value="Felino" <?php echo $especie == 'Felino' ? 'selected' : ''; ?>>Gato (Felino)</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-row">
-                    <div class="form-group"><label>Raza</label><input type="text" name="mascota_raza"></div>
-                    <div class="form-group"><label>Color</label><input type="text" name="mascota_color"></div>
-                    <div class="form-group"><label>Peso (Kg)</label><input type="number" step="0.1" name="mascota_peso"></div>
-                    <div class="form-group"><label>Sexo</label><select name="mascota_sexo"><option value="M">Macho</option><option value="H">Hembra</option></select></div>
+                    <div class="form-group"><label>Raza</label><input type="text" name="mascota_raza" value="<?php echo htmlspecialchars($raza); ?>"></div>
+                    <div class="form-group"><label>Color</label><input type="text" name="mascota_color" value="<?php echo htmlspecialchars($color); ?>"></div>
+                    <div class="form-group"><label>Peso (Kg)</label><input type="number" step="0.1" name="mascota_peso" value="<?php echo htmlspecialchars($peso); ?>"></div>
+                    <div class="form-group"><label>Sexo</label>
+                        <select name="mascota_sexo">
+                            <option value="M" <?php echo $sexo == 'M' ? 'selected' : ''; ?>>Macho</option>
+                            <option value="H" <?php echo $sexo == 'H' ? 'selected' : ''; ?>>Hembra</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group"><label>Hora de entrada</label><input type="time" name="hora_entrada"></div>
@@ -77,20 +150,71 @@ if (!isset($_SESSION['user_id'])) {
             <div class="form-section">
                 <h3>🔍 Condiciones de Llegada</h3>
                 <div class="form-row">
-                    <div class="form-group"><label>Estado del pelo</label><select name="estado_pelo"><option value="Normal">Normal</option><option value="Sucio">Sucio</option><option value="Motas/Nudos">Motas/Nudos</option><option value="Pelo apelmazado">Pelo apelmazado</option></select></div>
-                    <div class="form-group"><label>Parásitos externos</label><select name="parasitos"><option value="No">No</option><option value="Pulgas">Pulgas</option><option value="Garrapatas">Garrapatas</option><option value="Ambos">Ambos</option></select></div>
+                    <div class="form-group"><label>Estado del pelo</label>
+                        <select name="estado_pelo">
+                            <option value="Normal">Normal</option>
+                            <option value="Sucio">Sucio</option>
+                            <option value="Motas/Nudos">Motas/Nudos</option>
+                            <option value="Pelo apelmazado">Pelo apelmazado</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Parásitos externos</label>
+                        <select name="parasitos">
+                            <option value="No">No</option>
+                            <option value="Pulgas">Pulgas</option>
+                            <option value="Garrapatas">Garrapatas</option>
+                            <option value="Ambos">Ambos</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-row">
-                    <div class="form-group"><label>Estado de la piel</label><select name="estado_piel"><option value="Normal">Normal</option><option value="Infección">Infección</option><option value="Heridas">Heridas</option></select></div>
-                    <div class="form-group"><label>Estado dental</label><select name="estado_dental"><option value="Normal">Normal</option><option value="Sarro">Sarro</option><option value="Placa dentaria">Placa dentaria</option><option value="Halitosis">Halitosis</option><option value="Gingivitis">Gingivitis</option></select></div>
+                    <div class="form-group"><label>Estado de la piel</label>
+                        <select name="estado_piel">
+                            <option value="Normal">Normal</option>
+                            <option value="Infección">Infección</option>
+                            <option value="Heridas">Heridas</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Estado dental</label>
+                        <select name="estado_dental">
+                            <option value="Normal">Normal</option>
+                            <option value="Sarro">Sarro</option>
+                            <option value="Placa dentaria">Placa dentaria</option>
+                            <option value="Halitosis">Halitosis</option>
+                            <option value="Gingivitis">Gingivitis</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-row">
-                    <div class="form-group"><label>Estado de oídos</label><select name="estado_oidos"><option value="Normal">Normal</option><option value="Sucios">Sucios</option><option value="Infección">Infección</option></select></div>
-                    <div class="form-group"><label>Estado ocular</label><select name="estado_ocular"><option value="Normal">Normal</option><option value="Secreción">Secreción</option><option value="Infección">Infección</option><option value="Irritación">Irritación</option></select></div>
+                    <div class="form-group"><label>Estado de oídos</label>
+                        <select name="estado_oidos">
+                            <option value="Normal">Normal</option>
+                            <option value="Sucios">Sucios</option>
+                            <option value="Infección">Infección</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Estado ocular</label>
+                        <select name="estado_ocular">
+                            <option value="Normal">Normal</option>
+                            <option value="Secreción">Secreción</option>
+                            <option value="Infección">Infección</option>
+                            <option value="Irritación">Irritación</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-row">
-                    <div class="form-group"><label>Bolsas anales</label><select name="bolsas_anales"><option value="Vacías">Vacías</option><option value="Llenas">Llenas</option></select></div>
-                    <div class="form-group"><label>Almohadillas</label><select name="almohadillas"><option value="Normal">Normal</option><option value="Infección">Infección</option></select></div>
+                    <div class="form-group"><label>Bolsas anales</label>
+                        <select name="bolsas_anales">
+                            <option value="Vacías">Vacías</option>
+                            <option value="Llenas">Llenas</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Almohadillas</label>
+                        <select name="almohadillas">
+                            <option value="Normal">Normal</option>
+                            <option value="Infección">Infección</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 

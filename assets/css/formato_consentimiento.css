@@ -1,0 +1,207 @@
+*  {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            background: #f0f0f0;
+            padding: 20px;
+        }
+        
+        .formato {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        
+        /* Estilos para tablets */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .formato {
+                padding: 20px;
+            }
+            .campo-label {
+                width: 120px !important;
+                font-size: 14px;
+            }
+            .campo-linea {
+                min-width: 150px !important;
+            }
+        }
+        
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+                margin: 0;
+            }
+            .formato {
+                box-shadow: none;
+                padding: 20px;
+            }
+            .no-print {
+                display: none;
+            }
+            .btn-imprimir {
+                display: none;
+            }
+            input, .campo-linea {
+                border-bottom: 1px solid #333 !important;
+            }
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+        }
+        
+        .logo {
+            max-width: 150px;
+            margin-bottom: 15px;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .header p {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .titulo {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .titulo h2 {
+            font-size: 18px;
+            text-decoration: underline;
+        }
+        
+        .contenido {
+            line-height: 1.6;
+            margin: 20px 0;
+        }
+        
+        .contenido p {
+            margin: 15px 0;
+            text-align: justify;
+        }
+        
+        .contenido h3 {
+            margin: 20px 0 10px 0;
+            font-size: 16px;
+        }
+        
+        .datos-cliente {
+            background: #f5f5f5;
+            padding: 15px;
+            margin: 20px 0;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .campo {
+            margin: 10px 0;
+            display: flex;
+            align-items: baseline;
+            flex-wrap: wrap;
+        }
+        
+        .campo-label {
+            width: 150px;
+            font-weight: bold;
+        }
+        
+        .campo-linea {
+            flex: 1;
+            border-bottom: 1px solid #333;
+            margin-left: 10px;
+            min-width: 200px;
+        }
+        
+        /* Para inputs editables */
+        .campo-input {
+            flex: 1;
+            border: none;
+            border-bottom: 1px solid #333;
+            margin-left: 10px;
+            padding: 5px 0;
+            font-family: inherit;
+            font-size: inherit;
+            background: transparent;
+            outline: none;
+        }
+        
+        .campo-input:focus {
+            border-bottom-color: #4caf50;
+        }
+        
+        .firma {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .firma-caja {
+            flex: 1;
+            text-align: center;
+            min-width: 200px;
+        }
+        
+        .firma-linea {
+            border-top: 1px solid #333;
+            margin-top: 40px;
+            margin-bottom: 10px;
+            padding-top: 10px;
+        }
+        
+        .firma-caja p {
+            margin: 5px 0;
+        }
+        
+        .nota {
+            font-size: 11px;
+            color: #666;
+            text-align: center;
+            margin-top: 40px;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+        
+        .btn-imprimir {
+            display: block;
+            width: 200px;
+            margin: 20px auto;
+            padding: 12px;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            text-align: center;
+        }
+        
+        .btn-imprimir:hover {
+            background: #45a049;
+        }
+        
+        .sync-info {
+            font-size: 11px;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
