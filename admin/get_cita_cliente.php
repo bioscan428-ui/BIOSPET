@@ -16,7 +16,8 @@ if ($id_cita <= 0) {
     exit;
 }
 
-$sql = "SELECT c.id, m.id_cliente as cliente_id
+// Agregar c.id_mascota a la consulta
+$sql = "SELECT c.id, m.id_cliente as cliente_id, c.id_mascota as mascota_id
         FROM CITA c
         JOIN MASCOTA m ON c.id_mascota = m.id
         WHERE c.id = ?";
@@ -33,6 +34,7 @@ if (!$cita) {
 
 echo json_encode([
     'success' => true,
-    'cliente_id' => $cita['cliente_id']
+    'cliente_id' => $cita['cliente_id'],
+    'mascota_id' => $cita['mascota_id']  // ← Agregar esta línea
 ]);
 ?>

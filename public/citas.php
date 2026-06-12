@@ -121,6 +121,7 @@ if (!$conn) {
             padding: 15px;
             border-radius: 8px;
             background: #f9f9f9;
+            margin-top: 10px;
         }
         .servicio-checkbox {
             display: flex;
@@ -131,13 +132,23 @@ if (!$conn) {
         .servicio-checkbox input {
             width: auto;
         }
-        .precio-info {
-            margin-top: 10px;
-            padding: 10px;
-            background: #e8f0fe;
-            border-radius: 8px;
-            text-align: center;
-            font-weight: bold;
+        .servicio-checkbox.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .servicio-checkbox.disabled input {
+            cursor: not-allowed;
+        }
+        .servicios-por-mascota {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #ddd;
+        }
+        .servicios-por-mascota label:first-child {
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: block;
+            color: #E68D0B;
         }
         .btn {
             background: #E68D0B;
@@ -150,6 +161,14 @@ if (!$conn) {
         }
         .btn:hover {
             background: #d47a0a;
+        }
+        .total-mascota {
+            text-align: right;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
+            font-weight: bold;
+            color: #E68D0B;
         }
     </style>
 </head>
@@ -239,7 +258,7 @@ if (!$conn) {
                                 </div>
                                 <div class="form-group">
                                     <label>Especie *</label>
-                                    <select name="mascotas_nuevas[0][especie]" required>
+                                    <select name="mascotas_nuevas[0][especie]" class="especie-select" data-idx="0" required>
                                         <option value="Canino">Perro</option>
                                         <option value="Felino">Gato</option>
                                         <option value="Otro">Otro</option>
@@ -271,6 +290,33 @@ if (!$conn) {
                                         <option value="">-- Primero ingresa un teléfono --</option>
                                     </select>
                                 </div>
+                                <div class="form-group">
+                                    <label>Especie</label>
+                                    <input type="text" class="especie-mostrada" readonly style="background:#f0f0f0;">
+                                </div>
+                            </div>
+                            
+                            <!-- SERVICIOS PARA ESTA MASCOTA -->
+                            <div class="servicios-por-mascota">
+                                <label>🩺 Servicios para esta mascota:</label>
+                                <div class="servicios-grid" data-idx="0">
+                                    <?php
+                                    $sql_servicios = "SELECT id, nombre_servicio, precio FROM SERVICIO WHERE activo = 1 ORDER BY nombre_servicio";
+                                    $result_servicios = $conn->query($sql_servicios);
+                                    while($servicio = $result_servicios->fetch_assoc()):
+                                    ?>
+                                        <label class="servicio-checkbox" data-especie="ambos">
+                                            <input type="checkbox" 
+                                                   name="servicios_por_mascota[0][<?php echo $servicio['id']; ?>]" 
+                                                   value="<?php echo $servicio['id']; ?>"
+                                                   data-precio="<?php echo $servicio['precio']; ?>"
+                                                   data-nombre="<?php echo htmlspecialchars($servicio['nombre_servicio']); ?>">
+                                            <span><?php echo htmlspecialchars($servicio['nombre_servicio']); ?></span>
+                                            <strong>$<?php echo number_format($servicio['precio'], 2); ?></strong>
+                                        </label>
+                                    <?php endwhile; ?>
+                                </div>
+                                <div class="total-mascota" id="total-mascota-0">💰 Total: $0.00</div>
                             </div>
                             
                             <button type="button" class="btn-remove-mascota" onclick="eliminarMascota(this)" style="display:none;">❌ Eliminar mascota</button>
@@ -294,24 +340,6 @@ if (!$conn) {
                     <div class="form-group full-width">
                         <label>Motivo de consulta / Síntomas</label>
                         <textarea name="notas" rows="4" placeholder="Describe los síntomas que presenta tu mascota, desde cuándo, y cualquier detalle importante para el veterinario."></textarea>
-                    </div>
-
-                    <!-- Selección de servicios con checkboxes -->
-                    <div class="form-group full-width">
-                        <label>🩺 Servicios que deseas</label>
-                        <div class="servicios-grid">
-                            <?php
-                            $sql_servicios = "SELECT id, nombre_servicio, precio FROM SERVICIO WHERE activo = 1 ORDER BY nombre_servicio";
-                            $result_servicios = $conn->query($sql_servicios);
-                            while($servicio = $result_servicios->fetch_assoc()):
-                                ?>
-                                <label class="servicio-checkbox">
-                                    <input type="checkbox" name="servicios[]" value="<?php echo $servicio['id']; ?>">
-                                    <span><?php echo htmlspecialchars($servicio['nombre_servicio']); ?></span>
-                                    <strong>$<?php echo number_format($servicio['precio'], 2); ?></strong>
-                                </label>
-                            <?php endwhile; ?>
-                        </div>
                     </div>
                 </div>
 
@@ -358,6 +386,72 @@ if (!$conn) {
         let contadorMascotas = 1;
         let mascotasDelCliente = [];
 
+        // Función para filtrar servicios por especie
+        function filtrarServiciosPorEspecie(idx, especie) {
+            const serviciosGrid = document.querySelector(`.servicios-grid[data-idx="${idx}"]`);
+            if (!serviciosGrid) return;
+            
+            const servicios = serviciosGrid.querySelectorAll('.servicio-checkbox');
+            servicios.forEach(servicio => {
+                const nombre = servicio.querySelector('span').textContent.toLowerCase();
+                
+                // Definir qué servicios aplican para cada especie
+                const esSoloPerro = nombre.includes('baño perro') || 
+                                    nombre.includes('estética y baño') || 
+                                    nombre.includes('deslanado') === false;
+                const esSoloGato = nombre.includes('deslanado') || 
+                                  nombre.includes('gato') ||
+                                  nombre.includes('felino');
+                
+                if (especie === 'Canino') {
+                    // Para perros: ocultar servicios específicos de gatos
+                    if (esSoloGato && !nombre.includes('perro')) {
+                        servicio.style.display = 'none';
+                    } else {
+                        servicio.style.display = 'flex';
+                    }
+                } else if (especie === 'Felino') {
+                    // Para gatos: ocultar servicios específicos de perros
+                    if (esSoloPerro && !nombre.includes('gato') && !nombre.includes('felino')) {
+                        servicio.style.display = 'none';
+                    } else {
+                        servicio.style.display = 'flex';
+                    }
+                } else {
+                    servicio.style.display = 'flex';
+                }
+            });
+            calcularTotalMascota(idx);
+        }
+
+        // Calcular total de una mascota específica
+        function calcularTotalMascota(idx) {
+            const serviciosGrid = document.querySelector(`.servicios-grid[data-idx="${idx}"]`);
+            if (!serviciosGrid) return;
+            
+            let total = 0;
+            const checkboxes = serviciosGrid.querySelectorAll('input[type="checkbox"]:checked');
+            checkboxes.forEach(checkbox => {
+                total += parseFloat(checkbox.getAttribute('data-precio') || 0);
+            });
+            
+            const totalDiv = document.getElementById(`total-mascota-${idx}`);
+            if (totalDiv) {
+                totalDiv.innerHTML = `💰 Total: $${total.toFixed(2)}`;
+            }
+            return total;
+        }
+
+        // Calcular total general de todas las mascotas
+        function calcularTotalGeneral() {
+            let totalGeneral = 0;
+            for (let i = 0; i < contadorMascotas; i++) {
+                const total = calcularTotalMascota(i);
+                if (total) totalGeneral += total;
+            }
+            return totalGeneral;
+        }
+
         function buscarMascotasPorTelefono() {
             const telefono = document.getElementById('telefono').value;
             if(telefono.length < 10) return;
@@ -380,7 +474,6 @@ if (!$conn) {
                         });
                         container.style.display = 'block';
                         
-                        // Actualizar todos los selects de mascotas existentes
                         document.querySelectorAll('.select-mascota-existente').forEach(select => {
                             actualizarSelectMascotas(select, data);
                         });
@@ -395,7 +488,7 @@ if (!$conn) {
             select.innerHTML = '<option value="">-- Seleccionar mascota --</option>';
             if(mascotas && mascotas.length) {
                 mascotas.forEach(m => {
-                    select.innerHTML += `<option value="${m.id}">${m.nombre_mascota} (${m.especie})</option>`;
+                    select.innerHTML += `<option value="${m.id}" data-especie="${m.especie}">${m.nombre_mascota} (${m.especie})</option>`;
                 });
             } else {
                 select.innerHTML += '<option value="" disabled>No hay mascotas registradas con este teléfono</option>';
@@ -403,122 +496,144 @@ if (!$conn) {
         }
 
         function toggleMascotaForm(idx, tipo) {
-    const nuevaForm = document.getElementById(`mascota-nueva-${idx}`);
-    const existenteForm = document.getElementById(`mascota-existente-${idx}`);
-    
-    console.log('toggleMascotaForm llamado:', idx, tipo, nuevaForm, existenteForm); // Debug
-    
-    if(!nuevaForm || !existenteForm) {
-        console.error('No se encontraron los formularios para idx:', idx);
-        return;
-    }
-    
-    if(tipo === 'nueva') {
-        nuevaForm.style.display = 'block';
-        existenteForm.style.display = 'none';
-        
-        // Remover required de existente
-        const select = document.querySelector(`select[name="mascotas_existentes[${idx}][id]"]`);
-        if(select) select.removeAttribute('required');
-        
-        // Agregar required a nuevos
-        const nombreInput = document.querySelector(`input[name="mascotas_nuevas[${idx}][nombre]"]`);
-        if(nombreInput) nombreInput.setAttribute('required', 'required');
-    } else {
-        nuevaForm.style.display = 'none';
-        existenteForm.style.display = 'block';
-        
-        // Agregar required a existente
-        const select = document.querySelector(`select[name="mascotas_existentes[${idx}][id]"]`);
-        if(select) select.setAttribute('required', 'required');
-        
-        // Remover required de nuevos
-        const nombreInput = document.querySelector(`input[name="mascotas_nuevas[${idx}][nombre]"]`);
-        if(nombreInput) nombreInput.removeAttribute('required');
-        
-        // Cargar mascotas si ya tenemos datos
-        if(mascotasDelCliente.length) {
-            actualizarSelectMascotas(select, mascotasDelCliente);
+            const nuevaForm = document.getElementById(`mascota-nueva-${idx}`);
+            const existenteForm = document.getElementById(`mascota-existente-${idx}`);
+            
+            if(!nuevaForm || !existenteForm) {
+                console.error('No se encontraron los formularios para idx:', idx);
+                return;
+            }
+            
+            if(tipo === 'nueva') {
+                nuevaForm.style.display = 'block';
+                existenteForm.style.display = 'none';
+                
+                const select = document.querySelector(`select[name="mascotas_existentes[${idx}][id]"]`);
+                if(select) select.removeAttribute('required');
+                
+                const nombreInput = document.querySelector(`input[name="mascotas_nuevas[${idx}][nombre]"]`);
+                if(nombreInput) nombreInput.setAttribute('required', 'required');
+                
+                // Resetear servicios cuando es nueva mascota
+                const serviciosGrid = document.querySelector(`.servicios-grid[data-idx="${idx}"]`);
+                if(serviciosGrid) {
+                    serviciosGrid.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+                }
+            } else {
+                nuevaForm.style.display = 'none';
+                existenteForm.style.display = 'block';
+                
+                const select = document.querySelector(`select[name="mascotas_existentes[${idx}][id]"]`);
+                if(select) select.setAttribute('required', 'required');
+                
+                const nombreInput = document.querySelector(`input[name="mascotas_nuevas[${idx}][nombre]"]`);
+                if(nombreInput) nombreInput.removeAttribute('required');
+                
+                if(mascotasDelCliente.length) {
+                    actualizarSelectMascotas(select, mascotasDelCliente);
+                }
+                
+                // Al seleccionar mascota existente, cargar su especie para filtrar servicios
+                if(select) {
+                    select.onchange = function() {
+                        const selectedOption = this.options[this.selectedIndex];
+                        const especie = selectedOption.getAttribute('data-especie') || 'Canino';
+                        const especieInput = document.getElementById(`especie-mostrada-${idx}`);
+                        if(especieInput) especieInput.value = especie;
+                        filtrarServiciosPorEspecie(idx, especie);
+                    };
+                }
+            }
         }
-    }
-}
 
         function agregarMascota() {
-    const container = document.getElementById('mascotas-container');
-    const template = document.querySelector('.mascota-card').cloneNode(true);
-    const nuevoIdx = contadorMascotas;
-    
-    // Actualizar índice
-    template.setAttribute('data-idx', nuevoIdx);
-    
-    // Actualizar título
-    const titulo = template.querySelector('h3');
-    if(titulo) titulo.textContent = `🐕 Mascota #${nuevoIdx + 1}`;
-    
-    // Actualizar el name del select de tipo y su onchange
-    const selectTipo = template.querySelector('select[name*="mascota_tipo"]');
-    if(selectTipo) {
-        const nuevoName = `mascota_tipo[${nuevoIdx}]`;
-        selectTipo.setAttribute('name', nuevoName);
-        selectTipo.setAttribute('onchange', `toggleMascotaForm(${nuevoIdx}, this.value)`);
-        selectTipo.value = 'nueva';  // Resetear a "nueva"
-    }
-    
-    // Actualizar todos los inputs con name que contengan [0]
-    template.querySelectorAll('[name]').forEach(el => {
-        const name = el.getAttribute('name');
-        if(name && name.includes('[0]')) {
-            const nuevoName = name.replace('[0]', `[${nuevoIdx}]`);
-            el.setAttribute('name', nuevoName);
+            const container = document.getElementById('mascotas-container');
+            const template = document.querySelector('.mascota-card').cloneNode(true);
+            const nuevoIdx = contadorMascotas;
+            
+            template.setAttribute('data-idx', nuevoIdx);
+            
+            const titulo = template.querySelector('h3');
+            if(titulo) titulo.textContent = `🐕 Mascota #${nuevoIdx + 1}`;
+            
+            // Actualizar el select de tipo
+            const selectTipo = template.querySelector('select[name*="mascota_tipo"]');
+            if(selectTipo) {
+                const nuevoName = `mascota_tipo[${nuevoIdx}]`;
+                selectTipo.setAttribute('name', nuevoName);
+                selectTipo.setAttribute('onchange', `toggleMascotaForm(${nuevoIdx}, this.value)`);
+                selectTipo.value = 'nueva';
+            }
+            
+            // Actualizar inputs de mascota nueva
+            template.querySelectorAll('[name]').forEach(el => {
+                const name = el.getAttribute('name');
+                if(name && name.includes('[0]')) {
+                    const nuevoName = name.replace('[0]', `[${nuevoIdx}]`);
+                    el.setAttribute('name', nuevoName);
+                }
+                if(el.tagName === 'INPUT' && el.type !== 'file') el.value = '';
+                if(el.tagName === 'SELECT' && el !== selectTipo) el.value = '';
+            });
+            
+            // Actualizar IDs de los divs
+            const nuevaDiv = template.querySelector('.mascota-nueva-form');
+            const existenteDiv = template.querySelector('.mascota-existente-form');
+            if(nuevaDiv) nuevaDiv.id = `mascota-nueva-${nuevoIdx}`;
+            if(existenteDiv) existenteDiv.id = `mascota-existente-${nuevoIdx}`;
+            
+            // Actualizar select de mascotas existentes
+            const selectExistente = template.querySelector('.select-mascota-existente');
+            if(selectExistente) {
+                selectExistente.setAttribute('name', `mascotas_existentes[${nuevoIdx}][id]`);
+                selectExistente.setAttribute('data-idx', nuevoIdx);
+                if(mascotasDelCliente.length > 0) {
+                    actualizarSelectMascotas(selectExistente, mascotasDelCliente);
+                }
+            }
+            
+            // Actualizar servicios grid
+            const serviciosGrid = template.querySelector('.servicios-grid');
+            if(serviciosGrid) {
+                serviciosGrid.setAttribute('data-idx', nuevoIdx);
+                serviciosGrid.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                    const name = cb.getAttribute('name');
+                    if(name) {
+                        const nuevoName = name.replace(/\[\d+\]/, `[${nuevoIdx}]`);
+                        cb.setAttribute('name', nuevoName);
+                    }
+                    cb.checked = false;
+                });
+            }
+            
+            // Actualizar total
+            const totalDiv = template.querySelector('.total-mascota');
+            if(totalDiv) totalDiv.id = `total-mascota-${nuevoIdx}`;
+            
+            // Agregar event listener a select de especie para filtrar servicios
+            const especieSelect = template.querySelector('.especie-select');
+            if(especieSelect) {
+                especieSelect.setAttribute('data-idx', nuevoIdx);
+                especieSelect.onchange = function() {
+                    filtrarServiciosPorEspecie(nuevoIdx, this.value);
+                };
+            }
+            
+            // Agregar event listeners a checkboxes para calcular total
+            serviciosGrid?.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.onchange = () => calcularTotalMascota(nuevoIdx);
+            });
+            
+            const btnRemove = template.querySelector('.btn-remove-mascota');
+            if(btnRemove) {
+                btnRemove.style.display = 'inline-block';
+                btnRemove.setAttribute('onclick', 'eliminarMascota(this)');
+            }
+            
+            container.appendChild(template);
+            contadorMascotas++;
+            console.log('Mascota agregada, total:', contadorMascotas);
         }
-        // Limpiar valores
-        if(el.tagName === 'INPUT' && el.type !== 'file') el.value = '';
-        if(el.tagName === 'SELECT' && el !== selectTipo) el.value = '';
-    });
-    
-    // Actualizar IDs de los divs de nueva/existente
-    const nuevaDiv = template.querySelector('.mascota-nueva-form');
-    const existenteDiv = template.querySelector('.mascota-existente-form');
-    if(nuevaDiv) {
-        nuevaDiv.id = `mascota-nueva-${nuevoIdx}`;
-        nuevaDiv.style.display = 'block';
-    }
-    if(existenteDiv) {
-        existenteDiv.id = `mascota-existente-${nuevoIdx}`;
-        existenteDiv.style.display = 'none';
-    }
-    
-    // Actualizar el input de nombre de mascota nueva (agregar required)
-    const nombreInput = template.querySelector('input[name*="[nombre]"]');
-    if(nombreInput) {
-        nombreInput.setAttribute('required', 'required');
-    }
-    
-    // Actualizar select de mascotas existentes
-    const selectExistente = template.querySelector('.select-mascota-existente');
-    if(selectExistente) {
-        selectExistente.setAttribute('name', `mascotas_existentes[${nuevoIdx}][id]`);
-        selectExistente.setAttribute('data-idx', nuevoIdx);
-        if(mascotasDelCliente.length > 0) {
-            actualizarSelectMascotas(selectExistente, mascotasDelCliente);
-        } else {
-            selectExistente.innerHTML = '<option value="">-- Primero ingresa un teléfono --</option>';
-        }
-    }
-    
-    // Mostrar botón eliminar
-    const btnRemove = template.querySelector('.btn-remove-mascota');
-    if(btnRemove) {
-        btnRemove.style.display = 'inline-block';
-        btnRemove.setAttribute('onclick', 'eliminarMascota(this)');
-    }
-    
-    container.appendChild(template);
-    contadorMascotas++;
-    
-    // Debug: confirmar que se agregó
-    console.log('Mascota agregada, total:', contadorMascotas);
-}
 
         function eliminarMascota(btn) {
             const cards = document.querySelectorAll('.mascota-card');
@@ -532,6 +647,20 @@ if (!$conn) {
         // Inicializar
         document.addEventListener('DOMContentLoaded', () => {
             toggleMascotaForm(0, 'nueva');
+            
+            // Agregar event listener a especie de la primera mascota
+            const especieSelect = document.querySelector('.especie-select');
+            if(especieSelect) {
+                especieSelect.onchange = function() {
+                    filtrarServiciosPorEspecie(0, this.value);
+                };
+            }
+            
+            // Agregar event listeners a checkboxes de la primera mascota
+            const checkboxes = document.querySelectorAll('.servicios-grid[data-idx="0"] input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                cb.onchange = () => calcularTotalMascota(0);
+            });
         });
     </script>
 </body>

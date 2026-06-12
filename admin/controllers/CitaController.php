@@ -23,7 +23,9 @@ class CitaController {
         $hora_cita = $_POST['hora_cita'] ?? '';
         $notas = trim($_POST['notas'] ?? '');
         $origen = $_POST['origen'] ?? 'web';
-        $servicios = $_POST['servicios'] ?? [];
+        
+        // Obtener servicios por mascota (nueva estructura)
+        $servicios_por_mascota = $_POST['servicios_por_mascota'] ?? [];
 
         // Normalizar origen
         $origen = ($origen === 'web') ? 'Whatsapp' : 'Presencial';
@@ -97,43 +99,33 @@ class CitaController {
         $conn->begin_transaction();
 
         try {
-            // 1. Registrar o obtener CLIENTE (SIN procedimiento)
-            $sql_verificar = "SELECT id FROM CLIENTE WHERE telefono = ? LIMIT 1";
-            $stmt_verificar = $conn->prepare($sql_verificar);
-            $stmt_verificar->bind_param("s", $telefono);
-            $stmt_verificar->execute();
-            $result_verificar = $stmt_verificar->get_result();
+            // 1. Registrar o obtener CLIENTE
+            $sql_cliente = "CALL registrar_cliente(?, ?, ?, ?, ?, ?, @id_cliente)";
+            $stmt_cliente = $conn->prepare($sql_cliente);
+            $stmt_cliente->bind_param("ssssss", 
+                $nombre_dueno,
+                $ape_pat,
+                $ape_mat,
+                $telefono,
+                $email,
+                $direccion
+            );
+            $stmt_cliente->execute();
+            $stmt_cliente->close();
             
-            if ($row = $result_verificar->fetch_assoc()) {
-                // Cliente ya existe
-                $id_cliente = $row['id'];
-                
-                // Actualizar datos por si cambiaron
-                $sql_update = "UPDATE CLIENTE SET nombre = ?, ape_pat = ?, ape_mat = ?, email = ?, direccion = ? WHERE id = ?";
-                $stmt_update = $conn->prepare($sql_update);
-                $stmt_update->bind_param("sssssi", $nombre_dueno, $ape_pat, $ape_mat, $email, $direccion, $id_cliente);
-                $stmt_update->execute();
-                $stmt_update->close();
-                
-                error_log("Cliente existente reutilizado - ID: {$id_cliente}, Teléfono: {$telefono}");
-            } else {
-                // Crear nuevo cliente
-                $sql_insert = "INSERT INTO CLIENTE (nombre, ape_pat, ape_mat, telefono, email, direccion) 
-                                VALUES (?, ?, ?, ?, ?, ?)";
-                $stmt_insert = $conn->prepare($sql_insert);
-                $stmt_insert->bind_param("ssssss", $nombre_dueno, $ape_pat, $ape_mat, $telefono, $email, $direccion);
-                $stmt_insert->execute();
-                $id_cliente = $conn->insert_id;
-                $stmt_insert->close();
-                
-                error_log("Cliente nuevo creado - ID: {$id_cliente}, Nombre: {$nombre_dueno}, Teléfono: {$telefono}");
-            }
-            $stmt_verificar->close();
+            $result = $conn->query("SELECT @id_cliente as id_cliente");
+            $id_cliente = $result->fetch_assoc()['id_cliente'];
+            $conn->next_result();
+            
+            $ids_citas = [];
+            $mascotas_registradas = [];
+            $contador_mascota = 0;
             
             // 2. Procesar cada mascota y crear su cita
             foreach($mascotas_tipo as $idx => $tipo) {
                 $id_mascota = null;
                 $nombre_mascota_actual = '';
+                $contador_mascota++;
                 
                 if($tipo === 'nueva' && isset($mascotas_nuevas[$idx])) {
                     // ========== MASCOTA NUEVA ==========
@@ -143,9 +135,8 @@ class CitaController {
                     $raza = trim($mascota['raza'] ?? '');
                     $genero = $mascota['genero'] ?? null;
                     
-                    // Validar nombre de mascota
                     if(empty($nombre_mascota_actual)) {
-                        throw new Exception("El nombre de la mascota #" . ($idx + 1) . " es requerido");
+                        throw new Exception("El nombre de la mascota #" . ($contador_mascota) . " es requerido");
                     }
                     if (!preg_match('/^[a-zA-ZáéíóúñÁÉÍÓÚÑ\s]+$/', $nombre_mascota_actual)) {
                         throw new Exception("El nombre de la mascota solo debe contener letras");
@@ -186,13 +177,14 @@ class CitaController {
                     // ========== MASCOTA EXISTENTE ==========
                     $id_mascota = (int)$mascotas_existentes[$idx]['id'];
                     
-                    // Obtener nombre de la mascota para el mensaje
-                    $sql_nombre = "SELECT nombre_mascota FROM MASCOTA WHERE id = ?";
+                    $sql_nombre = "SELECT nombre_mascota, especie FROM MASCOTA WHERE id = ?";
                     $stmt_nombre = $conn->prepare($sql_nombre);
                     $stmt_nombre->bind_param("i", $id_mascota);
                     $stmt_nombre->execute();
                     $result_nombre = $stmt_nombre->get_result();
-                    $nombre_mascota_actual = $result_nombre->fetch_assoc()['nombre_mascota'];
+                    $mascota_data = $result_nombre->fetch_assoc();
+                    $nombre_mascota_actual = $mascota_data['nombre_mascota'];
+                    $especie_mascota = $mascota_data['especie'];
                     $stmt_nombre->close();
                 }
                 
@@ -207,41 +199,42 @@ class CitaController {
                     $ids_citas[] = $id_cita;
                     $stmt_cita->close();
                     
+                    // 3. Agregar servicios SOLO para esta mascota
+                    $servicios_mascota = $servicios_por_mascota[$idx] ?? [];
+                    
+                    if (!empty($servicios_mascota)) {
+                        foreach($servicios_mascota as $id_servicio) {
+                            // Obtener precio actual del servicio
+                            $sql_precio = "SELECT precio FROM SERVICIO WHERE id = ?";
+                            $stmt_precio = $conn->prepare($sql_precio);
+                            $stmt_precio->bind_param("i", $id_servicio);
+                            $stmt_precio->execute();
+                            $result_precio = $stmt_precio->get_result();
+                            $servicio_data = $result_precio->fetch_assoc();
+                            $precio = $servicio_data['precio'];
+                            $stmt_precio->close();
+                            
+                            // Insertar en DETALLE_CITA
+                            $sql_detalle = "INSERT INTO DETALLE_CITA (id_cita, id_servicio, precio_fijado) VALUES (?, ?, ?)";
+                            $stmt_detalle = $conn->prepare($sql_detalle);
+                            $stmt_detalle->bind_param("iid", $id_cita, $id_servicio, $precio);
+                            $stmt_detalle->execute();
+                            $stmt_detalle->close();
+                        }
+                    }
+                    
                     $mascotas_registradas[] = [
                         'id' => $id_mascota,
                         'nombre' => $nombre_mascota_actual,
-                        'id_cita' => $id_cita
+                        'id_cita' => $id_cita,
+                        'servicios' => array_keys($servicios_mascota)
                     ];
-                }
-            }
-            
-            // 3. Agregar los mismos servicios a TODAS las citas creadas
-            if (!empty($servicios) && !empty($ids_citas)) {
-                foreach($ids_citas as $id_cita) {
-                    foreach($servicios as $id_servicio) {
-                        // Obtener precio actual del servicio
-                        $sql_precio = "SELECT precio FROM SERVICIO WHERE id = ?";
-                        $stmt_precio = $conn->prepare($sql_precio);
-                        $stmt_precio->bind_param("i", $id_servicio);
-                        $stmt_precio->execute();
-                        $result_precio = $stmt_precio->get_result();
-                        $servicio_data = $result_precio->fetch_assoc();
-                        $precio = $servicio_data['precio'];
-                        $stmt_precio->close();
-                        
-                        // Insertar en DETALLE_CITA
-                        $sql_detalle = "INSERT INTO DETALLE_CITA (id_cita, id_servicio, precio_fijado) VALUES (?, ?, ?)";
-                        $stmt_detalle = $conn->prepare($sql_detalle);
-                        $stmt_detalle->bind_param("iid", $id_cita, $id_servicio, $precio);
-                        $stmt_detalle->execute();
-                        $stmt_detalle->close();
-                    }
                 }
             }
             
             $conn->commit();
             
-            // 4. Preparar mensaje de éxito con todas las mascotas
+            // 4. Preparar mensaje de éxito con detalle de servicios por mascota
             $lista_mascotas = [];
             foreach($mascotas_registradas as $m) {
                 $lista_mascotas[] = $m['nombre'];
@@ -249,12 +242,13 @@ class CitaController {
             $mensaje_mascotas = implode(', ', $lista_mascotas);
             $total_citas = count($ids_citas);
             
+            // Crear mensaje detallado
+            $detalle_mensaje = "Se han agendado {$total_citas} cita(s) para: " . $mensaje_mascotas . ". Fecha: " . date('d/m/Y', strtotime($fecha_cita)) . " a las {$hora_cita}.";
+            
             $_SESSION['notificacion'] = [
                 'tipo' => 'success',
                 'titulo' => $total_citas > 1 ? '¡Citas Agendadas!' : '¡Cita Agendada!',
-                'mensaje' => $total_citas > 1 
-                    ? "Se han agendado {$total_citas} citas para las mascotas: {$mensaje_mascotas}. Fecha: " . date('d/m/Y', strtotime($fecha_cita)) . " a las {$hora_cita}. Te contactaremos para confirmar."
-                    : "Tu cita para {$mensaje_mascotas} el " . date('d/m/Y', strtotime($fecha_cita)) . " a las {$hora_cita} ha sido registrada. Te contactaremos para confirmar."
+                'mensaje' => $detalle_mensaje . " Te contactaremos para confirmar."
             ];
             
             // Guardar última cita (la primera) para QR
