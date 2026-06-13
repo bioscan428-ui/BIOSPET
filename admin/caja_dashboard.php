@@ -129,7 +129,7 @@ $movimientos_recientes = $conn->query($sql_movimientos);
 $total_productos = $conn->query("SELECT COUNT(*) as total FROM PRODUCTO WHERE activo = 1")->fetch_assoc()['total'];
 $stock_bajo_total = $conn->query("SELECT COUNT(*) as total FROM PRODUCTO WHERE activo = 1 AND maneja_stock = 1 AND stock_actual <= stock_minimo")->fetch_assoc()['total'];
 $agotados = $conn->query("SELECT COUNT(*) as total FROM PRODUCTO WHERE activo = 1 AND maneja_stock = 1 AND stock_actual = 0")->fetch_assoc()['total'];
-$valor_inventario = $conn->query("SELECT SUM(stock_actual * precio_compra) as total FROM PRODUCTO WHERE activo = 1 AND maneja_stock = 1")->fetch_assoc()['total'];
+$valor_inventario = $conn->query("SELECT SUM(stock_actual * precio_venta) as total FROM PRODUCTO WHERE activo = 1 AND maneja_stock = 1")->fetch_assoc()['total'];
 ?>
 <!DOCTYPE html>
 <html lang="es">
