@@ -199,20 +199,34 @@ class CitaController {
                     $ids_citas[] = $id_cita;
                     $stmt_cita->close();
                     
-                    // 3. Agregar servicios SOLO para esta mascota
+                    // 3. Agregar servicios SOLO para esta mascota (VERSIÓN CORREGIDA)
                     $servicios_mascota = $servicios_por_mascota[$idx] ?? [];
                     
                     if (!empty($servicios_mascota)) {
-                        foreach($servicios_mascota as $id_servicio) {
-                            // Obtener precio actual del servicio
-                            $sql_precio = "SELECT precio FROM SERVICIO WHERE id = ?";
-                            $stmt_precio = $conn->prepare($sql_precio);
-                            $stmt_precio->bind_param("i", $id_servicio);
-                            $stmt_precio->execute();
-                            $result_precio = $stmt_precio->get_result();
-                            $servicio_data = $result_precio->fetch_assoc();
-                            $precio = $servicio_data['precio'];
-                            $stmt_precio->close();
+                        foreach($servicios_mascota as $id_servicio => $valor) {
+                            // Asegurar que $id_servicio es un número entero
+                            $id_servicio = (int)$id_servicio;
+                            
+                            // Validar que el ID sea válido
+                            if ($id_servicio <= 0) {
+                                error_log("ID de servicio inválido: $id_servicio");
+                                continue;
+                            }
+                            
+                            // Verificar que el servicio existe en la base de datos
+                            $sql_check = "SELECT id, precio FROM SERVICIO WHERE id = ? AND activo = 1";
+                            $stmt_check = $conn->prepare($sql_check);
+                            $stmt_check->bind_param("i", $id_servicio);
+                            $stmt_check->execute();
+                            $servicio_existente = $stmt_check->get_result()->fetch_assoc();
+                            $stmt_check->close();
+                            
+                            if (!$servicio_existente) {
+                                error_log("ERROR: Servicio ID $id_servicio no existe o está inactivo en la tabla SERVICIO");
+                                continue; // Saltar este servicio
+                            }
+                            
+                            $precio = $servicio_existente['precio'];
                             
                             // Insertar en DETALLE_CITA
                             $sql_detalle = "INSERT INTO DETALLE_CITA (id_cita, id_servicio, precio_fijado) VALUES (?, ?, ?)";
